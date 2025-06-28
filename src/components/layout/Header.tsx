@@ -86,7 +86,7 @@ const Header = ({ title }: HeaderProps) => {
 
   return (
     <header className="h-16 border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 bg-white/80 backdrop-blur-sm z-20">
-      <h1 className="text-xl font-semibold">{}</h1>
+      <h1 className="text-xl font-semibold">{ }</h1>
       {/* title */}
       <div className="flex items-center gap-4">
         {/* <div className="relative max-w-xs w-72 hidden md:block">
@@ -149,14 +149,16 @@ const Header = ({ title }: HeaderProps) => {
             {isLoggedIn && (
               <>
                 <DropdownMenuItem asChild>
-                  <Link to="/ProfileAdmin" className="flex items-center w-full">
+                  <Link to="/admin/profile" className="flex items-center w-full">
                     <User className="mr-2 h-4 w-4" />
                     <span>Hồ sơ</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <SettingsIcon className="mr-2 h-4 w-4" />
-                  <span>Cài đặt</span>
+                  <Link to="/admin/settings" className="flex items-center w-full">
+                    <SettingsIcon className="mr-2 h-4 w-4" />
+                    <span>Cài đặt</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-red-600" onClick={handleLogout}>

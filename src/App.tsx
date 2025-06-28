@@ -55,13 +55,15 @@ import AdminLoaiSanPham from "./pages/admin/AdminLoaiSanPham";
 import VoucherUser from "./components/layout/voucher/VoucherUser";
 import PaymentSuccess from "./pages/user/PaymentSuccess";
 import PaymentFail from "./pages/user/PaymentFail";
-
 import HeroSection from "./components/default/HeroSection";
 import Newsletter from "./components/default/Newsletter";
 import Features from "./components/default/Features";
 import Testing from "./components/default/Testing";
 import DiaChi from "./components/default/DiaChi";
-
+import CategoryView from "./components/default/CategoryView";
+import SelectSize from "./components/default/SelectSize";
+import SupportChat from "./components/default/SupportChat";
+import { BlogDetailComponent } from "./components/blogs/BlogDetailComponent";
 const GoogleCallbackHandler = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -100,6 +102,13 @@ const GoogleCallbackHandler = () => {
       });
 
       // Phát sự kiện tùy chỉnh để thông báo rằng localStorage đã thay đổi
+      console.log("✅ Đăng nhập Google:");
+      console.log("🔐 Token:", token);
+      console.log("👤 UserID:", userId);
+      console.log("📧 Email:", email);
+      console.log("🧑‍💼 Họ tên:", name);
+      console.log("🎭 Vai trò:", role);
+
       window.dispatchEvent(new Event("storageChange"));
 
       toast({

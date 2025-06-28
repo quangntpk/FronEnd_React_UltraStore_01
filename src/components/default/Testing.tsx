@@ -95,7 +95,9 @@ const Testing: React.FC = () => {
         title: 'Lỗi',
         text: 'Vui lòng chọn cả hai tệp hình ảnh!',
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -129,7 +131,9 @@ const Testing: React.FC = () => {
           title: 'Lỗi',
           text: data.errorMessage || 'Có lỗi xảy ra khi xử lý yêu cầu',
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
+          showCloseButton: true,
         });
       }
     } catch (error) {
@@ -139,7 +143,9 @@ const Testing: React.FC = () => {
         title: 'Lỗi',
         text: 'Có lỗi xảy ra khi gửi yêu cầu đến API',
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setLoading(false);

@@ -375,7 +375,9 @@ const DiaChi = () => {
           title: "Lỗi",
           text: "Không thể lấy danh sách tỉnh/thành phố",
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
+          showCloseButton: true,
         });
       } finally {
         setIsLoadingProvinces(false);
@@ -414,7 +416,9 @@ const DiaChi = () => {
           title: "Lỗi",
           text: "Không thể lấy danh sách quận/huyện",
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
+          showCloseButton: true,
         });
       } finally {
         setIsLoadingDistricts(false);
@@ -449,7 +453,9 @@ const DiaChi = () => {
           title: "Lỗi",
           text: "Không thể lấy danh sách phường/xã",
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
+          showCloseButton: true,
         });
       } finally {
         setIsLoadingWards(false);
@@ -474,7 +480,9 @@ const DiaChi = () => {
         title: "Lỗi",
         text: "Không thể lấy danh sách địa chỉ",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setIsLoading(false);
@@ -535,7 +543,9 @@ const DiaChi = () => {
         title: "Lỗi",
         text: "Vui lòng điền đầy đủ và đúng thông tin",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -548,7 +558,9 @@ const DiaChi = () => {
             title: "Lỗi",
             text: "Bạn chỉ có thể có tối đa 5 địa chỉ",
             timer: 3000,
+            timerProgressBar: true,
             showConfirmButton: false,
+            showCloseButton: true,
           });
           setActiveTab("list");
           addressListRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -565,7 +577,9 @@ const DiaChi = () => {
           title: "Thành công",
           text: "Đã thêm địa chỉ mới",
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
+          showCloseButton: true,
         });
         await fetchDiaChiList();
         setActiveTab("list");
@@ -587,7 +601,9 @@ const DiaChi = () => {
           title: "Thành công",
           text: "Đã cập nhật địa chỉ",
           timer: 3000,
+          timerProgressBar: true,
           showConfirmButton: false,
+          showCloseButton: true,
         });
         await fetchDiaChiList();
       }
@@ -600,7 +616,9 @@ const DiaChi = () => {
         title: "Lỗi",
         text: `Không thể ${formMode === "add" ? "thêm" : "cập nhật"} địa chỉ`,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     }
   };
@@ -624,7 +642,9 @@ const DiaChi = () => {
         title: "Thành công",
         text: "Đã xóa địa chỉ",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (error) {
       console.error("Error deleting address:", error);
@@ -633,7 +653,9 @@ const DiaChi = () => {
         title: "Lỗi",
         text: "Không thể xóa địa chỉ",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setShowDeleteModal(false);
@@ -665,7 +687,9 @@ const DiaChi = () => {
         title: "Thành công",
         text: "Đã chọn địa chỉ",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       await fetchDiaChiList();
     } catch (error) {
@@ -673,9 +697,10 @@ const DiaChi = () => {
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: "Không thể chọn địa chỉ",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setShowSelectModal(false);
@@ -743,7 +768,9 @@ const DiaChi = () => {
                   title: "Lỗi",
                   text: "Không thể lấy danh sách phường/xã",
                   timer: 3000,
+                  timerProgressBar: true,
                   showConfirmButton: false,
+                  showCloseButton: true,
                 });
               });
           }
@@ -755,7 +782,9 @@ const DiaChi = () => {
             title: "Lỗi",
             text: "Không thể lấy danh sách quận/huyện",
             timer: 3000,
+            timerProgressBar: true,
             showConfirmButton: false,
+            showCloseButton: true,
           });
         });
     }
@@ -808,7 +837,9 @@ const DiaChi = () => {
                   title: "Lỗi",
                   text: "Không thể lấy danh sách phường/xã",
                   timer: 3000,
+                  timerProgressBar: true,
                   showConfirmButton: false,
+                  showCloseButton: true,
                 });
               });
           }
@@ -820,7 +851,9 @@ const DiaChi = () => {
             title: "Lỗi",
             text: "Không thể lấy danh sách quận/huyện",
             timer: 3000,
+            timerProgressBar: true,
             showConfirmButton: false,
+            showCloseButton: true,
           });
         });
     }
@@ -840,11 +873,10 @@ const DiaChi = () => {
                 setActiveTab("add");
                 openAddForm();
               }}
-              className={`relative px-6 py-2 text-sm font-semibold rounded-md transition-all duration-300 ease-in-out ${
-                activeTab === "add"
+              className={`relative px-6 py-2 text-sm font-semibold rounded-md transition-all duration-300 ease-in-out ${activeTab === "add"
                   ? "bg-[#9b87f5] text-white shadow-md"
                   : "bg-transparent text-gray-800 hover:bg-gray-200"
-              }`}
+                }`}
             >
               Thêm địa chỉ mới
               {activeTab === "add" && (
@@ -853,11 +885,10 @@ const DiaChi = () => {
             </button>
             <button
               onClick={() => setActiveTab("list")}
-              className={`relative px-6 py-2 text-sm font-semibold rounded-md transition-all duration-300 ease-in-out ${
-                activeTab === "list"
+              className={`relative px-6 py-2 text-sm font-semibold rounded-md transition-all duration-300 ease-in-out ${activeTab === "list"
                   ? "bg-[#9b87f5] text-white shadow-md"
                   : "bg-transparent text-gray-800 hover:bg-gray-200"
-              }`}
+                }`}
             >
               Danh sách địa chỉ
               {activeTab === "list" && (
@@ -892,7 +923,7 @@ const DiaChi = () => {
 
         {/* Address List Section */}
         {activeTab === "list" && (
-          <div className="space-y-4" style={{ maxHeight: "500px", overflowY: "auto" }} ref={addressListRef}>
+          <div className="space-y-4" ref={addressListRef}>
             {isLoading ? (
               <p className="text-gray-800">Đang tải danh sách địa chỉ...</p>
             ) : diaChiList.length === 0 ? (
@@ -901,9 +932,8 @@ const DiaChi = () => {
               diaChiList.map((dc: DiaChi) => (
                 <div
                   key={dc.maDiaChi}
-                  className={`border p-4 rounded-lg bg-white shadow-sm ${
-                    dc.trangThai === 1 ? "border-[#9b87f5]" : "border-gray-300"
-                  } flex justify-between items-start`}
+                  className={`border p-4 rounded-lg bg-white shadow-sm ${dc.trangThai === 1 ? "border-[#9b87f5]" : "border-gray-300"
+                    } flex justify-between items-start`}
                 >
                   <div>
                     <p><strong className="font-semibold text-gray-800">Họ tên:</strong> {dc.hoTen}</p>

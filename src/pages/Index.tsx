@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import HeroSection from "@/components/default/HeroSection";
 import Newsletter from "@/components/default/Newsletter";
 import Features from "@/components/default/Features";
+import CategoryView from "@/components/default/CategoryView";
 import {
   Carousel,
   CarouselContent,
@@ -724,7 +725,7 @@ const Index = () => {
     <div className="space-y-16 py-6">
       {/* Hero Section */}
       <HeroSection />
-
+      <CategoryView />
       {/* Features */}
       <Features />
 

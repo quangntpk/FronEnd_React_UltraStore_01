@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import ProductHoverDetail from "@/components/user/ProductHoverDetail"
 import { 
   Card, 
   CardContent
@@ -359,21 +360,17 @@ const ComboDetail = () => {
             <div className="space-y-3">
               {combo.products.map((product: any) => (
                 <div key={product.id} className="bg-gray-50 p-4 rounded-md">
-                  <div className="flex items-center gap-3 mb-3">
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="w-14 h-14 rounded object-cover"
-                    />
-                    <div>
-                      <h4 className="font-medium">
-                        <Link to={`/products/${product.id}`} className="hover:text-crocus-600 transition-colors">
-                          {product.name}
-                        </Link>
-                      </h4>
-                      <p className="text-sm text-gray-600">{(product.price/1000).toFixed(3)} VND</p>
-                    </div>
-                  </div>
+                  <ProductHoverDetail
+                    product={{
+                      id: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.image,
+                      colors: product.colors,
+                      sizes: product.sizes,
+                      description: product.description || "Không có mô tả chi tiết",
+                    }}
+                  />
                   <div className="space-y-2">
                     <div>
                       <label className="block text-sm font-medium mb-1">Màu Sắc</label>

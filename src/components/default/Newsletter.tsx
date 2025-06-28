@@ -21,7 +21,9 @@ const Newsletter = () => {
         title: "Lỗi",
         text: "Vui lòng nhập email.",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -31,7 +33,9 @@ const Newsletter = () => {
         title: "Lỗi",
         text: "Email không hợp lệ.",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -57,7 +61,9 @@ const Newsletter = () => {
         title: "Thành công",
         text: "Bạn đã đăng ký nhận tin tức thành công! Kiểm tra email để nhận thông báo chào mừng.",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Lỗi khi đăng ký nhận tin tức.";
@@ -66,7 +72,9 @@ const Newsletter = () => {
         title: "Lỗi",
         text: errorMessage,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setLoading(false);

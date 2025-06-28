@@ -119,6 +119,8 @@ const AdminContact = () => {
   const [confirmStatusChange, setConfirmStatusChange] = useState(null);
   const hubConnection = useRef(null);
   const searchTimeout = useRef(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchLienHe();
@@ -190,7 +192,9 @@ const AdminContact = () => {
         title: "Lỗi",
         text: "Lỗi khi tải danh sách liên hệ: " + err.message,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setLoading(false);
@@ -241,7 +245,9 @@ const AdminContact = () => {
         title: "Lỗi",
         text: "Lỗi khi tải dữ liệu thống kê: " + err.message,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setLoading(false);
@@ -308,7 +314,9 @@ const AdminContact = () => {
         title: "Thành công",
         text: "Cập nhật trạng thái thành công!",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (err) {
       setError(err.message);
@@ -317,12 +325,15 @@ const AdminContact = () => {
         title: "Lỗi",
         text: "Lỗi khi cập nhật trạng thái: " + err.message,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setStatusLoading((prev) => ({ ...prev, [contact.maLienHe]: false }));
       closeConfirmStatusChange();
     }
+    setIsConfirming(false);
   };
 
   const handleSelectLienHe = (id) => {
@@ -343,13 +354,16 @@ const AdminContact = () => {
   };
 
   const confirmDelete = async () => {
+    setIsDeleting(true);
     if (!deleteContact && selectedLienHeIds.length === 0) {
       Swal.fire({
         icon: "error",
         title: "Lỗi",
         text: "Vui lòng chọn ít nhất một liên hệ để xóa.",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       setDeleteContact(null);
       return;
@@ -377,7 +391,9 @@ const AdminContact = () => {
         title: "Thành công",
         text: "Xóa liên hệ thành công!",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (err) {
       setError(err.message);
@@ -386,9 +402,12 @@ const AdminContact = () => {
         title: "Lỗi",
         text: "Lỗi khi xóa liên hệ: " + err.message,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     }
+    setIsDeleting(false);
   };
 
   const openSupportModal = (contact) => {
@@ -439,7 +458,9 @@ const AdminContact = () => {
         title: "Thành công",
         text: "Gửi hỗ trợ thành công!",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       closeSupportModal();
     } catch (err) {
@@ -449,7 +470,9 @@ const AdminContact = () => {
         title: "Lỗi",
         text: "Lỗi khi gửi email hỗ trợ: " + err.message,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setIsSending(false);
@@ -923,8 +946,14 @@ const AdminContact = () => {
               <Button variant="ghost" onClick={() => setDeleteContact(null)} className="flex items-center gap-2 bg-[#e7e4f5]">
                 <XCircle className="h-4 w-4" /> Hủy
               </Button>
-              <Button variant="destructive" onClick={confirmDelete} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-                <Trash className="h-4 w-4 mr-2" /> Xóa
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2"
+              >
+                {isDeleting ? "Đang xóa..." : "Xóa"}
+                <Trash className="h-4 w-4 mr-2" />
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -944,8 +973,13 @@ const AdminContact = () => {
               <Button variant="ghost" onClick={closeConfirmStatusChange} className="flex items-center gap-2 bg-[#e7e4f5]">
                 <XCircle className="h-4 w-4" /> Hủy
               </Button>
-              <Button onClick={handleConfirmStatusChange} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" /> Xác nhận
+              <Button
+                onClick={handleConfirmStatusChange}
+                disabled={isConfirming}
+                className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2"
+              >
+                {isConfirming ? "Đang xử lý..." : "Xác nhận"}
+                <CheckCircle className="h-4 w-4" />
               </Button>
             </DialogFooter>
           </DialogContent>

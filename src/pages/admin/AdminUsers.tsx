@@ -547,7 +547,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: "Không tìm thấy mã người dùng",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -590,7 +592,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: "Không thể xác định người dùng hoặc trạng thái",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -632,7 +636,9 @@ const AdminUsers = () => {
         title: "Thành công",
         text: "Cập nhật trạng thái thành công",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (err) {
       Swal.fire({
@@ -640,7 +646,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: (err as Error).message || "Lỗi khi cập nhật trạng thái",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setIsSubmitting(false);
@@ -698,7 +706,9 @@ const AdminUsers = () => {
         title: "Thành công",
         text: "Thêm người dùng thành công",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (err) {
       Swal.fire({
@@ -706,7 +716,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: (err as Error).message || "Lỗi khi thêm người dùng",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setLoading(false);
@@ -739,7 +751,9 @@ const AdminUsers = () => {
         title: "Thành công",
         text: `Đã ${confirmationAction === "hide" ? "xóa" : confirmationAction === "restore" ? "khôi phục" : "xóa vĩnh viễn"} người dùng thành công`,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (err) {
       Swal.fire({
@@ -747,7 +761,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: (err as Error).message,
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setConfirmationOpen(false);
@@ -779,7 +795,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: "Vui lòng chọn file hình ảnh",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     }
   };
@@ -824,7 +842,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: "Không tìm thấy mã người dùng để cập nhật",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -878,7 +898,9 @@ const AdminUsers = () => {
         title: "Thành công",
         text: "Cập nhật chi tiết người dùng thành công",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
       setUpdateChiTietModalOpen(false);
     } catch (err) {
@@ -887,7 +909,9 @@ const AdminUsers = () => {
         title: "Lỗi",
         text: (err as Error).message || "Lỗi khi cập nhật chi tiết người dùng",
         timer: 3000,
+        timerProgressBar: true,
         showConfirmButton: false,
+        showCloseButton: true,
       });
     } finally {
       setIsSubmitting(false);

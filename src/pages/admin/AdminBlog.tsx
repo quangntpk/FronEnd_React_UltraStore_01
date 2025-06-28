@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from "react-icons/fa";
 import {
@@ -29,13 +28,20 @@ import toast, { Toaster } from "react-hot-toast";
 
 // Định nghĩa interface cho Blog
 interface Blog {
-  maBlog: number;
+  maBlog: number | null;
   maNguoiDung: string;
-  hoTen: string | null;
+  hoTen?: string | null;
   ngayTao: string;
-  noiDung: string;
+  ngayCapNhat?: string;
   tieuDe: string;
-  hinhAnh: string | null;
+  noiDung: string;
+  slug?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  hinhAnh?: string | null;
+  moTaHinhAnh?: string;
+  isPublished: boolean;
+  tags?: string[];
 }
 
 // Hàm định dạng ngày giờ
@@ -57,12 +63,19 @@ const Blogs = () => {
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
-  const [newBlog, setNewBlog] = useState({
+  const [newBlog, setNewBlog] = useState<Blog>({
+    maBlog: null,
     maNguoiDung: "",
     tieuDe: "",
     noiDung: "",
-    ngayTao: "",
+    ngayTao: new Date().toISOString().split("T")[0], // Đặt ngày tạo mặc định là hôm nay
+    slug: "",
+    metaTitle: "",
+    metaDescription: "",
     hinhAnh: "",
+    moTaHinhAnh: "",
+    isPublished: false,
+    tags: []
   });
   const [editBlog, setEditBlog] = useState<Blog | null>(null);
   const [isDraggingCreate, setIsDraggingCreate] = useState(false);
@@ -74,7 +87,7 @@ const Blogs = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5261/api/Blog`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog`);
       if (!response.ok) throw new Error("Không thể lấy dữ liệu blog");
       const data: Blog[] = await response.json();
       setBlogs(data);
@@ -486,7 +499,6 @@ const Blogs = () => {
               >
                 Trước
               </Button>
-
               {getPageNumbers().map((page) => (
                 <Button
                   key={page}
