@@ -238,7 +238,7 @@ const Combos = () => {
           <p className="text-muted-foreground mt-1">Quản lý combo trong cửa hàng của bạn</p>
         </div>
         <Button
-          className="bg-purple hover:bg-purple-medium"
+          className="bg-purple-400 hover:bg-purple-500 text-white" 
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Thêm Combo Mới

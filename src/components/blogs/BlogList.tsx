@@ -38,13 +38,20 @@ interface BlogCardProps {
 
 const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
   const isMobile = useIsMobile();
-  const excerpt = post.noiDung.length > 100 ? post.noiDung.slice(0, 100) + "..." : post.noiDung;
+  // Sử dụng metaDescription nếu có, nếu không thì dùng noiDung
+  const excerpt = post.metaDescription
+    ? post.metaDescription.length > 100
+      ? post.metaDescription.slice(0, 100) + "..."
+      : post.metaDescription
+    : post.noiDung.length > 100
+      ? post.noiDung.slice(0, 100) + "..."
+      : post.noiDung;
   const formattedDate = new Date(post.ngayTao).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-  const roleBackground = nguoiDung?.vaiTro === "Admin" ? "bg-red-500" : nguoiDung?.vaiTro === "NhanVien" ? "bg-green-500" : "bg-gray-500";
+  const roleBackground = nguoiDung?.vaiTro === "Admin" ? "bg-red-500" : nguoiDung?.vaiTro === "NhanVien" ? "bg-green-500" : "bg-gray-300";
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -164,7 +171,7 @@ export const BlogList = () => {
       case "title_asc":
         return [...filtered].sort((a, b) => a.tieuDe.localeCompare(b.tieuDe));
       case "title_desc":
-        return [...filtered].sort((a, b) => b.tieuDe.localeCompare(a.tieuDe));
+        return [...filtered].sort((a, b) => b.tieuDe.localeCompare(b.tieuDe));
       default:
         return filtered;
     }

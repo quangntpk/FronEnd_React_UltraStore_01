@@ -400,9 +400,13 @@ const Vouchers = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Voucher</h1>
         </div>
-        <Button className="bg-purple hover:bg-purple-medium" variant="outline" size="sm" onClick={() => setOpenCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Thêm Voucher
-        </Button>
+       <Button 
+  className="bg-purple-400 hover:bg-purple-500 text-white" 
+  size="sm" 
+  onClick={() => setOpenCreateModal(true)}
+>
+  <Plus className="h-4 w-4 mr-2" /> Thêm Voucher
+</Button>
       </div>
 
       <Card>
@@ -469,25 +473,25 @@ const Vouchers = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={() => handleDetailClick(item)} 
+                          <DropdownMenuItem
+                            onClick={() => handleDetailClick(item)}
                             className="flex items-center text-gray-700 hover:text-blue-600"
                           >
-                            <FaEye className="mr-2 h-4 w-4" /> 
+                            <FaEye className="mr-2 h-4 w-4" />
                             <span>Chi Tiết</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleEditClick(item)} 
+                          <DropdownMenuItem
+                            onClick={() => handleEditClick(item)}
                             className="flex items-center text-gray-700 hover:text-green-600"
                           >
-                            <FaEdit className="mr-2 h-4 w-4 text-green-500" /> 
+                            <FaEdit className="mr-2 h-4 w-4 text-green-500" />
                             <span>Sửa</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteClick(item)} 
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(item)}
                             className="flex items-center text-gray-700 hover:text-red-600"
                           >
-                            <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> 
+                            <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
                             <span>Xóa</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -722,9 +726,8 @@ const Vouchers = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-4 text-center ${
-                    isDraggingCreate ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                  }`}
+                  className={`border-2 border-dashed rounded-lg p-4 text-center ${isDraggingCreate ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                    }`}
                   onDragOver={handleDragOverCreate}
                   onDragLeave={handleDragLeaveCreate}
                   onDrop={handleDropCreate}
@@ -834,9 +837,8 @@ const Vouchers = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
                   <div
-                    className={`border-2 border-dashed rounded-lg p-4 text-center ${
-                      isDraggingEdit ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                    }`}
+                    className={`border-2 border-dashed rounded-lg p-4 text-center ${isDraggingEdit ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                      }`}
                     onDragOver={handleDragOverEdit}
                     onDragLeave={handleDragLeaveEdit}
                     onDrop={handleDropEdit}

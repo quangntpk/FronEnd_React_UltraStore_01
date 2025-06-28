@@ -227,17 +227,8 @@ const Products = () => {
           <p className="text-muted-foreground mt-1">Quản lý sản phẩm trong cửa hàng của bạn</p>
         </div>
        <Button
-          style={{
-            display: "block",
-            visibility: "visible",
-            opacity: 1,
-            backgroundColor: "#752CE0", // Màu ban đầu
-            color: "white", // Đổi chữ thành trắng để tương phản tốt với nền tím
-            transition: "background-color 0.3s ease", // Hiệu ứng chuyển màu mượt
-            minWidth: "300px", // Tăng chiều rộng tối thiểu
-            textAlign: "center", // Căn giữa nội dung
-          }}
-          className="flex items-center justify-center gap-2 px-4 py-2 rounded-md hover:bg-[#439ADE]"
+         
+           className="bg-purple-400 hover:bg-purple-500 text-white" 
           onClick={() => {
             console.log("Nút Thêm Sản Phẩm Mới được nhấn");
             setIsAddModalOpen(true);
