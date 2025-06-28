@@ -209,7 +209,7 @@ const ComboDetail = () => {
         KichThuoc: sizeQuantities[product.id][selections[product.id].sizeIndex].size,
       })),
     };
-
+    console.log(cartData)
     try {
       const response = await fetch("http://localhost:5261/api/Cart/ThemComboVaoGioHang", {
         method: "POST",

@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProductList from "./pages/products/ProductList";
-import ProductDetail from "./pages/products/ProductDetail";
+import ProductDetail from "@/pages/products/ProductDetail"
 import CombosList from "./pages/combos/CombosList";
 import ComboDetail from "./pages/combos/ComboDetail";
 import BlogsList from "./pages/blogs/BlogsList";
@@ -26,11 +26,12 @@ import Profile from "./pages/user/Profile";
 import Cart from "./pages/user/Cart";
 import Checkout from "./pages/user/Checkout";
 import Orders from "./pages/user/Orders";
+import OrderEmailPage from "./components/user/OrderEmailPage";
 import ViewProfile from "./pages/user/ViewProfile";
 import Messages from "./pages/user/Messages";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import AdminBuy from "./pages/admin/AdminBuy";
-
+import HoaDon from "./pages/user/HoaDon"
 import StaffOrders from "./pages/admin/AdminOrders";
 import StaffInventory from "./pages/staff/StaffInventory";
 import InventoryForm from "./pages/staff/InventoryForm";
@@ -165,7 +166,8 @@ const App = () => (
               <Route path="newsletter" element={<Newsletter />} />
               <Route path="features" element={<Features />} />
               <Route path="testing" element={<Testing />} />
-
+              <Route path="/user/hoadon/:orderId" element={<OrderEmailPage />} />
+              <Route path="/user/hoadon" element={<HoaDon/>} />
             </Route>
 
             <Route path="/staff" element={<AdminLayout role="staff" />}>

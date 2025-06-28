@@ -384,8 +384,7 @@ const CartPage = () => {
   useEffect(() => {
     const fetchCartData = async () => {
       // FIX CỨNG TẠM
-      // const userId = localStorage.getItem("userId");
-      const userId = "KH001"
+      const userId = localStorage.getItem("userId");
       if (!userId) {
         Swal.fire({
           title: "Vui lòng đăng nhập!",
@@ -1358,7 +1357,7 @@ const CartPage = () => {
                                 "scrollY",
                                 window.scrollY.toString()
                               );
-                              navigate("/diachi", {
+                              navigate("/user/diachi", {
                                 state: { fromCart: true, showAddressModal },
                               });
                             }}

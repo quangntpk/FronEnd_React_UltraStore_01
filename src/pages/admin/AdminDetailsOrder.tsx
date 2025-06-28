@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-
 interface ComboProduct {
   tenSanPham: string | null;
   soLuong: number;
@@ -33,7 +32,20 @@ interface OrderDetail {
   thuongHieu: string | null;
   hinhAnh?: string | null;
 }
-
+interface ApiOrder {
+  maDonHang: number;
+  tenNguoiNhan: string;
+  sanPhams: OrderDetail[];
+  thongTinNguoiDung: UserInfo;
+  thongTinDonHang?: OrderInfo;              // có thể null
+  ngayDat: string;
+  trangThaiDonHang: number;
+  trangThaiThanhToan: number;
+  hinhThucThanhToan: string;
+  finalAmount: number;
+  tongTien: number;
+  // …thêm nếu API còn trường khác
+}
 interface UserInfo {
   tenNguoiNhan: string;
   diaChi: string;
@@ -67,48 +79,51 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchOrderDetails = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        console.log('Fetching order details for orderId:', orderId);
-        const response = await axios.get<OrderDetailsResponse>(`http://localhost:5261/api/orders/detail/${orderId}`);
-        console.log('API Response:', response.data);
+  const fetchOrderDetails = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get<ApiOrder[]>(
+        `http://localhost:5261/api/orders/${orderId}`
+      );
 
-        const data = response.data;
+      // API trả về mảng, lấy phần tử đầu
+      const raw = res.data[0];
+      if (!raw) throw new Error("Không có dữ liệu đơn hàng");
 
-        if (!data) {
-          throw new Error('Không tìm thấy chi tiết đơn hàng trong phản hồi');
-        }
+      /* ---- Chuẩn hoá về OrderDetailsResponse ---- */
+      const orderMapped: OrderDetailsResponse = {
+        maDonHang: raw.maDonHang,
+        tenNguoiNhan: raw.tenNguoiNhan,
+        sanPhams: raw.sanPhams ?? [],
+        thongTinNguoiDung: raw.thongTinNguoiDung ?? {
+          tenNguoiNhan: "",
+          diaChi: "",
+          sdt: "",
+          tenNguoiDat: "",
+        },
+        thongTinDonHang: {
+          ngayDat: raw.thongTinDonHang?.ngayDat ?? raw.ngayDat,
+          trangThai:
+            raw.thongTinDonHang?.trangThai ?? raw.trangThaiDonHang ?? 0,
+          thanhToan:
+            raw.thongTinDonHang?.thanhToan ?? raw.trangThaiThanhToan ?? 0,
+          hinhThucThanhToan:
+            raw.thongTinDonHang?.hinhThucThanhToan ??
+            raw.hinhThucThanhToan ??
+            "",
+        },
+      };
+      console.log(orderMapped)
+      setOrderDetails(orderMapped);
+    }  finally {
+      setLoading(false);
+    }
+  };
 
-        const orderData: OrderDetailsResponse = {
-          maDonHang: data.maDonHang,
-          tenNguoiNhan: data.tenNguoiNhan,
-          sanPhams: data.sanPhams || [],
-          thongTinNguoiDung: data.thongTinNguoiDung || {
-            tenNguoiNhan: '',
-            diaChi: '',
-            sdt: '',
-            tenNguoiDat: '',
-          },
-          thongTinDonHang: data.thongTinDonHang || {
-            ngayDat: '',
-            trangThai: 0,
-            thanhToan: 0,
-            hinhThucThanhToan: '',
-          },
-        };
+  fetchOrderDetails();
+}, [orderId]);
 
-        setOrderDetails(orderData);
-      } catch (error: any) {
-        console.error('Error fetching order details:', error);
-        setError(error.response?.data?.message || 'Không thể tải chi tiết đơn hàng. Vui lòng thử lại sau.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrderDetails();
-  }, [orderId]);
 
   if (loading) {
     return (
