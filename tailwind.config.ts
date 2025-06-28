@@ -11,6 +11,7 @@ export default {
 	],
 	prefix: "",
 	theme: {
+		
 		container: {
 			center: true,
 			padding: '2rem',
@@ -18,7 +19,20 @@ export default {
 				'2xl': '1400px'
 			}
 		},
+		
 		extend: {
+			typography: (theme) => ({
+				DEFAULT: {
+				css: {
+					h1: { fontSize: theme("fontSize.4xl"), fontWeight: "700" },
+					h2: { fontSize: theme("fontSize.3xl"), fontWeight: "600" },
+					h3: { fontSize: theme("fontSize.2xl"), fontWeight: "500" },
+					h4: { fontSize: theme("fontSize.xl"), fontWeight: "500" },
+					h5: { fontSize: theme("fontSize.lg"), fontWeight: "500" },
+					h6: { fontSize: theme("fontSize.base"), fontWeight: "500"},
+				},
+				},
+			}), 
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -105,5 +119,9 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("@tailwindcss/typography") 
+	],
+	
 } satisfies Config;

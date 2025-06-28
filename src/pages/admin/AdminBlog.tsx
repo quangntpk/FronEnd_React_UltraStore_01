@@ -68,21 +68,32 @@ const Blogs = () => {
     maNguoiDung: "",
     tieuDe: "",
     noiDung: "",
-    ngayTao: new Date().toISOString().split("T")[0], // Đặt ngày tạo mặc định là hôm nay
+    ngayTao: new Date().toISOString().split("T")[0],
     slug: "",
     metaTitle: "",
     metaDescription: "",
     hinhAnh: "",
     moTaHinhAnh: "",
     isPublished: false,
-    tags: []
+    tags: [],
   });
   const [editBlog, setEditBlog] = useState<Blog | null>(null);
   const [isDraggingCreate, setIsDraggingCreate] = useState(false);
   const [isDraggingEdit, setIsDraggingEdit] = useState(false);
+  const [maNguoiDung, setMaNguoiDung] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const blogsPerPage = 8;
+
+  // Lấy maNguoiDung từ localStorage khi component mount
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      setMaNguoiDung(userId);
+    } else {
+      toast.error("Không tìm thấy mã người dùng. Vui lòng đăng nhập lại.");
+    }
+  }, []);
 
   const fetchBlogs = async () => {
     try {
@@ -104,7 +115,7 @@ const Blogs = () => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/Blog/${blogToDelete.maBlog}`,
+        `${import.meta.env.VITE_API_URL}/api/Blog/${blogToDelete.maBlog}`,
         {
           method: "DELETE",
         }
@@ -126,27 +137,33 @@ const Blogs = () => {
   };
 
   const createBlog = async () => {
-    if (!newBlog.tieuDe || !newBlog.noiDung || !newBlog.maNguoiDung) {
+    if (!maNguoiDung) {
+      toast.error("Không tìm thấy mã người dùng.");
+      return;
+    }
+    if (!newBlog.tieuDe || !newBlog.noiDung) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
       return;
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog/CreateBlog`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          maNguoiDung: newBlog.maNguoiDung,
+          maNguoiDung: maNguoiDung,
           tieuDe: newBlog.tieuDe,
           noiDung: newBlog.noiDung,
-          ngayTao: newBlog.ngayTao ? new Date(newBlog.ngayTao).toISOString() : new Date().toISOString(),
+          ngayTao: newBlog.ngayTao
+            ? new Date(newBlog.ngayTao).toISOString()
+            : new Date().toISOString(),
           slug: newBlog.slug,
           metaTitle: newBlog.metaTitle,
           metaDescription: newBlog.metaDescription,
           hinhAnh: newBlog.hinhAnh || null,
           moTaHinhAnh: newBlog.moTaHinhAnh,
           isPublished: newBlog.isPublished,
-          tags: newBlog.tags
+          tags: newBlog.tags,
         }),
       });
 
@@ -162,14 +179,14 @@ const Blogs = () => {
         maNguoiDung: "",
         tieuDe: "",
         noiDung: "",
-        ngayTao: new Date().toISOString().split("T")[0], // Reset về ngày hôm nay
+        ngayTao: new Date().toISOString().split("T")[0],
         slug: "",
         metaTitle: "",
         metaDescription: "",
         hinhAnh: "",
         moTaHinhAnh: "",
         isPublished: false,
-        tags: []
+        tags: [],
       });
       toast.success("Thêm blog thành công!");
     } catch (error) {
@@ -181,30 +198,33 @@ const Blogs = () => {
   const editBlogSubmit = async () => {
     if (!editBlog) return;
 
-    if (!editBlog.tieuDe || !editBlog.noiDung || !editBlog.maNguoiDung) {
+    if (!editBlog.tieuDe || !editBlog.noiDung) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
       return;
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog/CreateBlog${editBlog.maBlog}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          maBlog: editBlog.maBlog,
-          maNguoiDung: editBlog.maNguoiDung,
-          tieuDe: editBlog.tieuDe,
-          noiDung: editBlog.noiDung,
-          ngayTao: new Date(editBlog.ngayTao).toISOString(),
-          slug: editBlog.slug,
-          metaTitle: editBlog.metaTitle,
-          metaDescription: editBlog.metaDescription,
-          hinhAnh: editBlog.hinhAnh || null,
-          moTaHinhAnh: editBlog.moTaHinhAnh,
-          isPublished: editBlog.isPublished,
-          tags: editBlog.tags
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/Blog/${editBlog.maBlog}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            maBlog: editBlog.maBlog,
+            maNguoiDung: editBlog.maNguoiDung,
+            tieuDe: editBlog.tieuDe,
+            noiDung: editBlog.noiDung,
+            ngayTao: new Date(editBlog.ngayTao).toISOString(),
+            slug: editBlog.slug,
+            metaTitle: editBlog.metaTitle,
+            metaDescription: editBlog.metaDescription,
+            hinhAnh: editBlog.hinhAnh || null,
+            moTaHinhAnh: editBlog.moTaHinhAnh,
+            isPublished: editBlog.isPublished,
+            tags: editBlog.tags,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -252,7 +272,7 @@ const Blogs = () => {
       metaTitle: blog.metaTitle || "",
       metaDescription: blog.metaDescription || "",
       moTaHinhAnh: blog.moTaHinhAnh || "",
-      tags: blog.tags || []
+      tags: blog.tags || [],
     });
     setOpenEditModal(true);
   };
@@ -348,7 +368,9 @@ const Blogs = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleFileInputChangeEdit = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChangeEdit = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
       handleImageChangeEdit(file);
@@ -399,7 +421,9 @@ const Blogs = () => {
 
       <Card className="shadow-lg rounded-xl bg-white">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-800">Danh Sách Blog</CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-800">
+            Danh Sách Blog
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-between items-start sm:items-center">
@@ -425,7 +449,9 @@ const Blogs = () => {
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500 text-lg">Đang tải...</div>
+            <div className="text-center py-8 text-gray-500 text-lg">
+              Đang tải...
+            </div>
           ) : currentBlogs.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {currentBlogs.map((item) => (
@@ -458,11 +484,18 @@ const Blogs = () => {
                     <div className="flex justify-end mt-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="border-gray-320 rounded-lg">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-320 rounded-lg"
+                          >
                             <FaEllipsisV className="h-4 w-4 text-gray-600" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
+                        <DropdownMenuContent
+                          align="end"
+                          className="rounded-lg shadow-lg"
+                        >
                           <DropdownMenuItem
                             onClick={() => handleDetailClick(item)}
                             className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md"
@@ -536,7 +569,9 @@ const Blogs = () => {
                 variant="outline"
                 size="sm"
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
               >
                 Sau
@@ -559,9 +594,12 @@ const Blogs = () => {
       <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
         <DialogContent className="rounded-lg shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">Xác nhận xóa blog</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">
+              Xác nhận xóa blog
+            </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Bạn có chắc chắn muốn xóa blog này không? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa blog này không? Hành động này không thể
+              hoàn tác.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6">
@@ -587,13 +625,17 @@ const Blogs = () => {
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
         <DialogContent className="max-w-5xl rounded-lg shadow-xl bg-white overflow-y-auto max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">Chi Tiết Blog</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">
+              Chi Tiết Blog
+            </DialogTitle>
           </DialogHeader>
           {selectedBlog && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Mã Blog</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Mã Blog
+                  </Label>
                   <Input
                     value={selectedBlog.maBlog || "Chưa cập nhật"}
                     disabled
@@ -601,7 +643,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Tiêu Đề</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Tiêu Đề
+                  </Label>
                   <Input
                     value={selectedBlog.tieuDe || "Chưa cập nhật"}
                     disabled
@@ -609,7 +653,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Người Tạo</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Người Tạo
+                  </Label>
                   <Input
                     value={selectedBlog.maNguoiDung || "Chưa cập nhật"}
                     disabled
@@ -617,7 +663,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Slug</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Slug
+                  </Label>
                   <Input
                     value={selectedBlog.slug || "Chưa cập nhật"}
                     disabled
@@ -627,7 +675,9 @@ const Blogs = () => {
               </div>
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Ngày Tạo</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Ngày Tạo
+                  </Label>
                   <Input
                     value={
                       selectedBlog.ngayTao
@@ -639,7 +689,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Hình Ảnh</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Hình Ảnh
+                  </Label>
                   {selectedBlog.hinhAnh ? (
                     <img
                       src={`data:image/jpeg;base64,${selectedBlog.hinhAnh}`}
@@ -655,7 +707,9 @@ const Blogs = () => {
                   )}
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Mô tả hình ảnh (ALT)</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Mô tả hình ảnh (ALT)
+                  </Label>
                   <Input
                     value={selectedBlog.moTaHinhAnh || "Chưa cập nhật"}
                     disabled
@@ -665,7 +719,9 @@ const Blogs = () => {
               </div>
               <div className="md:col-span-2 space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Nội Dung</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Nội Dung
+                  </Label>
                   <textarea
                     value={selectedBlog.noiDung || "Chưa cập nhật"}
                     disabled
@@ -673,7 +729,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Meta Title
+                  </Label>
                   <Input
                     value={selectedBlog.metaTitle || "Chưa cập nhật"}
                     disabled
@@ -681,7 +739,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Meta Description</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Meta Description
+                  </Label>
                   <Input
                     value={selectedBlog.metaDescription || "Chưa cập nhật"}
                     disabled
@@ -689,7 +749,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Tags</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Tags
+                  </Label>
                   <Input
                     value={selectedBlog.tags?.join(", ") || "Chưa cập nhật"}
                     disabled
@@ -704,7 +766,10 @@ const Blogs = () => {
                     disabled
                     className="h-5 w-5 text-blue-600 border-gray-300 rounded"
                   />
-                  <Label htmlFor="isPublishedDetail" className="text-sm font-semibold text-gray-700">
+                  <Label
+                    htmlFor="isPublishedDetail"
+                    className="text-sm font-semibold text-gray-700"
+                  >
                     Công khai?
                   </Label>
                 </div>
@@ -727,24 +792,16 @@ const Blogs = () => {
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
         <DialogContent className="max-w-5xl rounded-lg shadow-xl bg-white overflow-y-auto max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">Thêm Blog Mới</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">
+              Thêm Blog Mới
+            </DialogTitle>
           </DialogHeader>
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Mã Người Dùng</Label>
-                <Input
-                  name="maNguoiDung"
-                  type="text"
-                  placeholder="Mã người dùng"
-                  value={newBlog.maNguoiDung}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <Label className="block text-sm font-semibold text-gray-700">Tiêu Đề</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Tiêu Đề
+                </Label>
                 <Input
                   name="tieuDe"
                   placeholder="Tiêu đề"
@@ -755,7 +812,9 @@ const Blogs = () => {
                 />
               </div>
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Slug</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Slug
+                </Label>
                 <Input
                   name="slug"
                   placeholder="slug-url"
@@ -766,23 +825,25 @@ const Blogs = () => {
               </div>
             </div>
             <div className="space-y-4">
-              {/* <div>
-                <Label className="block text-sm font-semibold text-gray-700">Ngày Tạo</Label>
-                <Input
-                  name="ngayTao"
-                  type="date"
-                  placeholder="Ngày tạo"
-                  value={newBlog.ngayTao}
-                  onChange={handleInputChange}
-                  min={today}
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div> */}
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Hình Ảnh</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Ngày Tạo
+                </Label>
+                <Input
+                  value={formatDateTime(newBlog.ngayTao)}
+                  disabled
+                  className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Hình Ảnh
+                </Label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
-                    isDraggingCreate ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"
+                    isDraggingCreate
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300 bg-gray-50"
                   }`}
                   onDragOver={handleDragOverCreate}
                   onDragLeave={handleDragLeaveCreate}
@@ -827,7 +888,9 @@ const Blogs = () => {
                 )}
               </div>
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Mô tả hình ảnh (ALT)</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Mô tả hình ảnh (ALT)
+                </Label>
                 <Input
                   name="moTaHinhAnh"
                   placeholder="Mô tả hình ảnh"
@@ -839,7 +902,35 @@ const Blogs = () => {
             </div>
             <div className="md:col-span-2 space-y-4">
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Nội Dung</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Nội Dung
+                </Label>
+                <div className="flex items-center gap-3 mb-2">
+                  <select
+                    aria-label="Chọn kiểu định dạng nội dung"
+                    className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "paragraph") {
+                        setNewBlog({
+                          ...newBlog,
+                          noiDung: `<p>${newBlog.noiDung}</p>`,
+                        });
+                      } else if (value) {
+                        setNewBlog({
+                          ...newBlog,
+                          noiDung: `<${value}>${newBlog.noiDung}</${value}>`,
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">Chọn kiểu</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                    <option value="paragraph">Paragraph</option>
+                  </select>
+                </div>
                 <textarea
                   name="noiDung"
                   placeholder="Nội dung"
@@ -850,7 +941,9 @@ const Blogs = () => {
                 />
               </div>
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Meta Title
+                </Label>
                 <Input
                   name="metaTitle"
                   placeholder="Tiêu đề SEO"
@@ -860,7 +953,9 @@ const Blogs = () => {
                 />
               </div>
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Meta Description</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Meta Description
+                </Label>
                 <Input
                   name="metaDescription"
                   placeholder="Mô tả SEO"
@@ -870,12 +965,25 @@ const Blogs = () => {
                 />
               </div>
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">Tags (phân cách bằng dấu phẩy)</Label>
+                <Label className="block text-sm font-semibold text-gray-700">
+                  Tags (phân cách bằng dấu phẩy)
+                </Label>
                 <Input
                   name="tags"
                   placeholder="seo, marketing, tutorial"
-                  value={newBlog.tags?.join(',')}
-                  onChange={(e) => setNewBlog({ ...newBlog, tags: e.target.value.split(',').map(tag => tag.trim()) })}
+                  value={newBlog.tags?.map((tag) => tag.replace(/^#/, "")).join(", ") || ""}
+                  onChange={(e) =>
+                    setNewBlog({
+                      ...newBlog,
+                      tags: e.target.value
+                        .split(",")
+                        .map((tag) => {
+                          const trimmedTag = tag.trim();
+                          return trimmedTag ? `#${trimmedTag}` : trimmedTag;
+                        })
+                        .filter((tag) => tag !== "#"),
+                    })
+                  }
                   className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -884,10 +992,15 @@ const Blogs = () => {
                   type="checkbox"
                   id="isPublished"
                   checked={newBlog.isPublished}
-                  onChange={(e) => setNewBlog({ ...newBlog, isPublished: e.target.checked })}
+                  onChange={(e) =>
+                    setNewBlog({ ...newBlog, isPublished: e.target.checked })
+                  }
                   className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <Label htmlFor="isPublished" className="text-sm font-semibold text-gray-700">
+                <Label
+                  htmlFor="isPublished"
+                  className="text-sm font-semibold text-gray-700"
+                >
                   Công khai?
                 </Label>
               </div>
@@ -915,25 +1028,27 @@ const Blogs = () => {
       <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
         <DialogContent className="max-w-5xl rounded-lg shadow-xl bg-white overflow-y-auto max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">Sửa Blog #{editBlog?.maBlog}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">
+              Sửa Blog #{editBlog?.maBlog}
+            </DialogTitle>
           </DialogHeader>
           {editBlog && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Mã Người Dùng</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Mã Người Dùng
+                  </Label>
                   <Input
-                    name="maNguoiDung"
-                    type="text"
-                    placeholder="Mã người dùng"
                     value={editBlog.maNguoiDung}
-                    onChange={handleEditInputChange}
-                    required
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    disabled
+                    className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Tiêu Đề</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Tiêu Đề
+                  </Label>
                   <Input
                     name="tieuDe"
                     placeholder="Tiêu đề"
@@ -944,7 +1059,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Slug</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Slug
+                  </Label>
                   <Input
                     name="slug"
                     placeholder="slug-url"
@@ -956,7 +1073,9 @@ const Blogs = () => {
               </div>
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Ngày Tạo</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Ngày Tạo
+                  </Label>
                   <Input
                     name="ngayTao"
                     type="date"
@@ -968,10 +1087,14 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Hình Ảnh</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Hình Ảnh
+                  </Label>
                   <div
                     className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
-                      isDraggingEdit ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50"
+                      isDraggingEdit
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-300 bg-gray-50"
                     }`}
                     onDragOver={handleDragOverEdit}
                     onDragLeave={handleDragLeaveEdit}
@@ -1016,7 +1139,9 @@ const Blogs = () => {
                   )}
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Mô tả hình ảnh (ALT)</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Mô tả hình ảnh (ALT)
+                  </Label>
                   <Input
                     name="moTaHinhAnh"
                     placeholder="Mô tả hình ảnh"
@@ -1028,18 +1153,48 @@ const Blogs = () => {
               </div>
               <div className="md:col-span-2 space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Nội Dung</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Nội Dung
+                  </Label>
+                  <div className="flex items-center gap-3 mb-2">
+                    <select
+                      aria-label="Chọn kiểu định dạng nội dung"
+                      className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "paragraph") {
+                          setEditBlog({
+                            ...editBlog,
+                            noiDung: `<p>${editBlog.noiDung}</p>`,
+                          });
+                        } else if (value) {
+                          setEditBlog({
+                            ...editBlog,
+                            noiDung: `<${value}>${editBlog.noiDung}</${value}>`,
+                          });
+                        }
+                      }}
+                    >
+                      <option value="">Chọn kiểu</option>
+                      <option value="h1">Heading 1</option>
+                      <option value="h2">Heading 2</option>
+                      <option value="h3">Heading 3</option>
+                      <option value="paragraph">Paragraph</option>
+                    </select>
+                  </div>
                   <textarea
                     name="noiDung"
                     placeholder="Nội dung"
                     value={editBlog.noiDung}
                     onChange={handleEditInputChange}
-                    className="w-full h-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full h-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Meta Title
+                  </Label>
                   <Input
                     name="metaTitle"
                     placeholder="Tiêu đề SEO"
@@ -1049,7 +1204,9 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Meta Description</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Meta Description
+                  </Label>
                   <Input
                     name="metaDescription"
                     placeholder="Mô tả SEO"
@@ -1059,12 +1216,25 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">Tags (phân cách bằng dấu phẩy)</Label>
+                  <Label className="block text-sm font-semibold text-gray-700">
+                    Tags (phân cách bằng dấu phẩy)
+                  </Label>
                   <Input
                     name="tags"
                     placeholder="seo, marketing, tutorial"
-                    value={editBlog.tags?.join(",")}
-                    onChange={(e) => setEditBlog({ ...editBlog, tags: e.target.value.split(',').map(tag => tag.trim()) })}
+                    value={editBlog.tags?.map((tag) => tag.replace(/^#/, "")).join(", ") || ""}
+                    onChange={(e) =>
+                      setEditBlog({
+                        ...editBlog,
+                        tags: e.target.value
+                          .split(",")
+                          .map((tag) => {
+                            const trimmedTag = tag.trim();
+                            return trimmedTag ? `#${trimmedTag}` : trimmedTag;
+                          })
+                          .filter((tag) => tag !== "#"),
+                      })
+                    }
                     className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
@@ -1073,10 +1243,18 @@ const Blogs = () => {
                     type="checkbox"
                     id="isPublishedEdit"
                     checked={editBlog.isPublished}
-                    onChange={(e) => setEditBlog({ ...editBlog, isPublished: e.target.checked })}
+                    onChange={(e) =>
+                      setEditBlog({
+                        ...editBlog,
+                        isPublished: e.target.checked,
+                      })
+                    }
                     className="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
                   />
-                  <Label htmlFor="isPublishedEdit" className="text-sm font-semibold text-gray-700">
+                  <Label
+                    htmlFor="isPublishedEdit"
+                    className="text-sm font-semibold text-gray-700"
+                  >
                     Công khai?
                   </Label>
                 </div>

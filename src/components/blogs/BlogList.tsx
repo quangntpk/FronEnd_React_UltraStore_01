@@ -38,18 +38,24 @@ interface BlogCardProps {
 
 const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
   const isMobile = useIsMobile();
-  const excerpt = post.noiDung.length > 100 ? post.noiDung.slice(0, 100) + "..." : post.noiDung;
+  // Sử dụng metaDescription nếu có, nếu không thì dùng noiDung
+  const excerpt = post.metaDescription
+    ? post.metaDescription.length > 100
+      ? post.metaDescription.slice(0, 100) + "..."
+      : post.metaDescription
+    : post.noiDung.length > 100
+      ? post.noiDung.slice(0, 100) + "..."
+      : post.noiDung;
   const formattedDate = new Date(post.ngayTao).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-  const roleBackground = nguoiDung?.vaiTro === "Admin" ? "bg-red-500" : nguoiDung?.vaiTro === "NhanVien" ? "bg-green-500" : "bg-gray-500";
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       {post.hinhAnh && post.slug && (
-        <Link to={`/blogs/${post.slug}`}>
+        <Link to={`/blogs/${post.slug}`} aria-label={`Xem chi tiết bài viết ${post.tieuDe}`}>
           <img
             src={`data:image/jpeg;base64,${post.hinhAnh}`}
             alt={post.moTaHinhAnh || post.tieuDe}
@@ -60,7 +66,9 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
       <CardHeader>
         <CardTitle className="text-lg font-semibold truncate">
           {post.slug ? (
-            <Link to={`/blogs/${post.slug}`}>{post.tieuDe}</Link>
+            <Link to={`/blogs/${post.slug}`} aria-label={`Xem chi tiết bài viết ${post.tieuDe}`}>
+              {post.tieuDe}
+            </Link>
           ) : (
             post.tieuDe
           )}
@@ -74,12 +82,12 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
             {nguoiDung?.vaiTro && (
               <span
                 className={`ml-2 px-2 py-1 rounded 
-                    ${nguoiDung.vaiTro === "1"
-                    ? 'bg-red-500 text-white'
-                    : 'border-green-500 text-green-500 bg-white'
+                  ${nguoiDung.vaiTro === "Admin"
+                    ? "bg-red-500 text-white"
+                    : "border-green-500 text-green-500 bg-white"
                   }`}
               >
-                {nguoiDung.vaiTro === "1" ? 'Nhân Viên' : 'Admin'}
+                {nguoiDung.vaiTro === "Admin" ? "Admin" : "Nhân Viên"}
               </span>
             )}
           </div>
@@ -124,8 +132,7 @@ export const BlogList = () => {
       );
       const nguoiDungResponses = await Promise.all(nguoiDungPromises);
       const nguoiDungMap = uniqueMaNguoiDungs.reduce((acc, maNguoiDung, index) => {
-        const response = nguoiDungResponses[index];
-        acc[maNguoiDung] = response ? response.data : null;
+        acc[maNguoiDung] = nguoiDungResponses[index]?.data || null;
         return acc;
       }, {} as { [key: string]: NguoiDung | null });
       setNguoiDungs(nguoiDungMap);
@@ -141,7 +148,7 @@ export const BlogList = () => {
   }, []);
 
   const filteredBlogs = useMemo(() => {
-    let filtered = blogs;
+    let filtered = blogs.filter((post) => post.isPublished); // Chỉ hiển thị blog công khai
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -164,7 +171,7 @@ export const BlogList = () => {
       case "title_asc":
         return [...filtered].sort((a, b) => a.tieuDe.localeCompare(b.tieuDe));
       case "title_desc":
-        return [...filtered].sort((a, b) => b.tieuDe.localeCompare(a.tieuDe));
+        return [...filtered].sort((a, b) => b.tieuDe.localeCompare(b.tieuDe));
       default:
         return filtered;
     }
