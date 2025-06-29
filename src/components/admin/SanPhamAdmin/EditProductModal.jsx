@@ -47,8 +47,9 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
   useEffect(() => {
     if (productData && productData.length > 0) {
       const productInfo = productData[0];
+      // console.log(productData[0])
       setTenSanPham(productInfo.tenSanPham || "");
-      setMaThuongHieu(productInfo.maThuongHieu || "");
+      setMaThuongHieu(productInfo.maThuongHieu || ""); 
       setLoaiSanPham(productInfo.loaiSanPham || "");
       setMoTa(productInfo.moTa || "");
       setChatLieu(productInfo.chatLieu || "");
@@ -58,7 +59,6 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       setImages(cleanedImages);
 
       initializeColors(productData);
-      console.log(productData);
     }
   }, [productData]);
 
@@ -70,7 +70,9 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
           size: detail.kichThuoc.trim(),
           price: detail.gia.toString(),
           quantity: detail.soLuong.toString(),
-        })),
+        }
+      ),
+    console.log(item)),
       }));
       setColors(uniqueColors);
     } else {

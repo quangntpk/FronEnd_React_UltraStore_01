@@ -39,6 +39,7 @@ const Products = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log(data)
         setProducts(data || []);
       } else {
         console.error("Lỗi khi lấy danh sách sản phẩm:", response.status);
@@ -109,6 +110,7 @@ const Products = () => {
   };
 
   const handleEditProduct = (product) => {
+    console.log(product)
     setSelectedProduct(product);
     setIsEditModalOpen(true);
     fetchProductLoadInfo(product.id);
