@@ -226,25 +226,17 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight">Sản phẩm</h1>
           <p className="text-muted-foreground mt-1">Quản lý sản phẩm trong cửa hàng của bạn</p>
         </div>
-       <Button
-          style={{
-            display: "block",
-            visibility: "visible",
-            opacity: 1,
-            backgroundColor: "#752CE0", // Màu ban đầu
-            color: "white", // Đổi chữ thành trắng để tương phản tốt với nền tím
-            transition: "background-color 0.3s ease", // Hiệu ứng chuyển màu mượt
-            minWidth: "300px", // Tăng chiều rộng tối thiểu
-            textAlign: "center", // Căn giữa nội dung
-          }}
-          className="flex items-center justify-center gap-2 px-4 py-2 rounded-md hover:bg-[#439ADE]"
-          onClick={() => {
-            console.log("Nút Thêm Sản Phẩm Mới được nhấn");
-            setIsAddModalOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" /> Thêm Sản Phẩm Mới
-        </Button>
+      <Button
+ className="bg-purple-400 hover:bg-purple-500 text-white" 
+  onClick={() => {
+    console.log("Nút Thêm Sản Phẩm Mới được nhấn");
+    setIsAddModalOpen(true);
+  }}
+>
+  <Plus className="h-4 w-4 mr-2" />
+  Thêm Sản Phẩm Mới
+</Button>
+
       </div>
 
       <Card>
@@ -425,7 +417,7 @@ const Products = () => {
                       {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {product.soLuong || 0} in stock
+                     Số lượng: {product.soLuong || 0} 
                     </div>
                   </div>
                   <DropdownMenu>

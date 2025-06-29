@@ -393,7 +393,7 @@ const LoaiSanPham = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Loại Sản Phẩm</h1>
         </div>
-        <Button className="bg-purple hover:bg-purple-medium" onClick={() => setMoModalThem(true)}>
+        <Button  className="bg-purple-400 hover:bg-purple-500 text-white" onClick={() => setMoModalThem(true)}>
           <FaPlus className="mr-2 h-4 w-4" /> Thêm Loại Sản Phẩm
         </Button>
       </div>

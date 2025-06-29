@@ -238,7 +238,7 @@ const Combos = () => {
           <p className="text-muted-foreground mt-1">Quản lý combo trong cửa hàng của bạn</p>
         </div>
         <Button
-          className="bg-purple hover:bg-purple-medium"
+          className="bg-purple-400 hover:bg-purple-500 text-white" 
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Thêm Combo Mới
@@ -424,10 +424,10 @@ const Combos = () => {
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-purple">
-                      {(combo.gia / 1000)?.toFixed(1) || "0"}K VND
+                      {(combo.gia / 1000)?.toFixed(3)} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {combo.soLuong || 0} in stock
+                      Số lượng {combo.soLuong || 0} 
                     </div>
                   </div>
                   <DropdownMenu>

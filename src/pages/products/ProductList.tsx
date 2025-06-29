@@ -519,27 +519,33 @@ const ProductListing = () => {
                 </div>
 
                 {/* Màu sắc */}
-                <div>
-                  <Label className="text-lg font-medium mb-3 block">Màu Sắc</Label>
-                  <div className="space-y-2">
-                    {uniqueColors.map((color) => (
-                      <div key={color} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`color-${color}`}
-                          checked={selectedColors.includes(color)}
-                          onCheckedChange={() => handleColorChange(color)}
-                          aria-label={`Chọn màu ${color}`}
-                        />
-                        <label
-                          htmlFor={`color-${color}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {color}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+             <div>
+  <Label className="text-lg font-medium mb-3 block">Màu Sắc</Label>
+  <div className="space-y-2">
+    {uniqueColors.map((color) => (
+      <div key={color} className="flex items-center space-x-2">
+        <Checkbox
+          id={`color-${color}`}
+          checked={selectedColors.includes(color)}
+          onCheckedChange={() => handleColorChange(color)}
+          aria-label={`Chọn màu ${color}`}
+        />
+        <span
+          className="inline-block w-5 h-5 rounded-full border border-gray-300"
+          style={{ backgroundColor: `#${color.replace(/^#/, '')}` }}
+          title={`Màu #${color.replace(/^#/, '')}`}
+        />
+        <label
+          htmlFor={`color-${color}`}
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          {/* Có thể bỏ hoặc giữ tên màu nếu cần */}
+          {`Màu ${color.replace(/^#/, '')}`}
+        </label>
+      </div>
+    ))}
+  </div>
+</div>
 
                 {/* Kích thước */}
                 <div>

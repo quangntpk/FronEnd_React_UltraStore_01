@@ -948,7 +948,7 @@ const AdminUsers = () => {
         </div>
         <Dialog open={openModal} onOpenChange={setOpenModal}>
           <DialogTrigger asChild>
-            <Button className="bg-crocus-500 hover:bg-crocus-600" onClick={openAddModal}>
+            <Button className="bg-purple-400 hover:bg-purple-500 text-white" onClick={openAddModal}>
               <UserPlus className="h-4 w-4 mr-2" /> Thêm Người Dùng
             </Button>
           </DialogTrigger>

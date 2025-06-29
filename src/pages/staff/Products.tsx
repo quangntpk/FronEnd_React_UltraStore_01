@@ -412,7 +412,7 @@ const Products = () => {
                       {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {product.soLuong || 0} in stock
+                    số lượng: {product.soLuong || 0}
                     </div>
                   </div>
                   <DropdownMenu>

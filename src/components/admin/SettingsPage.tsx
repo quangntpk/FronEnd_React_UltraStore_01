@@ -964,7 +964,7 @@ export function SettingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Quản Lý Cài đặt</h2>
-        <Button onClick={openCreateMode}>
+        <Button className="bg-purple-400 hover:bg-purple-500 text-white"  onClick={openCreateMode}>
           <Plus className="mr-2 h-4 w-4" /> Thêm Giao diện
         </Button>
       </div>

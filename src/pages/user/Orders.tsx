@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -25,29 +25,6 @@ interface CancelOrderResponse {
 }
 
 // Component Notification
-const Notification = ({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div
-      className={cn(
-        "fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 font-roboto",
-        type === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-      )}
-    >
-      <p>{message}</p>
-      <button
-        onClick={onClose}
-        className="absolute top-1 right-1 text-white hover:text-gray-200"
-      >
-        ×
-      </button>
-    </div>
-  );
-};
 
 const orderStatuses = {
   pending: { color: "bg-yellow-500", icon: ClipboardList, label: "Chờ xác nhận" },
@@ -671,20 +648,14 @@ const OrderHistory = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-background to-secondary/30">
+      <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto my-[50px]">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold tracking-tight gradient-text">Lịch sử đơn hàng</h1>
             <p className="mt-2 text-muted-foreground">Xem và quản lý các đơn hàng của bạn</p>
           </div>
           <div className="colorful-card p-6 rounded-lg shadow-lg">
-            {notification && (
-              <Notification
-                message={notification.message}
-                type={notification.type}
-                onClose={() => setNotification(null)}
-              />
-            )}
+            
             <Tabs defaultValue="all-orders" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="all-orders">
