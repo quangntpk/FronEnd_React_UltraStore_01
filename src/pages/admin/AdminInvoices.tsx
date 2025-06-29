@@ -30,6 +30,13 @@ import {
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import toast, { Toaster } from "react-hot-toast";
 
 // Định nghĩa interface cho Voucher và Coupon
@@ -63,8 +70,20 @@ const formatDateTime = (dateString: string): string => {
   });
 };
 
+// Hàm loại bỏ dấu tiếng Việt
+const removeDiacritics = (str: string): string => {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+};
+
 const Vouchers = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
@@ -104,6 +123,18 @@ const Vouchers = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Hàm xử lý làm mới
+  const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); // Ngăn chặn hành vi mặc định (reload trang)
+    console.log('Refresh clicked'); // Log để debug
+    setSearchTerm(''); // Reset bộ lọc tìm kiếm
+    setFilterStatus('all'); // Reset bộ lọc trạng thái
+    setFilterStartDate(''); // Reset ngày bắt đầu
+    setFilterEndDate(''); // Reset ngày kết thúc
+    setCurrentPage(1); // Reset về trang đầu
+    fetchVouchers(); // Gọi lại API để lấy danh sách voucher
   };
 
   const deleteVoucher = async () => {
@@ -243,12 +274,22 @@ const Vouchers = () => {
   }, []);
 
   const filteredVouchers = vouchers.filter(item => {
-    return (
-      (item.tenVoucher?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (item.maVoucher?.toString().includes(searchTerm.toLowerCase()) || '') ||
-      (item.ngayKetThuc?.toString().includes(searchTerm.toLowerCase()) || '') ||
-      (item.trangThai?.toString().includes(searchTerm.toLowerCase()) || '')
-    );
+    const normalizedSearchTerm = removeDiacritics(searchTerm.toLowerCase());
+    const normalizedTenVoucher = removeDiacritics(item.tenVoucher?.toLowerCase() || '');
+    const matchesSearchTerm =
+      normalizedTenVoucher.includes(normalizedSearchTerm) ||
+      item.maVoucher.toString().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      filterStatus === 'all' ||
+      (filterStatus === '0' && item.trangThai === 0) ||
+      (filterStatus === '1' && item.trangThai === 1);
+
+    const matchesDateRange =
+      (!filterStartDate || new Date(item.ngayBatDau) >= new Date(filterStartDate)) &&
+      (!filterEndDate || new Date(item.ngayKetThuc) <= new Date(filterEndDate));
+
+    return matchesSearchTerm && matchesStatus && matchesDateRange;
   });
 
   const indexOfLastVoucher = currentPage * vouchersPerPage;
@@ -300,11 +341,13 @@ const Vouchers = () => {
     e.preventDefault();
     setIsDraggingCreate(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChangeCreate(file);
-    } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
-    }
+    setTimeout(() => {
+      if (file && file.type.startsWith("image/")) {
+        handleImageChangeCreate(file);
+      } else {
+        toast.error("Vui lòng chọn một tệp hình ảnh!");
+      }
+    }, 0);
   };
 
   const handleImageChangeCreate = (file: File) => {
@@ -342,11 +385,13 @@ const Vouchers = () => {
     e.preventDefault();
     setIsDraggingEdit(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChangeEdit(file);
-    } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
-    }
+    setTimeout(() => {
+      if (file && file.type.startsWith("image/")) {
+        handleImageChangeEdit(file);
+      } else {
+        toast.error("Vui lòng chọn một tệp hình ảnh!");
+      }
+    }, 0);
   };
 
   const handleImageChangeEdit = (file: File) => {
@@ -400,7 +445,7 @@ const Vouchers = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Voucher</h1>
         </div>
-        <Button className="bg-purple hover:bg-purple-medium" variant="outline" size="sm" onClick={() => setOpenCreateModal(true)}>
+        <Button className="bg-purple-400 hover:bg-purple-500 text-white" variant="outline" size="sm" onClick={() => setOpenCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" /> Thêm Voucher
         </Button>
       </div>
@@ -410,22 +455,67 @@ const Vouchers = () => {
           <CardTitle>Danh Sách Voucher</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-start sm:items-center">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Tìm kiếm voucher..."
-                className="pl-8 w-full sm:w-[300px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Tìm kiếm voucher (tên, mã)..."
+                  className="pl-8 w-full sm:w-[300px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 self-end">
+                <Button variant="outline" size="sm" className="h-9" onClick={handleRefresh} type="button">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Làm Mới
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2 self-end">
-              <Button variant="outline" size="sm" className="h-9" onClick={fetchVouchers}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Làm Mới
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              <div className="w-full sm:w-48">
+                <Select
+                  value={filterStatus}
+                  onValueChange={setFilterStatus}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                    <SelectItem value="0">Đang Dùng</SelectItem>
+                    <SelectItem value="1">Tạm Ngưng</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <div className="w-full sm:w-48 space-y-1">
+                  <Label htmlFor="filterStartDate" className="text-sm font-medium text-gray-700">Ngày Bắt Đầu</Label>
+                  <Input
+                    id="filterStartDate"
+                    type="date"
+                    placeholder="Ngày bắt đầu"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                    max={filterEndDate || undefined}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
+                  />
+                </div>
+                <div className="w-full sm:w-48 space-y-1">
+                  <Label htmlFor="filterEndDate" className="text-sm font-medium text-gray-700">Ngày Kết Thúc</Label>
+                  <Input
+                    id="filterEndDate"
+                    type="date"
+                    placeholder="Ngày kết thúc"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                    min={filterStartDate || undefined}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -499,7 +589,7 @@ const Vouchers = () => {
             </div>
           ) : (
             <div className="text-center py-6 text-muted-foreground">
-              Không tìm thấy voucher nào phù hợp với tìm kiếm của bạn.
+              Không tìm thấy voucher nào phù hợp với bộ lọc của bạn.
             </div>
           )}
 

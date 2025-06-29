@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, LogIn, User, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,72 @@ export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberPassword, setRememberPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Kiểm tra query params sau khi đăng nhập Google
+    const queryParams = new URLSearchParams(location.search);
+    const token = queryParams.get("token");
+    const userId = queryParams.get("userId");
+    const userData = queryParams.get("user");
+
+    if (token && userId && userData) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userData));
+        // Lưu thông tin vào localStorage
+        localStorage.setItem("token", token);
+        localStorage.setItem("userId", userId);
+        localStorage.setItem("user", JSON.stringify({
+          maNguoiDung: userId,
+          fullName: user.fullName || "",
+          email: user.email || "",
+          vaiTro: user.role || 0,
+        }));
+        // Đặt flag để reload trang đích
+        localStorage.setItem("shouldReloadAfterGoogleLogin", "true");
+        window.dispatchEvent(new Event("storageChange"));
+
+        // Hiển thị thông báo thành công
+        Swal.fire({
+          title: "Đăng nhập Google thành công!",
+          text: "Chào mừng bạn quay trở lại!",
+          icon: "success",
+          confirmButtonColor: "#3085d6",
+          timer: 3000,
+          showConfirmButton: false,
+        });
+
+        // Điều hướng dựa trên vai trò
+        let redirectPath = "/";
+        switch (user.role) {
+          case 0:
+            redirectPath = "/";
+            break;
+          case 1:
+            redirectPath = "/admin";
+            break;
+          case 2:
+            redirectPath = "/staff";
+            break;
+          default:
+            redirectPath = "/home";
+        }
+        // Xóa query params sau khi xử lý
+        navigate(redirectPath, { replace: true });
+      } catch (error) {
+        console.error("Lỗi khi xử lý callback Google:", error);
+        Swal.fire({
+          title: "Lỗi!",
+          text: "Không thể xử lý thông tin đăng nhập Google.",
+          icon: "error",
+          confirmButtonColor: "#d33",
+          timer: 3000,
+          showConfirmButton: false,
+        });
+      }
+    }
+
+    // Kiểm tra thông tin lưu trong localStorage
     const savedTaiKhoan = localStorage.getItem("savedTaiKhoan");
     const savedPassword = localStorage.getItem("savedPassword");
     if (savedTaiKhoan && savedPassword) {
@@ -38,7 +102,7 @@ export const LoginForm = () => {
       setPassword(savedPassword);
       setRememberPassword(true);
     }
-  }, []);
+  }, [location.search, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
