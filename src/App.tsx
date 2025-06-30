@@ -61,6 +61,7 @@ import Newsletter from "./components/default/Newsletter";
 import Features from "./components/default/Features";
 import Testing from "./components/default/Testing";
 import DiaChi from "./components/default/DiaChi";
+import DiaChiCart from "./components/default/DiaChiCart";
 import CategoryView from "./components/default/CategoryView";
 import SelectSize from "./components/default/SelectSize";
 import SupportChat from "./components/default/SupportChat";
@@ -162,6 +163,7 @@ const App = () => (
               <Route path="/PaymentSuccess" element={<PaymentSuccess />} />
               <Route path="/PaymentFail" element={<PaymentFail />} />
               <Route path="user/diachi" element={<DiaChi />} />
+              <Route path="user/diachicart" element={<DiaChiCart />} />
               <Route path="hero" element={<HeroSection />} />
               <Route path="newsletter" element={<Newsletter />} />
               <Route path="features" element={<Features />} />

@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import axios from "axios";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Swal from "sweetalert2";
+import DiaChi from "@/components/default/DiaChi";
 
 interface UserData {
   maNguoiDung: string;
@@ -580,6 +581,7 @@ export const ProfileForm = () => {
             </form>
           </CardContent>
         </Card>
+        <DiaChi />
       </TabsContent>
 
       <TabsContent value="security">
