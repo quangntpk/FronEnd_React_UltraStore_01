@@ -1,85 +1,74 @@
-// src/context/AuthContext.tsx
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-
-interface User {
-  maNguoiDung: string;
-  email: string;
-  hoTen: string;
-  vaiTro: number;
-}
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import axios from "axios";
 
 interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (token: string, user: User) => void;
+  isLoggedIn: boolean;
+  userName: string;
+  setAuth: (token: string | null, user: any) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+  const [user, setUser] = useState<any>(() => {
+    const userData = localStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
+  });
 
-  // Kiểm tra localStorage khi khởi tạo
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    if (token) {
+      localStorage.setItem("token", token);
+    } else {
+      localStorage.removeItem("token");
     }
-  }, []);
 
-  // Lắng nghe sự kiện storageChange
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } else {
-        setToken(null);
-        setUser(null);
-      }
-    };
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
+  }, [token, user]);
 
-    window.addEventListener("storageChange", handleStorageChange);
-    return () => {
-      window.removeEventListener("storageChange", handleStorageChange);
-    };
-  }, []);
+  const setAuth = (newToken: string | null, newUser: any) => {
+  setToken(newToken);
+  setUser(newUser);
 
-  const login = (newToken: string, newUser: User) => {
+  if (newToken && newUser) {
     localStorage.setItem("token", newToken);
-    localStorage.setItem("userId", newUser.maNguoiDung);
     localStorage.setItem("user", JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-    window.dispatchEvent(new Event("storageChange"));
+
+    localStorage.setItem("userId", newUser.maNguoiDung || newUser.userId || "");
+  } else {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userId"); 
+  }
+};
+
+  const logout = async () => {
+    try {
+      await axios.post(
+        "http://localhost:5261/api/XacThuc/DangXuat",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Logout error:", error.response?.data?.message || error.message);
+    }
+    setAuth(null, null);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("user");
-    setToken(null);
-    setUser(null);
-    window.dispatchEvent(new Event("storageChange"));
-  };
+  const isLoggedIn = !!token;
+  const userName = user?.hoTen || user?.fullName || "";
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated: !!token && !!user,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ isLoggedIn, userName, setAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -61,154 +61,168 @@ import Newsletter from "./components/default/Newsletter";
 import Features from "./components/default/Features";
 import Testing from "./components/default/Testing";
 import DiaChi from "./components/default/DiaChi";
+import DiaChiCart from "./components/default/DiaChiCart";
+import CategoryView from "./components/default/CategoryView";
+import SelectSize from "./components/default/SelectSize";
+import SupportChat from "./components/default/SupportChat";
+import { BlogDetailComponent } from "./components/blogs/BlogDetailComponent";
+import { AuthProvider } from "@/components/auth/AuthContext";
+import { useAuth } from "@/components/auth/AuthContext";
+import { useRef } from "react";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 const GoogleCallbackHandler = () => {
+  const { setAuth } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const processedRef = useRef(false);
 
   useEffect(() => {
-    console.log("GoogleCallbackHandler useEffect triggered. Location:", location);
-    console.log("location.search:", location.search);
-
     const searchParams = new URLSearchParams(location.search);
-    console.log("searchParams:", searchParams.toString());
-
     const token = searchParams.get("token");
     const userId = searchParams.get("userId");
-    const email = searchParams.get("email");
-    const name = searchParams.get("name");
-    const role = parseInt(searchParams.get("role"), 10);
 
-    console.log("Google Callback in App:", { token, userId, email, name, role });
+    if (!token || !userId || processedRef.current) return;
 
-    if (token && userId) {
-      // Lưu vào localStorage
-      localStorage.setItem("token", token);
-      localStorage.setItem("userId", userId);
-      localStorage.setItem("user", JSON.stringify({
-        maNguoiDung: userId,
-        email,
-        hoTen: name,
-        vaiTro: role,
-      }));
+    processedRef.current = true;
 
-      console.log("Data saved to localStorage:", {
-        token: localStorage.getItem("token"),
-        userId: localStorage.getItem("userId"),
-        user: localStorage.getItem("user"),
-      });
+    const email = searchParams.get("email") || "";
+    const name = searchParams.get("name") || "";
+    const role = parseInt(searchParams.get("role") || "0", 10);
 
-      // Phát sự kiện tùy chỉnh để thông báo rằng localStorage đã thay đổi
-      window.dispatchEvent(new Event("storageChange"));
+    const processCallback = async () => {
+      try {
+        setAuth(token, {
+          maNguoiDung: userId,
+          email,
+          hoTen: name,
+          vaiTro: role,
+        });
 
-      toast({
-        title: "Đăng nhập Google thành công 🎉",
-        description: "Chào mừng bạn quay trở lại!",
-        duration: 3000,
-        className: "bg-green-500 text-white border border-green-700 shadow-lg",
-      });
+        const redirectPath = role === 1 ? "/admin" : "/";
+        window.history.replaceState({}, "", redirectPath);
 
-      navigate(location.pathname, { replace: true });
-      navigate(role === 1 ? "/admin" : "/");
-    } else {
-      console.log("No query string present");
-    }
-  }, [location.search, navigate, toast]);
+        window.dispatchEvent(new Event('storage'));
+
+        setTimeout(() => {
+          toast({
+            title: "Đăng nhập Google thành công 🎉",
+            description: "Chào mừng bạn quay trở lại!",
+            duration: 3000,
+            className: "bg-green-500 text-white border border-green-700 shadow-lg",
+          });
+        }, 200);
+
+      } catch (error) {
+        console.error("Lỗi Google callback:", error);
+        processedRef.current = false;
+      }
+    };
+
+    processCallback();
+  }, [location.search, setAuth, navigate, toast]);
 
   return null;
 };
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppShell>
-          <GoogleCallbackHandler />
-          <Routes>
-            <Route path="/" element={<UserLayout />}>
-              <Route index element={<Index />} />
-              <Route path="products" element={<ProductList />} />
-              <Route path="products/:id" element={<ProductDetail />} />
-              <Route path="combos" element={<CombosList />} />
-              <Route path="combos/:id" element={<ComboDetail />} />
-              <Route path="blogs" element={<BlogsList />} />
-              <Route path="blogs/:id" element={<BlogDetail />} />
-              <Route path="voucher/*" element={<VoucherUser />} />
-              <Route path="favorites" element={<FavoritesList />} />
-              <Route path="contact" element={<Contact />} />
-              <Route path="about" element={<About />} />
-              <Route path="auth/login" element={<Login />} />
-              <Route path="auth/register" element={<Register />} />
-              <Route path="auth/forgot-password" element={<ForgotPassword />} />
-              <Route path="user/profile" element={<Profile />} />
-              <Route path="user/cart" element={<Cart />} />
-              <Route path="user/checkout" element={<Checkout />} />
-              <Route path="user/orders" element={<Orders />} />
-              <Route path="user/messages" element={<Messages />} />
-              <Route path="user/profile/:userId" element={<ViewProfile />} />
-              <Route path="/PaymentSuccess" element={<PaymentSuccess />} />
-              <Route path="/PaymentFail" element={<PaymentFail />} />
-              <Route path="user/diachi" element={<DiaChi />} />
-              <Route path="hero" element={<HeroSection />} />
-              <Route path="newsletter" element={<Newsletter />} />
-              <Route path="features" element={<Features />} />
-              <Route path="testing" element={<Testing />} />
+  <AuthProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
 
-            </Route>
+          <AppShell>
+            <GoogleCallbackHandler />
+            <Routes>
+              <Route path="/" element={<UserLayout />}>
+                <Route index element={<Index />} />
+                <Route path="products" element={<ProductList />} />
+                <Route path="products/:id" element={<ProductDetail />} />
+                <Route path="combos" element={<CombosList />} />
+                <Route path="combos/:id" element={<ComboDetail />} />
+                <Route path="blogs" element={<BlogsList />} />
+                <Route path="blogs/:slug" element={<BlogDetailComponent />} />
+                <Route path="voucher/*" element={<VoucherUser />} />
+                <Route path="favorites" element={<FavoritesList />} />
+                <Route path="contact" element={<Contact />} />
+                <Route path="about" element={<About />} />
+                <Route path="auth/login" element={<Login />} />
+                <Route path="auth/register" element={<Register />} />
+                <Route path="auth/forgot-password" element={<ForgotPassword />} />
+                <Route path="user/profile" element={<Profile />} />
+                <Route path="user/cart" element={<Cart />} />
+                <Route path="user/checkout" element={<Checkout />} />
+                <Route path="user/orders" element={<Orders />} />
+                <Route path="user/messages" element={<Messages />} />
+                <Route path="user/profile/:userId" element={<ViewProfile />} />
+                <Route path="/PaymentSuccess" element={<PaymentSuccess />} />
+                <Route path="/PaymentFail" element={<PaymentFail />} />
+                <Route path="user/diachi" element={<DiaChi />} />
+                <Route path="user/diachicart" element={<DiaChiCart />} />
+                <Route path="hero" element={<HeroSection />} />
+                <Route path="newsletter" element={<Newsletter />} />
+                <Route path="features" element={<Features />} />
+                <Route path="testing" element={<Testing />} />
+                <Route path="/user/hoadon/:orderId" element={<OrderEmailPage />} />
+                <Route path="/user/hoadon" element={<HoaDon />} />
+              </Route>
 
-            <Route path="/staff" element={<AdminLayout role="staff" />}>
-              <Route index element={<StaffDashboard />} />
+              <Route path="/staff" element={<AdminLayout role="staff" />}>
+                <Route index element={<StaffDashboard />} />
 
-              <Route path="orders" element={<StaffOrders />} />
-              <Route path="inventory" element={<StaffInventory />} />
-              <Route path="inventory/form" element={<InventoryForm />} />
-              <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
-              <Route path="products/form" element={<ProductsForm />} />
-              <Route path="shipping/form" element={<ShippingForm />} />
-              <Route path="orders/form" element={<OrdersForm />} />
-              <Route path="invoice/form" element={<InvoiceForm />} />
-            </Route>
+                <Route path="orders" element={<StaffOrders />} />
+                <Route path="inventory" element={<StaffInventory />} />
+                <Route path="inventory/form" element={<InventoryForm />} />
+                <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
+                <Route path="products/form" element={<ProductsForm />} />
+                <Route path="shipping/form" element={<ShippingForm />} />
+                <Route path="orders/form" element={<OrdersForm />} />
+                <Route path="invoice/form" element={<InvoiceForm />} />
+              </Route>
 
-            <Route path="/admin" element={<AdminLayout role="admin" />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="staff" element={<AdminStaff />} />
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="buy" element={<AdminBuy />} />
+              <Route path="/admin" element={<AdminLayout role="admin" />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="staff" element={<AdminStaff />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="buy" element={<AdminBuy />} />
 
-              <Route path="orders" element={<StaffOrders />} />
+                <Route path="orders" element={<StaffOrders />} />
 
-              <Route path="invoices" element={<AdminInvoices />} />
-              <Route path="statistics" element={<AdminStatistics />} />
-              <Route path="products" element={<AdminProducs />} />
-              <Route path="blog" element={<AdminBlog />} />
-              <Route path="inventory" element={<AdminInventory />} />
-              <Route path="combos" element={<AdminCombos />} />
-              <Route path="thuonghieu" element={<AdminThuongHieu />} />
-              <Route path="loaisanpham" element={<AdminLoaiSanPham />} />
+                <Route path="invoices" element={<AdminInvoices />} />
+                <Route path="statistics" element={<AdminStatistics />} />
+                <Route path="products" element={<AdminProducs />} />
+                <Route path="blog" element={<AdminBlog />} />
+                <Route path="inventory" element={<AdminInventory />} />
+                <Route path="combos" element={<AdminCombos />} />
+                <Route path="thuonghieu" element={<AdminThuongHieu />} />
+                <Route path="loaisanpham" element={<AdminLoaiSanPham />} />
+                <Route path="profile" element={<AdminProfile />} />
+                <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
+                <Route path="products/form" element={<ProductsForm />} />
+                <Route path="shipping/form" element={<ShippingForm />} />
+                <Route path="orders/form" element={<OrdersForm />} />
+                <Route path="invoice/form" element={<InvoiceForm />} />
+                <Route path="contact" element={<AdminContact />} />
 
-              <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
-              <Route path="products/form" element={<ProductsForm />} />
-              <Route path="shipping/form" element={<ShippingForm />} />
-              <Route path="orders/form" element={<OrdersForm />} />
-              <Route path="invoice/form" element={<InvoiceForm />} />
-              <Route path="contact" element={<AdminContact />} />
 
+                <Route path="*" element={<NotFound />} />
+              </Route>
 
               <Route path="*" element={<NotFound />} />
-            </Route>
+            </Routes>
+            <Toaster />
+            <Sonner />
+          </AppShell>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-          <Sonner />
-        </AppShell>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
+  </AuthProvider>
 );
 
 export default App;
