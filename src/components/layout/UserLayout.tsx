@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, Link, Outlet, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
+import { useAuth } from "../auth/AuthContext";
 import {
   Menu,
   ShoppingCart,
@@ -40,21 +41,14 @@ import {
 } from "@/components/ui/drawer";
 
 const UserLayout = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
-  const [userName, setUserName] = useState(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      const parsedUser = JSON.parse(user);
-      return parsedUser.hoTen || parsedUser.fullName || "";
-    }
-    return "";
-  });
+  const { isLoggedIn, userName, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const location = useLocation();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const logoutInProgress = useRef(false);
 
   const navLinks = [
     { title: "Trang chủ", path: "/", icon: <LayoutGrid className="h-5 w-5" /> },
@@ -65,19 +59,6 @@ const UserLayout = () => {
     { title: "Liên hệ", path: "/contact", icon: <Mail className="h-5 w-5" /> },
   ];
 
-  // Lắng nghe sự kiện storageChange để cập nhật trạng thái đăng nhập và tên người dùng
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const token = localStorage.getItem("token");
-      const user = localStorage.getItem("user");
-      setIsLoggedIn(!!token);
-      setUserName(user ? JSON.parse(user).hoTen || JSON.parse(user).fullName || "" : "");
-    };
-    window.addEventListener("storageChange", handleStorageChange);
-    return () => window.removeEventListener("storageChange", handleStorageChange);
-  }, []);
-
-  // Xử lý click ngoài menu để đóng
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -88,42 +69,43 @@ const UserLayout = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Xử lý đăng xuất
-  const handleLogout = async () => {
-    try {
-      await axios.post(
-        "http://localhost:5261/api/XacThuc/DangXuat",
-        {},
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-    } catch (error) {
-      console.error("Logout error:", error.response?.data?.message || error.message);
-    }
-
-    window.parent.postMessage({ type: "LOGOUT" }, "http://localhost:8080");
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    setUserName("");
-    window.dispatchEvent(new Event("storageChange"));
-
-    toast({
-      title: "Đăng xuất thành công 🎉",
-      description: "Bạn đã đăng xuất khỏi tài khoản.",
-      duration: 3000,
-      className: "bg-green-500 text-white border border-green-700 shadow-lg",
-      action: (
-        <Button variant="outline" className="bg-white text-green-500 hover:bg-green-100 border-green-500">
-          Đóng
-        </Button>
-      ),
-    });
-
-    navigate("/auth/login");
+  const handleLogout = useCallback(async () => {
+    // Ngăn chặn multiple logout calls
+    if (logoutInProgress.current) return;
+    
+    logoutInProgress.current = true;
     setIsUserMenuOpen(false);
-  };
+
+    try {
+      await logout();
+
+      // Chỉ hiện toast một lần
+      toast({
+        title: "Đăng xuất thành công 🎉",
+        description: "Bạn đã đăng xuất khỏi tài khoản.",
+        duration: 3000,
+        className: "bg-green-500 text-white border border-green-700 shadow-lg",
+        action: (
+          <Button variant="outline" className="bg-white text-green-500 hover:bg-green-100 border-green-500">
+            Đóng
+          </Button>
+        ),
+      });
+
+      // Delay navigate để user nhìn thấy toast
+      setTimeout(() => {
+        navigate("/auth/login", { replace: true });
+      }, 500);
+
+    } catch (error) {
+      console.error("Lỗi đăng xuất:", error);
+    } finally {
+      // Reset flag sau khi hoàn thành
+      setTimeout(() => {
+        logoutInProgress.current = false;
+      }, 1000);
+    }
+  }, [logout, navigate, toast]);
 
   return (
     <>

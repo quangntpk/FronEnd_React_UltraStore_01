@@ -7,13 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { useAuth } from "@/components/auth/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 interface LoginResponse {
   message: string;
   user?: {
     maNguoiDung: string;
-    hoTen: string;
+    hoTen: string;  
     email: string;
     vaiTro: number;
   };
@@ -23,6 +25,8 @@ interface LoginResponse {
 }
 
 export const LoginForm = () => {
+  const { setAuth } = useAuth();
+  const { toast } = useToast();
   const [taiKhoan, setTaiKhoan] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,77 +36,7 @@ export const LoginForm = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Kiểm tra query params sau khi đăng nhập Google
-    const queryParams = new URLSearchParams(location.search);
-    const token = queryParams.get("token");
-    const userId = queryParams.get("userId");
-    const userData = queryParams.get("user");
-
-    if (token && userId && userData) {
-      try {
-        const user = JSON.parse(decodeURIComponent(userData));
-        // Lưu thông tin vào localStorage
-        localStorage.setItem("token", token);
-        localStorage.setItem("userId", userId);
-        localStorage.setItem("user", JSON.stringify({
-          maNguoiDung: userId,
-          fullName: user.fullName || "",
-          email: user.email || "",
-          vaiTro: user.role || 0,
-        }));
-        // Đặt flag để reload trang đích
-        localStorage.setItem("shouldReloadAfterGoogleLogin", "true");
-        window.dispatchEvent(new Event("storageChange"));
-
-        // Hiển thị thông báo thành công
-        Swal.fire({
-          title: "Đăng nhập Google thành công!",
-          text: "Chào mừng bạn quay trở lại!",
-          icon: "success",
-          confirmButtonColor: "#3085d6",
-          timer: 3000,
-          showConfirmButton: false,
-        });
-
-        // Điều hướng dựa trên vai trò
-        let redirectPath = "/";
-        switch (user.role) {
-          case 0:
-            redirectPath = "/";
-            break;
-          case 1:
-            redirectPath = "/admin";
-            break;
-          case 2:
-            redirectPath = "/staff";
-            break;
-          default:
-            redirectPath = "/home";
-        }
-        // Xóa query params sau khi xử lý
-        navigate(redirectPath, { replace: true });
-      } catch (error) {
-        console.error("Lỗi khi xử lý callback Google:", error);
-        Swal.fire({
-          title: "Lỗi!",
-          text: "Không thể xử lý thông tin đăng nhập Google.",
-          icon: "error",
-          confirmButtonColor: "#d33",
-          timer: 3000,
-          showConfirmButton: false,
-        });
-      }
-    }
-
-    // Kiểm tra thông tin lưu trong localStorage
-    const savedTaiKhoan = localStorage.getItem("savedTaiKhoan");
-    const savedPassword = localStorage.getItem("savedPassword");
-    if (savedTaiKhoan && savedPassword) {
-      setTaiKhoan(savedTaiKhoan);
-      setPassword(savedPassword);
-      setRememberPassword(true);
-    }
-  }, [location.search, navigate]);
+  }, [location.search, navigate, setAuth]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,18 +59,21 @@ export const LoginForm = () => {
         }
       );
 
-      const { message, user, token, redirectUrl } = response.data;
-
+      const { user, token } = response.data;
       if (user) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("userId", user.maNguoiDung || "");
-        localStorage.setItem("user", JSON.stringify({
+        setAuth(token, {
           maNguoiDung: user.maNguoiDung || "",
           fullName: user.hoTen || "",
           email: user.email || "",
           vaiTro: user.vaiTro || "",
-        }));
-        window.dispatchEvent(new Event("storageChange"));
+        });
+
+        toast({
+          title: "Đăng nhập thành công 🎉",
+          description: "Chào mừng bạn quay trở lại!",
+          duration: 3000,
+          className: "bg-green-500 text-white border border-green-700 shadow-lg",
+        });
 
         let redirectPath = "/";
         switch (user.vaiTro) {
@@ -152,35 +89,14 @@ export const LoginForm = () => {
           default:
             redirectPath = "/home";
         }
-
-        Swal.fire({
-          title: "Đăng nhập thành công!",
-          text: message || "Chào mừng bạn quay trở lại!",
-          icon: "success",
-          confirmButtonColor: "#3085d6",
-          timer: 3000,
-          showConfirmButton: false,
-        }).then(() => {
-          if (redirectUrl && redirectUrl !== window.location.origin) {
-            const userData = encodeURIComponent(JSON.stringify({
-              fullName: user.hoTen || "",
-              email: user.email || "",
-              role: user.vaiTro || "",
-            }));
-            window.location.href = `${redirectUrl}?token=${token}&userId=${user.maNguoiDung || ""}&user=${userData}`;
-          } else {
-            navigate(redirectPath);
-          }
-        });
+        setTimeout(() => navigate(redirectPath), 1000);
       }
     } catch (error) {
-      Swal.fire({
+      toast({
         title: "Đăng nhập thất bại!",
-        text: error.response?.data?.message || "Vui lòng kiểm tra lại thông tin.",
-        icon: "error",
-        confirmButtonColor: "#d33",
-        timer: 3000,
-        showConfirmButton: false,
+        description: error.response?.data?.message || "Vui lòng kiểm tra lại thông tin.",
+        variant: "destructive",
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);
@@ -199,13 +115,11 @@ export const LoginForm = () => {
       if (!loginUrl) throw new Error("Không thể lấy URL đăng nhập Google");
       window.location.href = loginUrl;
     } catch (error) {
-      Swal.fire({
+     toast({
         title: "Đăng nhập Google thất bại!",
-        text: error.message || "Đã có lỗi xảy ra khi đăng nhập với Google.",
-        icon: "error",
-        confirmButtonColor: "#d33",
-        timer: 3000,
-        showConfirmButton: false,
+        description: error.message || "Đã có lỗi xảy ra khi đăng nhập với Google.",
+        variant: "destructive",
+        duration: 3000,
       });
     }
   };

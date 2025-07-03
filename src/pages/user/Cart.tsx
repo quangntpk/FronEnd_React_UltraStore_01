@@ -1068,15 +1068,6 @@ const CartPage = () => {
               `Dữ liệu từ server không khớp: ShippingFee: ${result.shippingFee}, FinalAmount: ${result.finalAmount}, ExpectedShippingFee: ${expectedShippingFee}, ExpectedFinalAmount: ${newFinalAmount}`
             );
           }
-          toast.success(result.message, {
-            description: `Mã đơn hàng: ${result.orderId}`,
-            duration: 3000,
-            action: {
-              label: "Xem chi tiết",
-              onClick: () =>
-                navigate("/PaymentSuccess", { state: { orderId: result.orderId } }),
-            },
-          });
           setCartItems([]);
           setComboItems([]);
           setPromoCode("");
@@ -1088,7 +1079,7 @@ const CartPage = () => {
           localStorage.removeItem("checkoutForm");
           localStorage.removeItem("showAddressModal");
           localStorage.removeItem("scrollY");
-          navigate("/", { state: { orderId: result.orderId } });
+          navigate("/PaymentSuccess", { state: { orderId: result.orderId } });
         } else if (paymentMethod === "vnpay") {
           if (result.finalAmount !== newFinalAmount) {
             toast.error(
