@@ -304,9 +304,9 @@ const CartPage = () => {
         };
   });
 
-  const formatCurrency = (amount: number) => {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
+ const formatCurrency = (amount: number) => {
+  return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
 
   const normalizeName = (name: string) => {
     if (!name) return "";
@@ -888,6 +888,10 @@ const CartPage = () => {
       console.error("Error applying promo:", error);
     }
   };
+
+  const sanitizeInput = (input) => {
+  return input ? input.replace(/[^\x00-\x7F]/g, '') : input; 
+};
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
