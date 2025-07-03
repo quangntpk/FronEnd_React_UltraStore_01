@@ -271,7 +271,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
     );
   }
 
-  const shippingFee = orderDetails.finalAmount - orderDetails.tongTien;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -407,7 +406,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
 
           <div className="text-right border-t pt-4">
             <p><strong>Tổng tiền hàng:</strong> {orderDetails.tongTien.toLocaleString('vi-VN')} VNĐ</p>
-            <p><strong>Phí ship:</strong> {shippingFee.toLocaleString('vi-VN')} VNĐ</p>
             <p><strong>Thành tiền cuối cùng:</strong> {orderDetails.finalAmount.toLocaleString('vi-VN')} VNĐ</p>
           </div>
         </div>
