@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 
 import Swal from "sweetalert2";
+import DiaChiCart from "@/components/default/DiaChiCart";
 
 interface CartItem {
   idSanPham: string;
@@ -1341,6 +1342,9 @@ const CartPage = () => {
                         <h2 className="text-xl font-semibold mb-6">
                           Thông tin giao hàng
                         </h2>
+                          <div className="relative -top-[7px]">
+                            <DiaChiCart />
+                          </div>
                         <div className="space-x-2">
                           <Button
                             type="button"
@@ -1348,26 +1352,6 @@ const CartPage = () => {
                             className="bg-purple-600 hover:bg-purple-700 text-white"
                           >
                             Chọn địa chỉ có sẵn
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              // Lưu trạng thái modal và vị trí cuộn trước khi điều hướng
-                              localStorage.setItem(
-                                "showAddressModal",
-                                showAddressModal.toString()
-                              );
-                              localStorage.setItem(
-                                "scrollY",
-                                window.scrollY.toString()
-                              );
-                              navigate("/user/diachi", {
-                                state: { fromCart: true, showAddressModal },
-                              });
-                            }}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
-                          >
-                            Thêm địa chỉ mới
                           </Button>
                         </div>
                       </div>

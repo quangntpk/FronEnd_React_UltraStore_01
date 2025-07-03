@@ -95,6 +95,10 @@ const Contact = () => {
         title: "Lỗi",
         text: "Vui lòng kiểm tra lại các trường thông tin và xác minh reCAPTCHA!",
         confirmButtonText: "Đóng",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
       });
       return;
     }
@@ -136,7 +140,10 @@ const Contact = () => {
         icon: "success",
         title: "Thành công!",
         text: "Tin nhắn của bạn đã được gửi. Chúng tôi sẽ phản hồi sớm nhất có thể.",
-        confirmButtonText: "OK",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
       });
     } catch (error) {
       setIsSubmitting(false);
@@ -144,7 +151,10 @@ const Contact = () => {
         icon: "error",
         title: "Lỗi",
         text: "Có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại!",
-        confirmButtonText: "Đóng",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
       });
       console.error("Error submitting contact form:", error);
     }
@@ -325,9 +335,8 @@ const Contact = () => {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={5}
-                      className={`w-full rounded-md border bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10 ${
-                        errors.message ? "border-red-500" : "border-input"
-                      }`}
+                      className={`w-full rounded-md border bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10 ${errors.message ? "border-red-500" : "border-input"
+                        }`}
                       required
                     ></textarea>
                   </div>

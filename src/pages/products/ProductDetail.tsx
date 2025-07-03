@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/tabs";
 import Swal from "sweetalert2";
 import Comments from "./Comments"; // If you actually need Comments component
-
+import Testing from "@/components/default/Testing";
 // ---------- Types ---------- //
 interface ProductDetail {
   kichThuoc: string;
@@ -479,7 +479,8 @@ const ProductDetail = () => {
         </div>
       </div>
 
- 
+
+      <Testing />      
       {/* Comments Section */}
       <Comments productId={id} />
   
