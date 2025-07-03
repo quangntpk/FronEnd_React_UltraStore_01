@@ -145,7 +145,8 @@ const App = () => (
               <Route path="combos" element={<CombosList />} />
               <Route path="combos/:id" element={<ComboDetail />} />
               <Route path="blogs" element={<BlogsList />} />
-              <Route path="blogs/:id" element={<BlogDetail />} />
+              <Route path="blogs/:slug" element={<BlogDetailComponent />} />
+
               <Route path="voucher/*" element={<VoucherUser />} />
               <Route path="favorites" element={<FavoritesList />} />
               <Route path="contact" element={<Contact />} />

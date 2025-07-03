@@ -373,12 +373,13 @@ const ProductDetail = () => {
           </div>
 
           <p className="text-gray-700">
+             <h3 className="font-medium mb-2">Mô tả</h3>
             {selectedProduct.moTa || "Sản phẩm này chưa có mô tả"}
           </p>
 
           {/* Color */}
           <div>
-            <h3 className="font-medium mb-2">Color</h3>
+            <h3 className="font-medium mb-2">Màu sắc</h3>
             <div className="flex gap-3">
               {products.map((p) => (
                 <button

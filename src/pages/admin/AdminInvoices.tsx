@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from 'react-icons/fa';
 import {
@@ -63,7 +64,9 @@ interface Voucher {
 
 // Hàm định dạng ngày giờ
 const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('vi-VN', {
+  const date = new Date(dateString);
+  // Bù múi giờ để hiển thị đúng ngày địa phương
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -116,7 +119,13 @@ const Vouchers = () => {
       const response = await fetch(`http://localhost:5261/api/Voucher`);
       if (!response.ok) throw new Error('Không thể lấy dữ liệu voucher');
       const data: Voucher[] = await response.json();
-      setVouchers(data);
+      // Chuyển đổi ngày từ API về định dạng ngày địa phương
+      const adjustedData = data.map((voucher) => ({
+        ...voucher,
+        ngayBatDau: new Date(new Date(voucher.ngayBatDau).getTime() - new Date(voucher.ngayBatDau).getTimezoneOffset() * 60000).toISOString().split('T')[0],
+        ngayKetThuc: new Date(new Date(voucher.ngayKetThuc).getTime() - new Date(voucher.ngayKetThuc).getTimezoneOffset() * 60000).toISOString().split('T')[0],
+      }));
+      setVouchers(adjustedData);
     } catch (error) {
       console.error('Lỗi khi lấy danh sách voucher:', error);
       toast.error('Có lỗi xảy ra khi tải danh sách voucher.');
@@ -184,8 +193,8 @@ const Vouchers = () => {
           tenVoucher: newVoucher.tenVoucher,
           giaTri: parseInt(newVoucher.giaTri),
           moTa: newVoucher.moTa || null,
-          ngayBatDau: new Date(newVoucher.ngayBatDau).toISOString(),
-          ngayKetThuc: new Date(newVoucher.ngayKetThuc).toISOString(),
+          ngayBatDau: newVoucher.ngayBatDau, // Gửi trực tiếp chuỗi YYYY-MM-DD
+          ngayKetThuc: newVoucher.ngayKetThuc, // Gửi trực tiếp chuỗi YYYY-MM-DD
           dieuKien: parseFloat(newVoucher.dieuKien),
           soLuong: parseInt(newVoucher.soLuong),
           hinhAnh: newVoucher.hinhAnh || null,
@@ -222,7 +231,7 @@ const Vouchers = () => {
     if (!editVoucher) return;
 
     const today = new Date().toISOString().split('T')[0];
-    if (editVoucher.ngayBatDau < today && new Date(editVoucher.ngayBatDau).toISOString().split('T')[0] !== today) {
+    if (editVoucher.ngayBatDau < today && editVoucher.ngayBatDau !== today) {
       toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
       return;
     }
@@ -245,8 +254,8 @@ const Vouchers = () => {
           tenVoucher: editVoucher.tenVoucher,
           giaTri: parseInt(editVoucher.giaTri.toString()),
           moTa: editVoucher.moTa || null,
-          ngayBatDau: new Date(editVoucher.ngayBatDau).toISOString(),
-          ngayKetThuc: new Date(editVoucher.ngayKetThuc).toISOString(),
+          ngayBatDau: editVoucher.ngayBatDau, // Gửi trực tiếp chuỗi YYYY-MM-DD
+          ngayKetThuc: editVoucher.ngayKetThuc, // Gửi trực tiếp chuỗi YYYY-MM-DD
           dieuKien: parseFloat(editVoucher.dieuKien.toString()),
           soLuong: parseInt(editVoucher.soLuong.toString()),
           trangThai: editVoucher.trangThai,
