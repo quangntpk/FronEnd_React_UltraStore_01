@@ -296,18 +296,18 @@ const CartPage = () => {
     return savedForm
       ? JSON.parse(savedForm)
       : {
-          tenNguoiNhan: "",
-          sdt: "",
-          province: "",
-          district: "",
-          ward: "",
-          specificAddress: "",
-        };
+        tenNguoiNhan: "",
+        sdt: "",
+        province: "",
+        district: "",
+        ward: "",
+        specificAddress: "",
+      };
   });
 
- const formatCurrency = (amount: number) => {
-  return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
+  const formatCurrency = (amount: number) => {
+    return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
 
   const normalizeName = (name: string) => {
     if (!name) return "";
@@ -340,7 +340,7 @@ const CartPage = () => {
   // Xử lý khi quay lại từ /diachi
   useEffect(() => {
     const fetchAddresses = async () => {
-      
+
       // FIX CỨNG TẠM
       // const userId = localStorage.getItem("userId");
       const userId = "KH001"
@@ -426,15 +426,15 @@ const CartPage = () => {
           hinhAnh: combo.hinhAnh?.startsWith("data:image")
             ? combo.hinhAnh
             : combo.hinhAnh
-            ? `data:image/jpeg;base64,${combo.hinhAnh}`
-            : "/placeholder-image.jpg",
+              ? `data:image/jpeg;base64,${combo.hinhAnh}`
+              : "/placeholder-image.jpg",
           sanPhamList: combo.sanPhamList.map((item: any) => ({
             ...item,
             hinhAnh: item.hinhAnh?.startsWith("data:image")
               ? item.hinhAnh
               : item.hinhAnh
-              ? `data:image/jpeg;base64,${item.hinhAnh}`
-              : "/placeholder-image.jpg",
+                ? `data:image/jpeg;base64,${item.hinhAnh}`
+                : "/placeholder-image.jpg",
           })),
         }));
         setComboItems(processedComboItems);
@@ -891,8 +891,8 @@ const CartPage = () => {
   };
 
   const sanitizeInput = (input) => {
-  return input ? input.replace(/[^\x00-\x7F]/g, '') : input; 
-};
+    return input ? input.replace(/[^\x00-\x7F]/g, '') : input;
+  };
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -949,15 +949,15 @@ const CartPage = () => {
         hinhAnh: combo.hinhAnh?.startsWith("data:image")
           ? combo.hinhAnh
           : combo.hinhAnh
-          ? `data:image/jpeg;base64,${combo.hinhAnh}`
-          : "/placeholder-image.jpg",
+            ? `data:image/jpeg;base64,${combo.hinhAnh}`
+            : "/placeholder-image.jpg",
         sanPhamList: combo.sanPhamList.map((item: any) => ({
           ...item,
           hinhAnh: item.hinhAnh?.startsWith("data:image")
             ? item.hinhAnh
             : item.hinhAnh
-            ? `data:image/jpeg;base64,${item.hinhAnh}`
-            : "/placeholder-image.jpg",
+              ? `data:image/jpeg;base64,${item.hinhAnh}`
+              : "/placeholder-image.jpg",
         })),
       }));
       setComboItems(processedComboItems);
@@ -1037,7 +1037,7 @@ const CartPage = () => {
         paymentMethod: paymentMethod,
         tenNguoiNhan: checkoutForm.tenNguoiNhan,
         sdt: checkoutForm.sdt,
-        diaChi: fullAddress,      
+        diaChi: fullAddress,
         discountAmount: discountAmount,
         shippingFee: expectedShippingFee,
         finalAmount: newFinalAmount,
@@ -1068,6 +1068,17 @@ const CartPage = () => {
               `Dữ liệu từ server không khớp: ShippingFee: ${result.shippingFee}, FinalAmount: ${result.finalAmount}, ExpectedShippingFee: ${expectedShippingFee}, ExpectedFinalAmount: ${newFinalAmount}`
             );
           }
+
+          toast.success(result.message, {
+            description: `Mã đơn hàng: ${result.orderId}`,
+            duration: 3000,
+            action: {
+              label: "Xem chi tiết",
+              onClick: () =>
+                navigate("/PaymentSuccess", { state: { orderId: result.orderId } }),
+            },
+          });
+          
           setCartItems([]);
           setComboItems([]);
           setPromoCode("");
@@ -1079,7 +1090,7 @@ const CartPage = () => {
           localStorage.removeItem("checkoutForm");
           localStorage.removeItem("showAddressModal");
           localStorage.removeItem("scrollY");
-          navigate("/PaymentSuccess", { state: { orderId: result.orderId } });
+          navigate("/", { state: { orderId: result.orderId } });
         } else if (paymentMethod === "vnpay") {
           if (result.finalAmount !== newFinalAmount) {
             toast.error(
@@ -1105,10 +1116,10 @@ const CartPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-    
+
       <main className="flex-1 py-12 px-6">
         <div className="container mx-auto max-w-6xl my-[50px]">
-          
+
 
           {cartItems.length > 0 || comboItems.length > 0 ? (
             <>
@@ -1333,9 +1344,9 @@ const CartPage = () => {
                         <h2 className="text-xl font-semibold mb-6">
                           Thông tin giao hàng
                         </h2>
-                          <div className="relative -top-[7px]">
-                            <DiaChiCart />
-                          </div>
+                        <div className="relative -top-[7px]">
+                          <DiaChiCart />
+                        </div>
                         <div className="space-x-2">
                           <Button
                             type="button"
@@ -1588,7 +1599,7 @@ const CartPage = () => {
           )}
         </div>
       </main>
-      
+
 
       <Dialog.Root
         open={!!selectedCombo}
