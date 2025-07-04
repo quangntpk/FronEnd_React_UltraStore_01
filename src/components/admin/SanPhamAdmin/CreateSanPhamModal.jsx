@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,14 +12,13 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const [loaiSanPham, setLoaiSanPham] = useState("");
   const [moTa, setMoTa] = useState("");
   const [chatLieu, setChatLieu] = useState("");
-  const [images, setImages] = useState([]); 
+  const [images, setImages] = useState([]);
   const [errors, setErrors] = useState({});
   const [loaiSanPhamList, setLoaiSanPhamList] = useState([]);
   const [thuongHieuList, setThuongHieuList] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Fetch dữ liệu từ API khi component mount
   useEffect(() => {
     const fetchLoaiSanPham = async () => {
       try {
@@ -118,6 +118,10 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     setColors(newColors);
   };
 
+  const handleClearAllColors = () => {
+    setColors([]);
+  };
+
   const handleInputChange = (colorIndex, sizeIndex, field, value) => {
     const newColors = [...colors];
     if (field === "color") {
@@ -135,8 +139,8 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     const newProductData = colors.map(colorItem => ({
       TenSanPham: tenSanPham,
-      MaThuongHieu: parseInt(maThuongHieu) || 1, 
-      LoaiSanPham: parseInt(loaiSanPham) || 1, 
+      MaThuongHieu: parseInt(maThuongHieu) || 1,
+      LoaiSanPham: parseInt(loaiSanPham) || 1,
       MauSac: colorItem.color.slice(1),
       MoTa: moTa || null,
       HinhAnhs: imagesToSend,
@@ -190,242 +194,287 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     if (hasError) {
       setErrors(errorList);
-    } else {
-      setErrors({});
-      console.log("Dữ liệu gửi đi:", newProductData);
-      try {
-        const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newProductData),
-        });
+      Swal.fire({
+        title: "Lỗi!",
+        text: "Vui lòng điền đầy đủ và đúng thông tin trước khi thêm sản phẩm",
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+      return;
+    }
 
-        if (response.ok) {
-          Swal.fire({
-            title: "Thành công!",
-            text: "Thêm sản phẩm thành công!",
-            icon: "success",
-            timer: 3000,
-            timerProgressBar: true,
-            showConfirmButton: false,
-          }).then(() => {
-            window.location.reload();
-            setIsAddModalOpen(false);          
-          });
-        } else {
-          Swal.fire({
-            title: "Lỗi!",
-            text: "Có lỗi xảy ra khi thêm sản phẩm.",
-            icon: "error",
-            timer: 3000,
-            timerProgressBar: true,
-            showConfirmButton: false,
-          });
-        }
-      } catch (error) {
-        console.error("Lỗi khi gửi dữ liệu:", error);
+    setErrors({});
+    try {
+      const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProductData),
+      });
+
+      if (response.ok) {
+        Swal.fire({
+          title: "Thành công!",
+          text: "Thêm sản phẩm thành công!",
+          icon: "success",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        }).then(() => {
+          window.location.reload();
+          setIsAddModalOpen(false);
+        });
+      } else {
         Swal.fire({
           title: "Lỗi!",
-          text: "Có lỗi xảy ra khi gửi dữ liệu tới API.",
+          text: "Có lỗi xảy ra khi thêm sản phẩm.",
           icon: "error",
-          timer: 3000,
+          timer: 2000,
           timerProgressBar: true,
           showConfirmButton: false,
         });
       }
+    } catch (error) {
+      console.error("Lỗi khi gửi dữ liệu:", error);
+      Swal.fire({
+        title: "Lỗi!",
+        text: "Có lỗi xảy ra khi gửi dữ liệu tới API.",
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     }
   };
 
   return (
     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-      <DialogContent className="max-w-7xl p-6 overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-7xl p-6 bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Thêm sản phẩm mới</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-gray-800">Thêm sản phẩm mới</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-8">
+          <div className="grid grid-cols-3 gap-6">
+            {/* Left Section: Product Info and Colors/Sizes */}
+            <div className="col-span-2 space-y-6">
               <div className="space-y-4">
-                <div>
-                  <label className="block mb-1 font-medium">Tên Sản Phẩm</label>
-                  <Input
-                    value={tenSanPham}
-                    onChange={(e) => setTenSanPham(e.target.value)}
-                    className="w-full"
-                    placeholder="Nhập tên sản phẩm"
-                  />
-                  {errors.tenSanPham && <p className="text-red-500 text-sm">{errors.tenSanPham}</p>}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">Tên Sản Phẩm</label>
+                    <Input
+                      value={tenSanPham}
+                      onChange={(e) => {
+                        setTenSanPham(e.target.value);
+                        setErrors({ ...errors, tenSanPham: "" });
+                      }}
+                      className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Nhập tên sản phẩm"
+                    />
+                    {errors.tenSanPham && (
+                      <p className="text-red-500 text-sm mt-1">{errors.tenSanPham}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">Chất Liệu</label>
+                    <Input
+                      value={chatLieu}
+                      onChange={(e) => setChatLieu(e.target.value)}
+                      className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Nhập chất liệu"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block mb-1 font-medium">Thương Hiệu</label>
-                  <select
-                    value={maThuongHieu}
-                    onChange={(e) => setMaThuongHieu(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Chọn thương hiệu</option>
-                    {thuongHieuList.map((thuongHieu) => (
-                      <option key={thuongHieu.maThuongHieu} value={thuongHieu.maThuongHieu}>
-                        {thuongHieu.tenThuongHieu}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Loại Sản Phẩm</label>
-                  <select
-                    value={loaiSanPham}
-                    onChange={(e) => setLoaiSanPham(e.target.value)}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Chọn loại sản phẩm</option>
-                    {loaiSanPhamList.map((loai) => (
-                      <option key={loai.maLoaiSanPham} value={loai.maLoaiSanPham}>
-                        {loai.tenLoaiSanPham}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Chất Liệu</label>
-                  <Input
-                    value={chatLieu}
-                    onChange={(e) => setChatLieu(e.target.value)}
-                    className="w-full"
-                    placeholder="Nhập chất liệu"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">Thương Hiệu</label>
+                    <select
+                      value={maThuongHieu}
+                      onChange={(e) => setMaThuongHieu(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Chọn thương hiệu</option>
+                      {thuongHieuList.map((thuongHieu) => (
+                        <option key={thuongHieu.maThuongHieu} value={thuongHieu.maThuongHieu}>
+                          {thuongHieu.tenThuongHieu}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">Loại Sản Phẩm</label>
+                    <select
+                      value={loaiSanPham}
+                      onChange={(e) => setLoaiSanPham(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Chọn loại sản phẩm</option>
+                      {loaiSanPhamList.map((loai) => (
+                        <option key={loai.maLoaiSanPham} value={loai.maLoaiSanPham}>
+                          {loai.tenLoaiSanPham}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
               <div className="mt-4">
-                <div className="grid grid-cols-12 text-center font-medium">
-                  <div className="col-span-2 ml-12">Màu Sắc</div>
-                  <div className="col-span-2 ml-10">Kích Thước</div>
-                  <div className="col-span-2 ml-5">Đơn Giá</div>
-                  <div className="col-span-2 ml-3">Số Lượng</div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block font-medium text-gray-700">Màu sắc và kích thước</label>
                 </div>
-              </div>
-
-              <div className="max-h-[400px] overflow-y-auto">
-                {colors.map((colorItem, colorIndex) => (
-                  <div key={colorIndex} className="mt-4 border p-4 rounded relative">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRemoveColor(colorIndex)}
-                      className="absolute top-2 right-2"
-                    >
-                      X
-                    </Button>
-                    <div className="grid grid-cols-10 gap-4 border rounded p-4">
-                      <div className="col-span-2 flex justify-center">
-                        <input
-                          type="color"
-                          value={colorItem.color}
-                          onChange={(e) => handleInputChange(colorIndex, null, "color", e.target.value)}
-                          className="w-[100px] h-[100px] border-2 border-gray-300 rounded"
-                        />
-                      </div>
-                      <div className="col-span-8">
-                        {colorItem.sizes.map((sizeItem, sizeIndex) => (
-                          <div key={sizeIndex} className="grid grid-cols-12 gap-2 items-center mb-2">
-                            <div className="col-span-2">
-                              <select
-                                value={sizeItem.size}
-                                onChange={(e) => handleInputChange(colorIndex, sizeIndex, "size", e.target.value)}
-                                className="w-full p-2 border rounded-md"
-                              >
-                                <option value="S">S</option>
-                                <option value="M">M</option>
-                                <option value="XL">XL</option>
-                                <option value="XXL">XXL</option>
-                                <option value="XXXL">XXXL</option>
-                              </select>
-                            </div>
-                            <div className="col-span-3">
-                              <Input
-                                type="number"
-                                min="1"
-                                placeholder="Đơn Giá"
-                                value={sizeItem.price}
-                                onChange={(e) => handleInputChange(colorIndex, sizeIndex, "price", e.target.value)}
-                              />
-                            </div>
-                            <div className="col-span-2">
-                              <Input
-                                type="number"
-                                min="1"
-                                placeholder="Số Lượng"
-                                value={sizeItem.quantity}
-                                onChange={(e) => handleInputChange(colorIndex, sizeIndex, "quantity", e.target.value)}
-                                className="w-[100px]"
-                              />
-                            </div>
-                            <div className="col-span-2 flex items-left justify-start gap-2 ml-3">
-                              {colorItem.sizes.length > 1 && (
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleRemoveSize(colorIndex, sizeIndex)}
-                                >
-                                  x
-                                </Button>
-                              )}
-                              {sizeIndex === colorItem.sizes.length - 1 && (
-                                <Button onClick={() => handleAddSize(colorIndex)} size="sm">
-                                  +
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 mb-2 px-2">
+                  <div className="col-span-2 text-center">Màu sắc</div>
+                  <div className="col-span-3 text-center">Kích thước</div>
+                  <div className="col-span-3 text-center">Đơn giá</div>
+                  <div className="col-span-1 text-center">Số lượng</div>
+                </div>
+                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-3">
+                  {colors.length === 0 ? (
+                    <div className="text-center py-6 text-gray-500">
+                      <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <p className="text-sm">Chưa có màu sắc hoặc kích thước nào</p>
+                      <p className="text-xs">Nhấn "Thêm Màu Sắc" để bắt đầu</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex justify-center ml-10">
-                <Button onClick={handleAddColor} className="w-[250px]">
-                  +
-                </Button>
+                  ) : (
+                    colors.map((colorItem, colorIndex) => (
+                      <div
+                        key={colorIndex}
+                        className="relative p-3 bg-white rounded-md border border-gray-200 shadow-sm"
+                      >
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveColor(colorIndex)}
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0 text-xs"
+                        >
+                          ×
+                        </Button>
+                        <div className="space-y-2">
+                          {colorItem.sizes.map((sizeItem, sizeIndex) => (
+                            <div key={sizeIndex} className="grid grid-cols-12 gap-1 items-center">
+                              {sizeIndex === 0 && (
+                                <div className="col-span-2 flex justify-center items-center">
+                                  <input
+                                    type="color"
+                                    value={colorItem.color}
+                                    onChange={(e) => handleInputChange(colorIndex, null, "color", e.target.value)}
+                                    className="w-16 h-16 border-2 border-gray-300 rounded-md cursor-pointer"
+                                  />
+                                </div>
+                              )}
+                              {sizeIndex !== 0 && <div className="col-span-2"></div>}
+                              <div className="col-span-3">
+                                <select
+                                  value={sizeItem.size}
+                                  onChange={(e) => handleInputChange(colorIndex, sizeIndex, "size", e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                >
+                                  <option value="S">S</option>
+                                  <option value="M">M</option>
+                                  <option value="XL">XL</option>
+                                  <option value="XXL">XXL</option>
+                                  <option value="XXXL">XXXL</option>
+                                </select>
+                              </div>
+                              <div className="col-span-3">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  placeholder="Đơn Giá"
+                                  value={sizeItem.price}
+                                  onChange={(e) => handleInputChange(colorIndex, sizeIndex, "price", e.target.value)}
+                                  className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                              </div>
+                              <div className="col-span-4 flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  placeholder="Số Lượng"
+                                  value={sizeItem.quantity}
+                                  onChange={(e) => handleInputChange(colorIndex, sizeIndex, "quantity", e.target.value)}
+                                  className="w-40 p-2 border-gray-300 rounded-md focus:ring-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                                <div className="flex gap-2">
+                                  {colorItem.sizes.length > 1 && (
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleRemoveSize(colorIndex, sizeIndex)}
+                                      className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0 text-xs"
+                                    >
+                                      ×
+                                    </Button>
+                                  )}
+                                  {sizeIndex === colorItem.sizes.length - 1 && (
+                                    <Button
+                                      onClick={() => handleAddSize(colorIndex)}
+                                      size="sm"
+                                      className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0 text-xs"
+                                    >
+                                      +
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+           <Button
+  onClick={handleAddColor}
+  className="mt-4 w-fit mx-auto bg-purple-400 hover:bg-purple-500 text-white rounded-lg py-1.5 text-sm"
+>
+  +
+</Button>
+                
               </div>
             </div>
 
-            <div className="col-span-4 space-y-4">
+            {/* Right Section: Images and Description */}
+            <div className="col-span-1 space-y-6">
               <div>
-                <label className="block mb-1 font-medium">Hình Ảnh</label>
+                <label className="block mb-2 font-medium text-gray-700">Hình Ảnh</label>
                 <div
-                  className={`w-full h-[300px] border-2 border-dashed rounded-md flex flex-col items-center justify-center overflow-y-auto transition-colors ${
-                    isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'
+                  className={`relative w-full h-48 border-2 border-dashed rounded-lg transition-all duration-200 ${
+                    isDragging
+                      ? "border-blue-500 bg-blue-50"
+                      : images.length > 0
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-300 hover:border-gray-400"
                   }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    multiple
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
                   {images.length === 0 ? (
-                    <div className="text-center">
-                      <p className="text-muted-foreground mb-2">Kéo thả hình ảnh vào đây</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClickChooseFile}
-                      >
-                        Chọn Hình Ảnh
-                      </Button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                      />
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                      <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="text-lg font-medium">Kéo thả ảnh vào đây</p>
+                      <p className="text-sm">hoặc nhấp để chọn file</p>
+                      <p className="text-xs mt-2 text-gray-400">PNG, JPG, GIF (tối đa 5MB)</p>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap gap-2 p-2">
+                    <div className="flex flex-wrap gap-2 p-2 overflow-y-auto h-full">
                       {images.map((image, index) => (
                         <div key={index} className="relative">
                           <img
@@ -435,53 +484,61 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                                 : `data:image/jpeg;base64,${image}`
                             }
                             alt={`Image ${index}`}
-                            className="w-24 h-24 object-cover"
+                            className="w-16 h-16 object-cover rounded-lg"
                           />
                           <Button
                             variant="destructive"
                             size="sm"
-                            className="absolute top-0 right-0 w-6 h-6 flex items-center justify-center"
                             onClick={() => handleDeleteImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0"
                           >
-                            X
+                            ×
                           </Button>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                {errors.images && <p className="text-red-500 text-sm">{errors.images}</p>}
-              </div>
-              <div>
-                <label className="block mb-1 font-medium">Mô Tả</label>
-                <textarea
-                  className="w-full h-[200px] p-2 border rounded-md"
-                  value={moTa}
-                  onChange={(e) => setMoTa(e.target.value)}
-                  placeholder="Nhập mô tả sản phẩm"
-                />
-              </div>
-              <div>
-                {Object.keys(errors).length > 0 && (
-                  <div className="text-red-500 mb-4">
-                    Đã xảy ra lỗi:
-                    <ul>
-                      {Object.values(errors).map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                    </ul>
-                  </div>
+                {errors.images && (
+                  <p className="text-red-500 text-sm mt-1">{errors.images}</p>
                 )}
               </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">Mô Tả</label>
+                <textarea
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                  value={moTa}
+                  onChange={(e) => setMoTa(e.target.value)}
+                  placeholder="Nhập mô tả chi tiết về sản phẩm..."
+                />
+              </div>
+              {Object.keys(errors).length > 0 && (
+                <div className="text-red-500 text-sm">
+                  <p className="font-medium">Đã xảy ra lỗi:</p>
+                  <ul className="list-disc pl-5 mt-1">
+                    {Object.values(errors).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
-            Hủy
-          </Button>
-          <Button onClick={handleSaveChanges}>Thêm Sản Phẩm</Button>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddModalOpen(false)}
+              className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg px-6"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSaveChanges}
+              className="bg-purple-400 hover:bg-purple-500 text-white"
+            >
+              Thêm Sản Phẩm
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
