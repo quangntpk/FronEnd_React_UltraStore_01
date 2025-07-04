@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { X, Edit, Trash } from "lucide-react";
 
 const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
-  const [products, setProducts] = useState([]); // Lưu danh sách tất cả biến thể sản phẩm
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0); // Chỉ số màu được chọn
-  const [selectedImage, setSelectedImage] = useState(0); // Chỉ số ảnh được chọn để phóng to
+  const [products, setProducts] = useState([]);
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,7 +17,7 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
         const baseProductId = productId.split('_')[0] || productId;
         const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${baseProductId}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch product');
+          throw new Error('Không thể tải thông tin sản phẩm');
         }
         const data = await response.json();
         const productArray = Array.isArray(data) ? data : [data];
@@ -30,7 +30,7 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
           sizes: product.details.map(detail => ({
             size: detail.kichThuoc.trim(),
             quantity: detail.soLuong,
-            price: detail.gia / 1000
+            price: detail.gia // Keep price in VND without dividing by 1000
           })),
           material: product.chatLieu,
           brand: product.maThuongHieu,
@@ -58,12 +58,12 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
           method: "DELETE",
         });
         if (!response.ok) {
-          throw new Error("Failed to delete product");
+          throw new Error("Xóa sản phẩm thất bại");
         }
         alert("Xóa sản phẩm thành công!");
         onClose();
       } catch (err) {
-        console.error("Error deleting product:", err);
+        console.error("Lỗi khi xóa sản phẩm:", err);
         alert("Có lỗi xảy ra khi xóa sản phẩm!");
       }
     }
@@ -73,9 +73,9 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg">
-          <p>Đang tải thông tin sản phẩm...</p>
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
+          <p className="text-lg text-gray-700">Đang tải thông tin sản phẩm...</p>
         </div>
       </div>
     );
@@ -83,10 +83,13 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
 
   if (error || !products.length) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg">
-          <p>Error: {error || "Không tìm thấy sản phẩm"}</p>
-          <button onClick={onClose} className="mt-4 px-4 py-2 bg-red-500 text-white rounded">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
+          <p className="text-lg text-red-600">Lỗi: {error || "Không tìm thấy sản phẩm"}</p>
+          <button
+            onClick={onClose}
+            className="mt-6 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
             Đóng
           </button>
         </div>
@@ -94,42 +97,46 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
     );
   }
 
-  const currentProduct = products[selectedColorIndex]; // Sản phẩm theo màu được chọn
+  const currentProduct = products[selectedColorIndex];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative shadow-2xl">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold">Chi Tiết Sản Phẩm</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-            <X className="h-6 w-6" />
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-800">Chi Tiết Sản Phẩm</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Đóng modal"
+          >
+            <X className="h-7 w-7 text-gray-600" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Product Images */}
-          <div className="space-y-4">
-            <div className="rounded-xl overflow-hidden border border-gray-200">
-              <img 
-                src={currentProduct.images[selectedImage]} 
-                alt={currentProduct.name} 
+          <div className="space-y-6">
+            <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+              <img
+                src={currentProduct.images[selectedImage]}
+                alt={currentProduct.name}
                 className="w-full aspect-[4/5] object-cover"
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-3 overflow-x-auto py-2">
               {currentProduct.images.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`w-20 h-20 object-cover rounded-lg border-2 transition-all ${
-                    selectedImage === index ? "border-blue-500" : "border-gray-200 hover:border-blue-300"
+                  className={`w-24 h-24 rounded-lg border-2 transition-all duration-200 ${
+                    selectedImage === index ? "border-blue-500 shadow-md" : "border-gray-200 hover:border-blue-300"
                   }`}
                 >
                   <img
                     src={image}
                     alt={`${currentProduct.name} thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-lg"
                   />
                 </button>
               ))}
@@ -137,27 +144,27 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
           </div>
 
           {/* Product Details */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-medium">{currentProduct.name}</h3>
-              <p className="text-gray-600 mt-2">{currentProduct.description}</p>
+              <h3 className="text-2xl font-semibold text-gray-800">{currentProduct.name}</h3>
+              <p className="text-gray-600 mt-3 leading-relaxed">{currentProduct.description}</p>
             </div>
 
             {/* Colors */}
             <div>
-              <h4 className="font-medium">Màu sắc:</h4>
-              <div className="flex gap-3 mt-2">
+              <h4 className="text-lg font-medium text-gray-700">Màu sắc:</h4>
+              <div className="flex gap-4 mt-3">
                 {products.map((product, index) => (
                   <button
                     key={product.id}
-                    className={`w-8 h-8 rounded-full transition-all ${
-                      selectedColorIndex === index 
-                        ? "ring-2 ring-offset-2 ring-blue-500" 
+                    className={`w-10 h-10 rounded-full transition-all duration-200 ${
+                      selectedColorIndex === index
+                        ? "ring-2 ring-offset-2 ring-blue-500"
                         : "ring-1 ring-gray-200 hover:ring-blue-300"
                     }`}
                     style={{ backgroundColor: product.color }}
                     onClick={() => setSelectedColorIndex(index)}
-                    aria-label={`Select color ${product.color}`}
+                    aria-label={`Chọn màu ${product.color}`}
                   />
                 ))}
               </div>
@@ -165,11 +172,13 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
 
             {/* Sizes & Prices */}
             <div>
-              <h4 className="font-medium">Kích thước & Giá:</h4>
-              <ul className="mt-2 space-y-2 text-gray-600">
+              <h4 className="text-lg font-medium text-gray-700">Kích thước & Giá:</h4>
+              <ul className="mt-3 space-y-3 text-gray-600">
                 {currentProduct.sizes.map((size, index) => (
-                  <li key={index}>
-                    {size.size}: {size.quantity} (Giá: ${size.price.toFixed(2)})
+                  <li key={index} className="flex items-center gap-2">
+                    <span className="font-medium">{size.size}:</span>
+                    <span>{size.quantity} sản phẩm</span>
+                    <span>(Giá: {size.price.toLocaleString('vi-VN')} VND)</span>
                   </li>
                 ))}
               </ul>
@@ -177,13 +186,15 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
 
             {/* Additional Info */}
             <div>
-              <h4 className="font-medium">Thông tin bổ sung:</h4>
-              <ul className="mt-2 space-y-2 text-gray-600">
-                <li>Chất liệu: {currentProduct.material}</li>
-                <li>Thương hiệu: {currentProduct.brand}</li>
-                <li>Loại sản phẩm: {currentProduct.productType}</li>
+              <h4 className="text-lg font-medium text-gray-700">Thông tin bổ sung:</h4>
+              <ul className="mt-3 space-y-3 text-gray-600">
+                <li><span className="font-medium">Chất liệu:</span> {currentProduct.material}</li>
+                <li><span className="font-medium">Thương hiệu:</span> {currentProduct.brand}</li>
+                <li><span className="font-medium">Loại sản phẩm:</span> {currentProduct.productType}</li>
               </ul>
-            </div>           
+            </div>
+
+        
           </div>
         </div>
       </div>
