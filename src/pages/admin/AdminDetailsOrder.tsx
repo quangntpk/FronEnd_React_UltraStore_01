@@ -177,30 +177,41 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
         };
         setOrderDetails(orderMapped);
 
+        // Lấy thông tin sản phẩm đơn lẻ
         const productPromises = orderMapped.sanPhams
-          .filter(item => item.maSanPham)
+          .filter(item => !item.laCombo && item.maSanPham)
           .map(async (item) => {
-            const productRes = await axios.get<Product[]>(
-              `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${item.maSanPham}`
-            );
-            const product = productRes.data[0];
-            if (product) {
-              return [item.maSanPham!, product];
+            try {
+              const productRes = await axios.get<Product[]>(
+                `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${item.maSanPham}`
+              );
+              const product = productRes.data[0];
+              if (product) {
+                return [item.maSanPham!, product] as [string, Product];
+              }
+            } catch (err) {
+              console.error(`Lỗi khi lấy sản phẩm ${item.maSanPham}:`, err);
             }
             return null;
           });
 
+        // Lấy thông tin sản phẩm trong combo
         const comboProductPromises = orderMapped.sanPhams
           .filter(item => item.laCombo && item.combo?.sanPhamsTrongCombo)
           .flatMap(item => item.combo!.sanPhamsTrongCombo)
-          .filter(sp => sp.maSanPham1)
+          .filter(sp => sp.maSanPham || sp.maSanPham1)
           .map(async (sp) => {
-            const productRes = await axios.get<Product[]>(
-              `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${sp.maSanPham1}`
-            );
-            const product = productRes.data[0];
-            if (product) {
-              return [sp.maSanPham1!, product];
+            try {
+              const productId = sp.maSanPham1 || sp.maSanPham;
+              const productRes = await axios.get<Product[]>(
+                `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${productId}`
+              );
+              const product = productRes.data[0];
+              if (product) {
+                return [productId!, product] as [string, Product];
+              }
+            } catch (err) {
+              console.error(`Lỗi khi lấy sản phẩm combo ${sp.maSanPham1 || sp.maSanPham}:`, err);
             }
             return null;
           });
@@ -211,15 +222,20 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
         );
         setProductDetails(productMap);
 
+        // Lấy thông tin combo
         const comboPromises = orderMapped.sanPhams
           .filter(item => item.laCombo && item.maCombo)
           .map(async (item) => {
-            const comboRes = await axios.get<ComboView[]>(
-              `http://localhost:5261/api/Combo/ComboSanPhamView?id=${item.maCombo}`
-            );
-            const combo = comboRes.data[0];
-            if (combo) {
-              return [item.maCombo!, combo];
+            try {
+              const comboRes = await axios.get<ComboView[]>(
+                `http://localhost:5261/api/Combo/ComboSanPhamView?id=${item.maCombo}`
+              );
+              const combo = comboRes.data[0];
+              if (combo) {
+                return [item.maCombo!, combo] as [number, ComboView];
+              }
+            } catch (err) {
+              console.error(`Lỗi khi lấy combo ${item.maCombo}:`, err);
             }
             return null;
           });
@@ -229,9 +245,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
           allComboDetails.filter((c): c is [number, ComboView] => c !== null)
         );
         setComboDetails(comboMap);
+
+        // Debug log
+        console.log('Product Map:', productMap);
+        console.log('Combo Map:', comboMap);
+        console.log('Order Details:', orderMapped);
+
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Lỗi không xác định";
         setError(message);
+        console.error('Error fetching order details:', err);
       } finally {
         setLoading(false);
       }
@@ -271,7 +294,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
     );
   }
 
-
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -299,6 +321,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                     const parsedSingle = parseMaSanPham(item.maSanPham);
                     const product = item.maSanPham ? productDetails.get(item.maSanPham) : null;
                     const combo = item.maCombo ? comboDetails.get(item.maCombo) : null;
+
                     return (
                       <TableRow key={item.maChiTietDh}>
                         <TableCell>{item.maChiTietDh}</TableCell>
@@ -324,48 +347,52 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                         <TableCell>
                           {item.laCombo ? (
                             <div>
-                              <strong>{combo?.name || item.combo?.tenCombo || "Không có tên combo"}</strong>
-                              <ul className="pl-4 mt-1 space-y-1">
-                                {item.combo?.sanPhamsTrongCombo?.map((sp, index) => {
-                                  const parsedCombo = parseMaSanPham(sp.maSanPham1);
-                                  const comboProduct = sp.maSanPham1 ? productDetails.get(sp.maSanPham1) : null;
-                                  return (
-                                    <li key={index} className="text-sm">
-                                      <strong>{index + 1}. {comboProduct?.tenSanPham || sp.tenSanPham || "Không có tên"}</strong><br />
-                                      {parsedCombo && (
-                                        <span>
-                                          ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedCombo.maMau}` }}></span><br />
-                                          ➤ Kích thước: {parsedCombo.kichThuoc}<br />
-                                        </span>
-                                      )}
-                                      Loại Sản Phẩm: {comboProduct?.loaiSanPham || sp.loaiSanPham || "Không xác định"}<br />
-                                      Thương hiệu: {comboProduct?.maThuongHieu || sp.thuongHieu || "Không xác định"}<br />
-                                      Số lượng: {sp.soLuong}
-                                    </li>
-                                  );
-                                })}
-                              </ul>
+                              <strong>{combo?.name || item.combo?.tenCombo || "Combo không xác định"}</strong>
+                              {item.combo?.sanPhamsTrongCombo && item.combo.sanPhamsTrongCombo.length > 0 && (
+                                <ul className="pl-4 mt-1 space-y-1">
+                                  {item.combo.sanPhamsTrongCombo.map((sp, index) => {
+                                    const productId = sp.maSanPham1 || sp.maSanPham;
+                                    const parsedCombo = parseMaSanPham(productId);
+                                    const comboProduct = productId ? productDetails.get(productId) : null;
+                                    
+                                    return (
+                                      <li key={index} className="text-sm">
+                                        <strong>{index + 1}. {comboProduct?.tenSanPham || sp.tenSanPham || "Sản phẩm không xác định"}</strong><br />
+                                        {parsedCombo && (
+                                          <span>
+                                            ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedCombo.maMau}` }}></span> ({parsedCombo.maMau})<br />
+                                            ➤ Kích thước: {parsedCombo.kichThuoc}<br />
+                                          </span>
+                                        )}
+                                        Loại Sản Phẩm: {comboProduct?.loaiSanPham || sp.loaiSanPham || "Chưa xác định"}<br />
+                                        Thương hiệu: {comboProduct?.maThuongHieu || sp.thuongHieu || "Chưa xác định"}<br />
+                                        Số lượng: {sp.soLuong}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
                             </div>
                           ) : (
                             <div>
-                              <strong>{product?.tenSanPham || item.tenSanPham || "Không có tên sản phẩm"}</strong><br />
+                              <strong>{product?.tenSanPham || item.tenSanPham || "Sản phẩm không xác định"}</strong><br />
                               {parsedSingle && (
                                 <span>
-                                  ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedSingle.maMau}` }}></span><br />
+                                  ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedSingle.maMau}` }}></span> ({parsedSingle.maMau})<br />
                                   ➤ Kích thước: {parsedSingle.kichThuoc}<br />
                                 </span>
                               )}
-                              Loại Sản Phẩm: {product?.loaiSanPham || item.loaiSanPham || "Không xác định"}<br />
-                              Thương hiệu: {product?.maThuongHieu || item.thuongHieu || "Không xác định"}
+                              Loại Sản Phẩm: {product?.loaiSanPham || item.loaiSanPham || "Chưa xác định"}<br />
+                              Thương hiệu: {product?.maThuongHieu || item.thuongHieu || "Chưa xác định"}
                             </div>
                           )}
                         </TableCell>
                         <TableCell>{item.soLuong}</TableCell>
                         <TableCell>
-                          {item.gia != null ? `${item.gia.toLocaleString('vi-VN')} VNĐ` : "Không xác định"}
+                          {item.gia != null ? `${item.gia.toLocaleString('vi-VN')} VNĐ` : "Chưa xác định"}
                         </TableCell>
                         <TableCell>
-                          {item.thanhTien != null ? `${item.thanhTien.toLocaleString('vi-VN')} VNĐ` : "Không xác định"}
+                          {item.thanhTien != null ? `${item.thanhTien.toLocaleString('vi-VN')} VNĐ` : "Chưa xác định"}
                         </TableCell>
                       </TableRow>
                     );

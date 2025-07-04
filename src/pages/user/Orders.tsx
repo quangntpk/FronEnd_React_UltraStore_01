@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, Star } from "lucide-react";
+import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, Star,CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ const orderStatuses = {
   processing: { color: "bg-blue-500", icon: Package, label: "Đang xử lý" },
   shipping: { color: "bg-purple-500", icon: Truck, label: "Đang giao hàng" },
   completed: { color: "bg-green-500", icon: CheckCircle, label: "Đã hoàn thành" },
+  paid: { color: "bg-green-500", icon: CreditCard, label: "Đã thanh toán" },
   canceled: { color: "bg-red-500", icon: CheckCircle, label: "Đã hủy" },
 } as const;
 
@@ -296,7 +297,8 @@ const OrderHistory = () => {
       case 1: return "processing";
       case 2: return "shipping";
       case 3: return "completed";
-      case 4: return "canceled";
+      case 4: return "paid";
+      case 5: return "canceled";
       default: return "pending";
     }
   };
