@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import Swal from "sweetalert2";
 import { FaCheck, FaTimes, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import Select from "react-select";
+import { ArrowLeft } from "lucide-react";
 
 interface Province { ProvinceID: number; ProvinceName: string; }
 interface District { DistrictID: number; DistrictName: string; }
@@ -32,7 +33,6 @@ interface FormErrors {
 }
 type Mode = "add" | "edit" | "view";
 
-// Define response types for API calls
 interface ProvinceResponse {
   provinceID: number;
   provinceName: string;
@@ -184,6 +184,7 @@ const AddressForm = ({
             value={formData.hoTen || ""}
             onChange={(e) => handleChange("hoTen", e.target.value)}
             disabled={isViewMode}
+            placeholder="Nhập họ tên"
             className={`border-gray-300 rounded-md text-gray-800 ${formErrors.hoTen ? "border-red-500" : ""}`}
           />
           {formErrors.hoTen && <p className="text-red-500 text-sm mt-1">{formErrors.hoTen}</p>}
@@ -198,6 +199,7 @@ const AddressForm = ({
             onChange={(e) => handleChange("sdt", e.target.value)}
             onKeyPress={handlePhoneNumberKeyPress}
             disabled={isViewMode}
+            placeholder="Nhập số điện thoại"
             className={`border-gray-300 rounded-md text-gray-800 ${formErrors.sdt ? "border-red-500" : ""}`}
           />
           {formErrors.sdt && <p className="text-red-500 text-sm mt-1">{formErrors.sdt}</p>}
@@ -276,6 +278,7 @@ const AddressForm = ({
             value={formData.diaChi || ""}
             onChange={(e) => handleChange("diaChi", e.target.value)}
             disabled={isViewMode}
+            placeholder="Nhập địa chỉ chi tiết"
             className={`border-gray-300 rounded-md text-gray-800 ${formErrors.diaChi ? "border-red-500" : ""}`}
           />
           {formErrors.diaChi && <p className="text-red-500 text-sm mt-1">{formErrors.diaChi}</p>}
@@ -288,6 +291,7 @@ const AddressForm = ({
           value={formData.moTa || ""}
           onChange={(e) => handleChange("moTa", e.target.value)}
           disabled={isViewMode}
+          placeholder="Nhập mô tả địa chỉ (tùy chọn)"
           className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
           rows={2}
         />
@@ -344,7 +348,7 @@ const DiaChi = () => {
   const [isLoadingDistricts, setIsLoadingDistricts] = useState<boolean>(false);
   const [isLoadingWards, setIsLoadingWards] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [activeTab, setActiveTab] = useState<"add" | "list">("add");
+  const [activeTab, setActiveTab] = useState<"add" | "list">("list");
 
   const navigate = useNavigate();
   const addressListRef = useRef<HTMLDivElement>(null);
@@ -725,11 +729,9 @@ const DiaChi = () => {
     setFormMode("edit");
     setEditingDiaChi(diaChi);
     setViewingDiaChi(null);
-    // Set province, district, and ward based on the selected address
     const province = provinces.find((p) => p.ProvinceName === diaChi.tinh) || null;
     setSelectedProvince(province);
 
-    // Wait for districts to load before setting the district
     if (province) {
       fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() })
         .then((response) => {
@@ -745,7 +747,6 @@ const DiaChi = () => {
           const district = transformedDistricts.find((d) => d.DistrictName === diaChi.quanHuyen) || null;
           setSelectedDistrict(district);
 
-          // Fetch wards if district is found
           if (district) {
             fetch(`${API_URL}/api/GHN/wards/${district.DistrictID}`, { headers: getAuthHeaders() })
               .then((response) => {
@@ -863,10 +864,21 @@ const DiaChi = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
+    <div className="flex justify-center">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl">
         {/* Navigation Tabs */}
-        <div className="relative flex justify-center mb-8">
+        <div className="relative flex justify-between items-center mb-8">
+          {/* Nút quay lại giỏ hàng */}
+          <button
+            onClick={() => window.location.href = "/user/cart"}
+            className="flex items-center px-4 py-2 text-sm font-medium text-[#9b87f5] border border-[#9b87f5] rounded-md hover:bg-[#f3effe] transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Quay lại giỏ hàng
+          </button>
+
+
+          {/* Thanh tab chuyển đổi */}
           <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg shadow-sm">
             <button
               onClick={() => {
@@ -897,6 +909,7 @@ const DiaChi = () => {
             </button>
           </div>
         </div>
+
 
         {/* Form Section */}
         {activeTab === "add" && (

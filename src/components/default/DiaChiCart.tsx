@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Swal from "sweetalert2";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, X, MapPin } from "lucide-react";
 import Select from "react-select";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
@@ -12,6 +12,7 @@ interface Province { ProvinceID: number; ProvinceName: string; }
 interface District { DistrictID: number; DistrictName: string; }
 interface Ward { WardCode: string; WardName: string; }
 interface DiaChi {
+    maDiaChi: number;
     maNguoiDung: string;
     hoTen: string;
     sdt: string;
@@ -45,6 +46,66 @@ interface WardResponse {
 const shippingData = {
     "Hà Nội": { fee: 40000, time: "3 - 5 ngày" },
     "TP. Hồ Chí Minh": { fee: 20000, time: "2 - 3 ngày" },
+    "Hải Phòng": { fee: 45000, time: "3 - 5 ngày" },
+    "Đà Nẵng": { fee: 30000, time: "2 - 3 ngày" },
+    "Cần Thơ": { fee: 30000, time: "2 - 4 ngày" },
+    "An Giang": { fee: 35000, time: "3 - 4 ngày" },
+    "Bà Rịa - Vũng Tàu": { fee: 25000, time: "2 - 3 ngày" },
+    "Bắc Giang": { fee: 45000, time: "3 - 5 ngày" },
+    "Bắc Kạn": { fee: 50000, time: "4 - 6 ngày" },
+    "Bạc Liêu": { fee: 35000, time: "3 - 4 ngày" },
+    "Bắc Ninh": { fee: 40000, time: "3 - 5 ngày" },
+    "Bến Tre": { fee: 30000, time: "2 - 4 ngày" },
+    "Bình Định": { fee: 25000, time: "2 - 3 ngày" },
+    "Bình Dương": { fee: 20000, time: "2 - 3 ngày" },
+    "Bình Phước": { fee: 20000, time: "2 - 3 ngày" },
+    "Bình Thuận": { fee: 25000, time: "2 - 3 ngày" },
+    "Cà Mau": { fee: 35000, time: "3 - 5 ngày" },
+    "Cao Bằng": { fee: 50000, time: "4 - 6 ngày" },
+    "Đắk Lắk": { fee: 0, time: "Nội tỉnh" },
+    "Đắk Nông": { fee: 15000, time: "1 - 2 ngày" },
+    "Điện Biên": { fee: 50000, time: "4 - 6 ngày" },
+    "Đồng Nai": { fee: 20000, time: "2 - 3 ngày" },
+    "Đồng Tháp": { fee: 30000, time: "3 - 4 ngày" },
+    "Gia Lai": { fee: 15000, time: "1 - 2 ngày" },
+    "Hà Giang": { fee: 50000, time: "4 - 6 ngày" },
+    "Hà Nam": { fee: 45000, time: "3 - 5 ngày" },
+    "Hà Tĩnh": { fee: 35000, time: "3 - 4 ngày" },
+    "Hải Dương": { fee: 45000, time: "3 - 5 ngày" },
+    "Hậu Giang": { fee: 35000, time: "3 - 4 ngày" },
+    "Hòa Bình": { fee: 45000, time: "3 - 5 ngày" },
+    "Hưng Yên": { fee: 40000, time: "3 - 5 ngày" },
+    "Khánh Hòa": { fee: 25000, time: "2 - 3 ngày" },
+    "Kiên Giang": { fee: 35000, time: "3 - 4 ngày" },
+    "Kon Tum": { fee: 15000, time: "1 - 2 ngày" },
+    "Lai Châu": { fee: 50000, time: "4 - 6 ngày" },
+    "Lâm Đồng": { fee: 20000, time: "1 - 2 ngày" },
+    "Lạng Sơn": { fee: 50000, time: "4 - 6 ngày" },
+    "Lào Cai": { fee: 50000, time: "4 - 6 ngày" },
+    "Long An": { fee: 30000, time: "2 - 4 ngày" },
+    "Nam Định": { fee: 45000, time: "3 - 5 ngày" },
+    "Nghệ An": { fee: 35000, time: "3 - 4 ngày" },
+    "Ninh Bình": { fee: 45000, time: "3 - 5 ngày" },
+    "Ninh Thuận": { fee: 25000, time: "2 - 3 ngày" },
+    "Phú Thọ": { fee: 45000, time: "3 - 5 ngày" },
+    "Phú Yên": { fee: 25000, time: "2 - 3 ngày" },
+    "Quảng Bình": { fee: 35000, time: "3 - 4 ngày" },
+    "Quảng Nam": { fee: 25000, time: "2 - 3 ngày" },
+    "Quảng Ngãi": { fee: 25000, time: "2 - 3 ngày" },
+    "Quảng Ninh": { fee: 50000, time: "4 - 6 ngày" },
+    "Quảng Trị": { fee: 30000, time: "3 - 4 ngày" },
+    "Sóc Trăng": { fee: 35000, time: "3 - 4 ngày" },
+    "Sơn La": { fee: 50000, time: "4 - 6 ngày" },
+    "Tây Ninh": { fee: 25000, time: "2 - 3 ngày" },
+    "Thái Bình": { fee: 45000, time: "3 - 5 ngày" },
+    "Thái Nguyên": { fee: 45000, time: "3 - 5 ngày" },
+    "Thanh Hóa": { fee: 40000, time: "3 - 4 ngày" },
+    "Thừa Thiên Huế": { fee: 30000, time: "2 - 3 ngày" },
+    "Tiền Giang": { fee: 30000, time: "2 - 3 ngày" },
+    "Trà Vinh": { fee: 30000, time: "2 - 3 ngày" },
+    "Tuyên Quang": { fee: 50000, time: "4 - 6 ngày" },
+    "Vĩnh Long": { fee: 30000, time: "2 - 3 ngày" },
+    "Vĩnh Phúc": { fee: 45000, time: "3 - 5 ngày" },
     "Yên Bái": { fee: 50000, time: "4 - 6 ngày" },
 };
 
@@ -109,10 +170,10 @@ const AddressForm = ({
 
     return (
         <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#9b87f5] mb-4">Thêm địa chỉ mới</h2>
+            <h2 className="text-lg font-semibold text-[#2c3e50] mb-4">Thêm địa chỉ mới</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="hoTen" className="block text-sm font-medium text-gray-700">
+                    <Label htmlFor="hoTen" className="block text-sm font-medium text-[#2c3e50]">
                         Họ tên
                     </Label>
                     <Input
@@ -120,13 +181,12 @@ const AddressForm = ({
                         value={formData.hoTen || ""}
                         onChange={(e) => handleChange("hoTen", e.target.value)}
                         placeholder="Nhập họ tên"
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#9b87f5] focus:border-[#9b87f5] transition-colors ${formErrors.hoTen ? "border-red-500" : "border-gray-300"
-                            }`}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#9b87f5] focus:border-[#9b87f5] transition-colors ${formErrors.hoTen ? "border-[#ef4444]" : "border-[#d1d5db]"} text-[#2c3e50]`}
                     />
-                    {formErrors.hoTen && <p className="mt-1 text-sm text-red-500">{formErrors.hoTen}</p>}
+                    {formErrors.hoTen && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.hoTen}</p>}
                 </div>
                 <div>
-                    <Label htmlFor="sdt" className="block text-sm font-medium text-gray-700">
+                    <Label htmlFor="sdt" className="block text-sm font-medium text-[#2c3e50]">
                         Số điện thoại
                     </Label>
                     <Input
@@ -137,15 +197,14 @@ const AddressForm = ({
                         onChange={(e) => handleChange("sdt", e.target.value)}
                         onKeyPress={handlePhoneNumberKeyPress}
                         placeholder="Nhập số điện thoại"
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#9b87f5] focus:border-[#9b87f5] transition-colors ${formErrors.sdt ? "border-red-500" : "border-gray-300"
-                            }`}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#9b87f5] focus:border-[#9b87f5] transition-colors ${formErrors.sdt ? "border-[#ef4444]" : "border-[#d1d5db]"} text-[#2c3e50]`}
                     />
-                    {formErrors.sdt && <p className="mt-1 text-sm text-red-500">{formErrors.sdt}</p>}
+                    {formErrors.sdt && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.sdt}</p>}
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="tinh" className="block text-sm font-medium text-gray-700">
+                    <Label htmlFor="tinh" className="block text-sm font-medium text-[#2c3e50]">
                         Tỉnh/Thành phố
                     </Label>
                     <Select
@@ -158,24 +217,30 @@ const AddressForm = ({
                         isDisabled={isLoadingProvinces}
                         isSearchable
                         isClearable
-                        className={`w-full ${formErrors.tinh ? "border-red-500" : ""}`}
+                        className={`w-full text-[#2c3e50] ${formErrors.tinh ? "border-[#ef4444]" : ""}`}
                         styles={{
                             control: (base) => ({
                                 ...base,
-                                borderColor: formErrors.tinh ? "#ef4444" : base.borderColor,
-                                "&:hover": { borderColor: formErrors.tinh ? "#ef4444" : "#a1a1aa" },
+                                borderColor: formErrors.tinh ? "#ef4444" : "#d1d5db",
+                                "&:hover": { borderColor: formErrors.tinh ? "#ef4444" : "#9b87f5" },
                                 boxShadow: "none",
                                 "&:focus-within": { borderColor: "#9b87f5", boxShadow: "0 0 0 2px rgba(155, 135, 245, 0.5)" },
                             }),
-                            singleValue: (base) => ({ ...base, color: "#1f2937" }),
-                            placeholder: (base) => ({ ...base, color: "#9ca3af" }),
-                            menu: (base) => ({ ...base, zIndex: 50 }),
+                            singleValue: (base) => ({ ...base, color: "#2c3e50" }),
+                            placeholder: (base) => ({ ...base, color: "#6b7280" }),
+                            menu: (base) => ({ ...base, zIndex: 50, backgroundColor: "#ffffff" }),
+                            option: (base, state) => ({
+                                ...base,
+                                backgroundColor: state.isSelected ? "#9b87f5" : state.isFocused ? "#f3effe" : "#ffffff",
+                                color: state.isSelected ? "#ffffff" : "#2c3e50",
+                                "&:hover": { backgroundColor: "#f3effe" },
+                            }),
                         }}
                     />
-                    {formErrors.tinh && <p className="mt-1 text-sm text-red-500">{formErrors.tinh}</p>}
+                    {formErrors.tinh && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.tinh}</p>}
                 </div>
                 <div>
-                    <Label htmlFor="quanHuyen" className="block text-sm font-medium text-gray-700">
+                    <Label htmlFor="quanHuyen" className="block text-sm font-medium text-[#2c3e50]">
                         Quận/Huyện
                     </Label>
                     <Select
@@ -188,26 +253,32 @@ const AddressForm = ({
                         isDisabled={!selectedProvince || isLoadingDistricts}
                         isSearchable
                         isClearable
-                        className={`w-full ${formErrors.quanHuyen ? "border-red-500" : ""}`}
+                        className={`w-full text-[#2c3e50] ${formErrors.quanHuyen ? "border-[#ef4444]" : ""}`}
                         styles={{
                             control: (base) => ({
                                 ...base,
-                                borderColor: formErrors.quanHuyen ? "#ef4444" : base.borderColor,
-                                "&:hover": { borderColor: formErrors.quanHuyen ? "#ef4444" : "#a1a1aa" },
+                                borderColor: formErrors.quanHuyen ? "#ef4444" : "#d1d5db",
+                                "&:hover": { borderColor: formErrors.quanHuyen ? "#ef4444" : "#9b87f5" },
                                 boxShadow: "none",
                                 "&:focus-within": { borderColor: "#9b87f5", boxShadow: "0 0 0 2px rgba(155, 135, 245, 0.5)" },
                             }),
-                            singleValue: (base) => ({ ...base, color: "#1f2937" }),
-                            placeholder: (base) => ({ ...base, color: "#9ca3af" }),
-                            menu: (base) => ({ ...base, zIndex: 50 }),
+                            singleValue: (base) => ({ ...base, color: "#2c3e50" }),
+                            placeholder: (base) => ({ ...base, color: "#6b7280" }),
+                            menu: (base) => ({ ...base, zIndex: 50, backgroundColor: "#ffffff" }),
+                            option: (base, state) => ({
+                                ...base,
+                                backgroundColor: state.isSelected ? "#9b87f5" : state.isFocused ? "#f3effe" : "#ffffff",
+                                color: state.isSelected ? "#ffffff" : "#2c3e50",
+                                "&:hover": { backgroundColor: "#f3effe" },
+                            }),
                         }}
                     />
-                    {formErrors.quanHuyen && <p className="mt-1 text-sm text-red-500">{formErrors.quanHuyen}</p>}
+                    {formErrors.quanHuyen && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.quanHuyen}</p>}
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="phuongXa" className="block text-sm font-medium text-gray-700">
+                    <Label htmlFor="phuongXa" className="block text-sm font-medium text-[#2c3e50]">
                         Phường/Xã
                     </Label>
                     <Select
@@ -220,24 +291,30 @@ const AddressForm = ({
                         isDisabled={!selectedDistrict || isLoadingWards}
                         isSearchable
                         isClearable
-                        className={`w-full ${formErrors.phuongXa ? "border-red-500" : ""}`}
+                        className={`w-full text-[#2c3e50] ${formErrors.phuongXa ? "border-[#ef4444]" : ""}`}
                         styles={{
                             control: (base) => ({
                                 ...base,
-                                borderColor: formErrors.phuongXa ? "#ef4444" : base.borderColor,
-                                "&:hover": { borderColor: formErrors.phuongXa ? "#ef4444" : "#a1a1aa" },
+                                borderColor: formErrors.phuongXa ? "#ef4444" : "#d1d5db",
+                                "&:hover": { borderColor: formErrors.phuongXa ? "#ef4444" : "#9b87f5" },
                                 boxShadow: "none",
                                 "&:focus-within": { borderColor: "#9b87f5", boxShadow: "0 0 0 2px rgba(155, 135, 245, 0.5)" },
                             }),
-                            singleValue: (base) => ({ ...base, color: "#1f2937" }),
-                            placeholder: (base) => ({ ...base, color: "#9ca3af" }),
-                            menu: (base) => ({ ...base, zIndex: 50 }),
+                            singleValue: (base) => ({ ...base, color: "#2c3e50" }),
+                            placeholder: (base) => ({ ...base, color: "#6b7280" }),
+                            menu: (base) => ({ ...base, zIndex: 50, backgroundColor: "#ffffff" }),
+                            option: (base, state) => ({
+                                ...base,
+                                backgroundColor: state.isSelected ? "#9b87f5" : state.isFocused ? "#f3effe" : "#ffffff",
+                                color: state.isSelected ? "#ffffff" : "#2c3e50",
+                                "&:hover": { backgroundColor: "#f3effe" },
+                            }),
                         }}
                     />
-                    {formErrors.phuongXa && <p className="mt-1 text-sm text-red-500">{formErrors.phuongXa}</p>}
+                    {formErrors.phuongXa && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.phuongXa}</p>}
                 </div>
                 <div>
-                    <Label htmlFor="diaChi" className="block text-sm font-medium text-gray-700">
+                    <Label htmlFor="diaChi" className="block text-sm font-medium text-[#2c3e50]">
                         Địa chỉ chi tiết
                     </Label>
                     <Input
@@ -245,38 +322,46 @@ const AddressForm = ({
                         value={formData.diaChi || ""}
                         onChange={(e) => handleChange("diaChi", e.target.value)}
                         placeholder="Nhập địa chỉ chi tiết"
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#9b87f5] focus:border-[#9b87f5] transition-colors ${formErrors.diaChi ? "border-red-500" : "border-gray-300"
-                            }`}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#9b87f5] focus:border-[#9b87f5] transition-colors ${formErrors.diaChi ? "border-[#ef4444]" : "border-[#d1d5db]"} text-[#2c3e50]`}
                     />
-                    {formErrors.diaChi && <p className="mt-1 text-sm text-red-500">{formErrors.diaChi}</p>}
+                    {formErrors.diaChi && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.diaChi}</p>}
                 </div>
             </div>
             {shippingInfo && selectedWard && (
-                <div className="p-4 bg-gray-50 rounded-lg mt-4">
-                    <p className="text-sm text-gray-700">
-                        <strong>Phí giao hàng:</strong> {shippingInfo.fee.toLocalecompletLocaleString()} VND
+                <div className="p-4 bg-[#f9fafb] rounded-lg mt-4">
+                    <p className="text-sm text-[#2c3e50]">
+                        <strong className="font-semibold">Phí giao hàng:</strong> {shippingInfo.fee.toLocaleString()} VND
                     </p>
-                    <p className="text-sm text-gray-700">
-                        <strong>Thời gian giao hàng:</strong> {shippingInfo.time}
+                    <p className="text-sm text-[#2c3e50]">
+                        <strong className="font-semibold">Thời gian giao hàng:</strong> {shippingInfo.time}
                     </p>
                 </div>
             )}
-            <div className="flex justify-end space-x-4 mt-6">
+            <div className="flex justify-between items-center mt-6">
                 <Button
                     type="button"
-                    variant="outline"
-                    onClick={onCancel}
-                    className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 bg-white hover:bg-gray-100 transition-colors"
+                    onClick={() => window.location.href = "/user/diachi"}
+                    className="flex items-center px-4 py-2 border border-[#9b87f5] text-[#9b87f5] bg-white rounded-md hover:bg-[#f3effe] hover:border-[#7c6ae8] transition-colors"
                 >
-                    <X className="mr-2 h-4 w-4" /> Hủy
+                    <MapPin className="mr-2 h-4 w-4" /> Danh sách địa chỉ
                 </Button>
-                <Button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="flex items-center px-4 py-2 bg-[#9b87f5] text-white hover:bg-[#8a76e4] transition-colors"
-                >
-                    <ChevronUp className="mr-2 h-4 w-4" /> Thêm địa chỉ
-                </Button>
+                <div className="flex space-x-4">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onCancel}
+                        className="flex items-center px-4 py-2 border border-[#d1d5db] text-[#2c3e50] bg-white hover:bg-[#f3effe] hover:border-[#9b87f5] transition-colors"
+                    >
+                        <X className="mr-2 h-4 w-4" /> Hủy
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="flex items-center px-4 py-2 bg-[#9b87f5] text-white hover:bg-[#7c6ae8] transition-colors"
+                    >
+                        <ChevronUp className="mr-2 h-4 w-4" /> Thêm địa chỉ
+                    </Button>
+                </div>
             </div>
         </div>
     );
@@ -296,8 +381,10 @@ const DiaChiCart = () => {
     const [isLoadingWards, setIsLoadingWards] = useState<boolean>(false);
     const [formErrors, setFormErrors] = useState<FormErrors>({});
     const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+    const [diaChiList, setDiaChiList] = useState<DiaChi[]>([]);
 
     const location = useLocation();
+    const navigate = useNavigate();
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
 
     const getAuthHeaders = () => {
@@ -318,7 +405,6 @@ const DiaChiCart = () => {
                 }));
                 setProvinces(transformedProvinces);
             } catch (error) {
-                console.error("Error fetching provinces:", error);
                 Swal.fire({
                     icon: "error",
                     title: "Lỗi",
@@ -359,7 +445,6 @@ const DiaChiCart = () => {
                 setSelectedDistrict(null);
                 setSelectedWard(null);
             } catch (error) {
-                console.error("Error fetching districts:", error);
                 Swal.fire({
                     icon: "error",
                     title: "Lỗi",
@@ -396,7 +481,6 @@ const DiaChiCart = () => {
                 setWards(transformedWards);
                 setSelectedWard(null);
             } catch (error) {
-                console.error("Error fetching wards:", error);
                 Swal.fire({
                     icon: "error",
                     title: "Lỗi",
@@ -420,13 +504,35 @@ const DiaChiCart = () => {
                 const parsedUser = JSON.parse(userData);
                 setMaNguoiDung(parsedUser.maNguoiDung);
             } catch (error) {
-                console.error("Error parsing user data:", error);
-                setIsFormOpen(false);
+                navigate("/login");
             }
         } else {
-            setIsFormOpen(false);
+            navigate("/login");
         }
-    }, []);
+    }, [navigate]);
+
+    useEffect(() => {
+        const fetchDiaChiList = async () => {
+            if (!maNguoiDung) return;
+            try {
+                const response = await fetch(`${API_URL}/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`, { headers: getAuthHeaders() });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                setDiaChiList(data);
+            } catch (error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi",
+                    text: "Không thể lấy danh sách địa chỉ",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                });
+            }
+        };
+        if (maNguoiDung) fetchDiaChiList();
+    }, [maNguoiDung, API_URL]);
 
     useEffect(() => {
         const { state } = location;
@@ -487,12 +593,36 @@ const DiaChiCart = () => {
         }
 
         try {
+            if (diaChiList.length >= 5) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi",
+                    text: "Bạn chỉ có thể có tối đa 5 địa chỉ",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                });
+                setIsFormOpen(false);
+                navigate("/user/diachi");
+                return;
+            }
             const response = await fetch(`${API_URL}/api/DanhSachDiaChi`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                 body: JSON.stringify({ ...fullFormData, maNguoiDung, trangThai: 1 }),
             });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            await Promise.all(
+                diaChiList.map(async (dc: DiaChi) => {
+                    const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${dc.maDiaChi}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                        body: JSON.stringify({ ...dc, trangThai: 0 }),
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                })
+            );
             Swal.fire({
                 icon: "success",
                 title: "Thành công",
@@ -501,14 +631,12 @@ const DiaChiCart = () => {
                 timerProgressBar: true,
                 showConfirmButton: false,
                 showCloseButton: true,
-                
             }).then(() => {
-            window.location.reload();         
-          });
+                window.location.reload();
+            });
             setIsFormOpen(false);
             handleClear();
         } catch (error) {
-            console.error("Error adding address:", error);
             Swal.fire({
                 icon: "error",
                 title: "Lỗi",
@@ -537,19 +665,20 @@ const DiaChiCart = () => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto mt-8">
+        <div className="mt-8">
             <div className="flex justify-center mb-4">
                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                     <DialogTrigger asChild>
                         <button
-                            className="flex items-center px-6 py-2 bg-[#9b87f5] text-white font-semibold rounded-[8px] border border-[#8a76e4] hover:bg-[#8a76e4] transition-colors shadow-md"
+                            className="flex items-center px-6 py-2 text-sm bg-[#9b87f5] text-white font-medium rounded-md border border-[#7c6ae8] hover:bg-[#7c6ae8] transition-colors shadow"
                         >
                             Thêm địa chỉ mới
-                            <ChevronDown className="ml-2 h-5 w-5" />
+                            <ChevronDown className="ml-2 h-4 w-4" />
                         </button>
+
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl p-0 border-[#9b87f5]">
-                        <div className="p-6 border border-[#9b87f5] rounded-md bg-white shadow-md">
+                    <DialogContent className="max-w-3xl p-0 border-[#9b87f5] bg-white">
+                        <div className="p-6 border border-[#9b87f5] rounded-md bg-white shadow-lg">
                             <AddressForm
                                 diaChi={newDiaChi}
                                 onSubmit={handleFormSubmit}

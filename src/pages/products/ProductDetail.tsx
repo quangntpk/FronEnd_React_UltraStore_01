@@ -15,6 +15,8 @@ import {
 import Swal from "sweetalert2";
 import Comments from "./Comments"; // If you actually need Comments component
 import Testing from "@/components/default/Testing";
+import SelectSize from "@/components/default/SelectSize";
+
 // ---------- Types ---------- //
 interface ProductDetail {
   kichThuoc: string;
@@ -346,11 +348,10 @@ const ProductDetail = () => {
                 onClick={() =>
                   setMainImage(`data:image/jpeg;base64,${img}`)
                 }
-                className={`aspect-square rounded-md overflow-hidden ${
-                  mainImage === `data:image/jpeg;base64,${img}`
+                className={`aspect-square rounded-md overflow-hidden ${mainImage === `data:image/jpeg;base64,${img}`
                     ? "ring-2 ring-crocus-500"
                     : "opacity-70"
-                }`}
+                  }`}
               >
                 <img
                   src={`data:image/jpeg;base64,${img}`}
@@ -373,7 +374,7 @@ const ProductDetail = () => {
           </div>
 
           <p className="text-gray-700">
-             <h3 className="font-medium mb-2">Mô tả</h3>
+            <h3 className="font-medium mb-2">Mô tả</h3>
             {selectedProduct.moTa || "Sản phẩm này chưa có mô tả"}
           </p>
 
@@ -385,11 +386,10 @@ const ProductDetail = () => {
                 <button
                   key={p.mauSac}
                   onClick={() => handleColorChange(p.mauSac)}
-                  className={`w-10 h-10 rounded-full border ${
-                    selectedColor === p.mauSac
+                  className={`w-10 h-10 rounded-full border ${selectedColor === p.mauSac
                       ? "border-crocus-500 ring-2 ring-crocus-500"
                       : "border-gray-200 hover:border-gray-300"
-                  }`}
+                    }`}
                   style={{ backgroundColor: `#${p.mauSac}` }}
                   title={p.mauSac}
                 />
@@ -399,17 +399,19 @@ const ProductDetail = () => {
 
           {/* Size */}
           <div>
-            <h3 className="font-medium mb-2">Kích thước</h3>
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="font-medium text-sm text-gray-900">Kích thước</h3>
+              <SelectSize />
+            </div>
             <div className="flex flex-wrap gap-3">
               {selectedProduct.details.map((d) => (
                 <button
                   key={d.kichThuoc}
                   onClick={() => handleSizeChange(d.kichThuoc)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-md border ${
-                    selectedSize === d.kichThuoc
+                  className={`w-10 h-10 flex items-center justify-center rounded-md border ${selectedSize === d.kichThuoc
                       ? "border-crocus-500 bg-crocus-50 text-crocus-700"
                       : "border-gray-200 hover:border-gray-300"
-                  }`}
+                    }`}
                 >
                   {d.kichThuoc}
                 </button>
@@ -480,10 +482,10 @@ const ProductDetail = () => {
       </div>
 
 
-      <Testing />      
+      <Testing />
       {/* Comments Section */}
       <Comments productId={id} />
-  
+
     </div>
   );
 };

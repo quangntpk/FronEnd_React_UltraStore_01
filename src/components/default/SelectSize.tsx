@@ -289,7 +289,7 @@ const SelectSize: React.FC = () => {
                         className={`cursor-pointer text-center ${formDang === "thuong" ? "border-2 border-[#9b87f5]" : ""}`}
                       >
                         <img
-                          src="https://file.hstatic.net/1000253775/file/thuong_160_0f4c5b3e6d0e4e8e8f1d2b3c4d5e6f7a.jpg"
+                          src="https://file.hstatic.net/1000253775/file/om_160_519a3dbfd5314c2fb5f4d90913534ec4.jpg"
                           alt="Thường"
                           className="w-3/4 max-w-sm mx-auto"
                         />
@@ -300,7 +300,7 @@ const SelectSize: React.FC = () => {
                         className={`cursor-pointer text-center ${formDang === "cao" ? "border-2 border-[#9b87f5]" : ""}`}
                       >
                         <img
-                          src="https://file.hstatic.net/1000253775/file/cao_160_1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d.jpg"
+                          src="https://file.hstatic.net/1000253775/file/rong_160_09b702fafaca4d879af662e6383baa5f.jpg"
                           alt="Cao"
                           className="w-3/4 max-w-sm mx-auto"
                         />
@@ -310,7 +310,7 @@ const SelectSize: React.FC = () => {
                   )}
                 </div>
                 <div className="mt-4 text-center transition-all duration-300">
-                  <p className="text-lg text-gray-700">UltraStore gợi ý bạn</p>
+                  <p className="text-lg text-gray-700">FashionHub gợi ý bạn</p>
                   <div className="flex justify-center gap-2 mt-2">
                     <span className="bg-[#9b87f5] text-white rounded px-3 py-1">
                       {suggestSize(weight, height, loaiSanPham)} - {loaiSanPham}
