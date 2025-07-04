@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FaPlus, FaEdit, FaTrashAlt, FaEye,FaDoorOpen } from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrashAlt, FaEye, FaDoorOpen } from "react-icons/fa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,17 +226,16 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight">Sản phẩm</h1>
           <p className="text-muted-foreground mt-1">Quản lý sản phẩm trong cửa hàng của bạn</p>
         </div>
-      <Button
- className="bg-purple-400 hover:bg-purple-500 text-white" 
-  onClick={() => {
-    console.log("Nút Thêm Sản Phẩm Mới được nhấn");
-    setIsAddModalOpen(true);
-  }}
->
-  <Plus className="h-4 w-4 mr-2" />
-  Thêm Sản Phẩm Mới
-</Button>
-
+        <Button
+          className="bg-purple-400 hover:bg-purple-500 text-white"
+          onClick={() => {
+            console.log("Nút Thêm Sản Phẩm Mới được nhấn");
+            setIsAddModalOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm Sản Phẩm Mới
+        </Button>
       </div>
 
       <Card>
@@ -309,7 +308,7 @@ const Products = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {currentProducts.map((product) => (
                 <Card key={product.id} className="hover-scale overflow-hidden group">
-                  <div className="h-40 bg-purple-light flex items-center justify-center">
+                  <div className="aspect-square bg-purple-light flex items-center justify-center">
                     <img
                       src={
                         product.hinh && product.hinh[0]
@@ -317,7 +316,7 @@ const Products = () => {
                           : "/placeholder-image.jpg"
                       }
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <CardContent className="p-4">
@@ -347,7 +346,7 @@ const Products = () => {
                           </DropdownMenuItem>
                           {product.trangThai === 0 ? (
                             <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
-                               <FaDoorOpen className="mr-2 h-4 w-4 text-green-500" /> Mở bán
+                              <FaDoorOpen className="mr-2 h-4 w-4 text-green-500" /> Mở bán
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
@@ -390,7 +389,7 @@ const Products = () => {
                   key={product.id}
                   className="p-4 flex items-center gap-4 hover:bg-muted/50"
                 >
-                  <div className="h-12 w-12 bg-purple-light rounded-md flex items-center justify-center">
+                  <div className="h-20 w-20 bg-purple-light rounded-md flex items-center justify-center">
                     <img
                       src={
                         product.hinh && product.hinh[0]
@@ -398,7 +397,7 @@ const Products = () => {
                           : "/placeholder-image.jpg"
                       }
                       alt={product.name}
-                      className="w-full h-full object-cover rounded-md"
+                      className="w-full h-full object-contain rounded-md"
                     />
                   </div>
                   <div className="flex-1">
@@ -417,7 +416,7 @@ const Products = () => {
                       {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
-                     Số lượng: {product.soLuong || 0} 
+                      Số lượng: {product.soLuong || 0}
                     </div>
                   </div>
                   <DropdownMenu>
