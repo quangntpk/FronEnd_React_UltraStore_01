@@ -71,8 +71,10 @@ const OrderList: React.FC = () => {
       filtered = orders.filter(order => order.trangThaiDonHang === 2);
     } else if (value === 'completed') {
       filtered = orders.filter(order => order.trangThaiDonHang === 3);
+    } else if (value === 'paid') {
+      filtered = orders.filter(order => order.trangThaiThanhToan === 1 || order.trangThaiThanhToan === 2);
     } else if (value === 'canceled') {
-      filtered = orders.filter(order => order.trangThaiDonHang === 4);
+      filtered = orders.filter(order => order.trangThaiDonHang === 5);
     }
     // Áp dụng tìm kiếm trên danh sách đã lọc
     applySearch(filtered);
@@ -85,14 +87,20 @@ const OrderList: React.FC = () => {
       case 1: return 'Đang xử lý';
       case 2: return 'Đang giao hàng';
       case 3: return 'Hoàn thành';
-      case 4: return 'Đã hủy';
+      case 4: return 'Đã thanh toán';
+      case 5: return 'Đã hủy';
       default: return 'Không xác định';
     }
   };
 
   // Hàm chuyển đổi trạng thái thanh toán thành chuỗi để tìm kiếm
-  const getPaymentStatusLabel = (trangThaiThanhToan: number, trangThaiDonHang: number) => {
-    return trangThaiThanhToan === 1 && trangThaiDonHang === 3 ? 'Đã thanh toán' : 'Chưa thanh toán';
+  const getPaymentStatusLabel = (trangThaiThanhToan: number) => {
+    switch (trangThaiThanhToan) {
+      case 0: return 'Chưa thanh toán';
+      case 1: return 'Thanh toán khi nhận hàng';
+      case 2: return 'Đã thanh toán';
+      default: return 'Không xác định';
+    }
   };
 
   // Hàm áp dụng tìm kiếm trên tất cả các trường
@@ -109,7 +117,7 @@ const OrderList: React.FC = () => {
         (order.lyDoHuy?.toLowerCase().includes(searchLower) || '') ||
         // Tìm kiếm trên các giá trị đã dịch
         getStatusLabel(order.trangThaiDonHang).toLowerCase().includes(searchLower) ||
-        getPaymentStatusLabel(order.trangThaiThanhToan, order.trangThaiDonHang).toLowerCase().includes(searchLower)
+        getPaymentStatusLabel(order.trangThaiThanhToan).toLowerCase().includes(searchLower)
       );
     });
     setFilteredOrders(filtered);
@@ -223,6 +231,7 @@ const OrderList: React.FC = () => {
           <TabsTrigger value="processing">Đang xử lý</TabsTrigger>
           <TabsTrigger value="delivering">Đang giao</TabsTrigger>
           <TabsTrigger value="completed">Hoàn thành</TabsTrigger>
+          <TabsTrigger value="paid">Đã thanh toán</TabsTrigger>
           <TabsTrigger value="canceled">Đã hủy</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -259,10 +268,11 @@ const OrderList: React.FC = () => {
                     {order.trangThaiDonHang === 1 && 'Đang xử lý'}
                     {order.trangThaiDonHang === 2 && 'Đang giao hàng'}
                     {order.trangThaiDonHang === 3 && 'Hoàn thành'}
-                    {order.trangThaiDonHang === 4 && 'Đã hủy'}
+                    {order.trangThaiDonHang === 4 && 'Đã thanh toán'}
+                    {order.trangThaiDonHang === 5 && 'Đã hủy'}
                   </TableCell>
                   <TableCell>
-                    {order.trangThaiThanhToan === 1 && order.trangThaiDonHang === 3 ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    {getPaymentStatusLabel(order.trangThaiThanhToan)}
                   </TableCell>
                   <TableCell>{order.hinhThucThanhToan || 'COD'}</TableCell>
                   {activeTab === 'canceled' && <TableCell>{order.lyDoHuy || 'Không có lý do'}</TableCell>}
