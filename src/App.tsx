@@ -70,7 +70,7 @@ import { AuthProvider } from "@/components/auth/AuthContext";
 import { useAuth } from "@/components/auth/AuthContext";
 import { useRef } from "react";
 import AdminProfile from "./pages/admin/AdminProfile";
-
+import CheckOutInstant from "./pages/user/InstantCheckout";
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
   const location = useLocation();
@@ -168,6 +168,7 @@ const App = () => (
                 <Route path="testing" element={<Testing />} />
                 <Route path="/user/hoadon/:orderId" element={<OrderEmailPage />} />
                 <Route path="/user/hoadon" element={<HoaDon />} />
+                <Route path="/user/CheckOutInstant" element={<CheckOutInstant/>}/>
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
