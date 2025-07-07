@@ -43,7 +43,8 @@ const Header = ({ title }: HeaderProps) => {
 
   return (
     <header className="h-16 border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 bg-white/80 backdrop-blur-sm z-20">
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <h1 className="text-xl font-semibold">{}</h1>
+      {/* title */}
       <div className="flex items-center gap-4">
         {isLoggedIn && (
           <span className="text-sm text-gray-700">

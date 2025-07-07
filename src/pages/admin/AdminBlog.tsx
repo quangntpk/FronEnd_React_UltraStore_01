@@ -1157,39 +1157,47 @@ const Blogs = () => {
                     Nội Dung
                   </Label>
                   <div className="flex items-center gap-3 mb-2">
-                    <select
-                      aria-label="Chọn kiểu định dạng nội dung"
-                      className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500"
-                      onChange={(e) => {
-                        const value = e.target.value;
+                  <select
+                    aria-label="Chọn kiểu định dạng nội dung"
+                    className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Clear textarea first
+                      setEditBlog({
+                        ...editBlog,
+                        noiDung: ''
+                      });
+                      // Apply selected tag after a brief delay to ensure textarea is cleared
+                      setTimeout(() => {
                         if (value === "paragraph") {
                           setEditBlog({
                             ...editBlog,
-                            noiDung: `<p>${editBlog.noiDung}</p>`,
+                            noiDung: '<p></p>'
                           });
                         } else if (value) {
                           setEditBlog({
                             ...editBlog,
-                            noiDung: `<${value}>${editBlog.noiDung}</${value}>`,
+                            noiDung: `<${value}></${value}>`
                           });
                         }
-                      }}
-                    >
-                      <option value="">Chọn kiểu</option>
-                      <option value="h1">Heading 1</option>
-                      <option value="h2">Heading 2</option>
-                      <option value="h3">Heading 3</option>
-                      <option value="paragraph">Paragraph</option>
-                    </select>
-                  </div>
-                  <textarea
-                    name="noiDung"
-                    placeholder="Nội dung"
-                    value={editBlog.noiDung}
-                    onChange={handleEditInputChange}
-                    className="w-full h-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
+                      }, 0);
+                    }}
+                  >
+                    <option value="">Chọn kiểu</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                    <option value="paragraph">Paragraph</option>
+                  </select>
+                </div>
+                <textarea
+                  name="noiDung"
+                  placeholder="Nội dung"
+                  value={editBlog.noiDung}
+                  onChange={handleEditInputChange}
+                  className="w-full h-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  required
+                />
                 </div>
                 <div>
                   <Label className="block text-sm font-semibold text-gray-700">

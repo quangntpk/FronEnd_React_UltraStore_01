@@ -40,6 +40,7 @@ const Products = () => {
       if (response.ok) {
         const data = await response.json();
         setProducts(data || []);
+        console.log(data)
       } else {
         console.error("Lỗi khi lấy danh sách sản phẩm:", response.status);
         setProducts([]);

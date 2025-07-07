@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from 'react-icons/fa';
 import {
@@ -39,6 +38,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import toast, { Toaster } from "react-hot-toast";
+import DatePicker from "react-datepicker";
+import { vi } from "date-fns/locale";
+import "react-datepicker/dist/react-datepicker.css";
 
 // Định nghĩa interface cho Voucher và Coupon
 interface Coupon {
@@ -53,8 +55,8 @@ interface Voucher {
   tenVoucher: string;
   giaTri: number;
   moTa: string | null;
-  ngayBatDau: string;
-  ngayKetThuc: string;
+  ngayBatDau: string | Date; // Allow both string and Date
+  ngayKetThuc: string | Date; // Allow both string and Date
   hinhAnh: string | null;
   dieuKien: number;
   soLuong: number;
@@ -63,9 +65,8 @@ interface Voucher {
 }
 
 // Hàm định dạng ngày giờ
-const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  // Bù múi giờ để hiển thị đúng ngày địa phương
+const formatDateTime = (dateString: string | Date): string => {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
@@ -85,8 +86,8 @@ const removeDiacritics = (str: string): string => {
 const Vouchers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState<Date | null>(null);
+  const [filterEndDate, setFilterEndDate] = useState<Date | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
@@ -99,8 +100,8 @@ const Vouchers = () => {
     tenVoucher: '',
     giaTri: '',
     moTa: '',
-    ngayBatDau: '',
-    ngayKetThuc: '',
+    ngayBatDau: null as Date | null,
+    ngayKetThuc: null as Date | null,
     dieuKien: '',
     soLuong: '',
     hinhAnh: '',
@@ -119,7 +120,6 @@ const Vouchers = () => {
       const response = await fetch(`http://localhost:5261/api/Voucher`);
       if (!response.ok) throw new Error('Không thể lấy dữ liệu voucher');
       const data: Voucher[] = await response.json();
-      // Chuyển đổi ngày từ API về định dạng ngày địa phương
       const adjustedData = data.map((voucher) => ({
         ...voucher,
         ngayBatDau: new Date(new Date(voucher.ngayBatDau).getTime() - new Date(voucher.ngayBatDau).getTimezoneOffset() * 60000).toISOString().split('T')[0],
@@ -134,16 +134,15 @@ const Vouchers = () => {
     }
   };
 
-  // Hàm xử lý làm mới
   const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault(); // Ngăn chặn hành vi mặc định (reload trang)
-    console.log('Refresh clicked'); // Log để debug
-    setSearchTerm(''); // Reset bộ lọc tìm kiếm
-    setFilterStatus('all'); // Reset bộ lọc trạng thái
-    setFilterStartDate(''); // Reset ngày bắt đầu
-    setFilterEndDate(''); // Reset ngày kết thúc
-    setCurrentPage(1); // Reset về trang đầu
-    fetchVouchers(); // Gọi lại API để lấy danh sách voucher
+    e.preventDefault();
+    console.log('Refresh clicked');
+    setSearchTerm('');
+    setFilterStatus('all');
+    setFilterStartDate(null);
+    setFilterEndDate(null);
+    setCurrentPage(1);
+    fetchVouchers();
   };
 
   const deleteVoucher = async () => {
@@ -170,12 +169,12 @@ const Vouchers = () => {
   };
 
   const createVoucher = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    if (newVoucher.ngayBatDau < today) {
+    const today = new Date();
+    if (newVoucher.ngayBatDau && newVoucher.ngayBatDau < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
       toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
       return;
     }
-    if (newVoucher.ngayKetThuc < newVoucher.ngayBatDau) {
+    if (newVoucher.ngayKetThuc && newVoucher.ngayBatDau && newVoucher.ngayKetThuc < newVoucher.ngayBatDau) {
       toast.error("Ngày kết thúc không được trước ngày bắt đầu!");
       return;
     }
@@ -193,8 +192,8 @@ const Vouchers = () => {
           tenVoucher: newVoucher.tenVoucher,
           giaTri: parseInt(newVoucher.giaTri),
           moTa: newVoucher.moTa || null,
-          ngayBatDau: newVoucher.ngayBatDau, // Gửi trực tiếp chuỗi YYYY-MM-DD
-          ngayKetThuc: newVoucher.ngayKetThuc, // Gửi trực tiếp chuỗi YYYY-MM-DD
+          ngayBatDau: newVoucher.ngayBatDau instanceof Date ? newVoucher.ngayBatDau.toISOString().split('T')[0] : newVoucher.ngayBatDau,
+          ngayKetThuc: newVoucher.ngayKetThuc instanceof Date ? newVoucher.ngayKetThuc.toISOString().split('T')[0] : newVoucher.ngayKetThuc,
           dieuKien: parseFloat(newVoucher.dieuKien),
           soLuong: parseInt(newVoucher.soLuong),
           hinhAnh: newVoucher.hinhAnh || null,
@@ -213,8 +212,8 @@ const Vouchers = () => {
         tenVoucher: '',
         giaTri: '',
         moTa: '',
-        ngayBatDau: '',
-        ngayKetThuc: '',
+        ngayBatDau: null,
+        ngayKetThuc: null,
         dieuKien: '',
         soLuong: '',
         hinhAnh: '',
@@ -230,12 +229,15 @@ const Vouchers = () => {
   const editVoucherSubmit = async () => {
     if (!editVoucher) return;
 
-    const today = new Date().toISOString().split('T')[0];
-    if (editVoucher.ngayBatDau < today && editVoucher.ngayBatDau !== today) {
+    const today = new Date();
+    const startDate = typeof editVoucher.ngayBatDau === 'string' ? new Date(editVoucher.ngayBatDau) : editVoucher.ngayBatDau;
+    const endDate = typeof editVoucher.ngayKetThuc === 'string' ? new Date(editVoucher.ngayKetThuc) : editVoucher.ngayKetThuc;
+
+    if (startDate && startDate < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
       toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
       return;
     }
-    if (editVoucher.ngayKetThuc < editVoucher.ngayBatDau) {
+    if (endDate && startDate && endDate < startDate) {
       toast.error("Ngày kết thúc không được trước ngày bắt đầu!");
       return;
     }
@@ -254,8 +256,8 @@ const Vouchers = () => {
           tenVoucher: editVoucher.tenVoucher,
           giaTri: parseInt(editVoucher.giaTri.toString()),
           moTa: editVoucher.moTa || null,
-          ngayBatDau: editVoucher.ngayBatDau, // Gửi trực tiếp chuỗi YYYY-MM-DD
-          ngayKetThuc: editVoucher.ngayKetThuc, // Gửi trực tiếp chuỗi YYYY-MM-DD
+          ngayBatDau: editVoucher.ngayBatDau instanceof Date ? editVoucher.ngayBatDau.toISOString().split('T')[0] : editVoucher.ngayBatDau,
+          ngayKetThuc: editVoucher.ngayKetThuc instanceof Date ? editVoucher.ngayKetThuc.toISOString().split('T')[0] : editVoucher.ngayKetThuc,
           dieuKien: parseFloat(editVoucher.dieuKien.toString()),
           soLuong: parseInt(editVoucher.soLuong.toString()),
           trangThai: editVoucher.trangThai,
@@ -294,9 +296,12 @@ const Vouchers = () => {
       (filterStatus === '0' && item.trangThai === 0) ||
       (filterStatus === '1' && item.trangThai === 1);
 
+    const itemStartDate = typeof item.ngayBatDau === 'string' ? new Date(item.ngayBatDau) : item.ngayBatDau;
+    const itemEndDate = typeof item.ngayKetThuc === 'string' ? new Date(item.ngayKetThuc) : item.ngayKetThuc;
+
     const matchesDateRange =
-      (!filterStartDate || new Date(item.ngayBatDau) >= new Date(filterStartDate)) &&
-      (!filterEndDate || new Date(item.ngayKetThuc) <= new Date(filterEndDate));
+      (!filterStartDate || itemStartDate >= filterStartDate) &&
+      (!filterEndDate || itemEndDate <= filterEndDate);
 
     return matchesSearchTerm && matchesStatus && matchesDateRange;
   });
@@ -319,8 +324,8 @@ const Vouchers = () => {
   const handleEditClick = (voucher: Voucher) => {
     setEditVoucher({
       ...voucher,
-      ngayBatDau: new Date(voucher.ngayBatDau).toISOString().split('T')[0],
-      ngayKetThuc: new Date(voucher.ngayKetThuc).toISOString().split('T')[0],
+      ngayBatDau: typeof voucher.ngayBatDau === 'string' ? new Date(voucher.ngayBatDau) : voucher.ngayBatDau,
+      ngayKetThuc: typeof voucher.ngayKetThuc === 'string' ? new Date(voucher.ngayKetThuc) : voucher.ngayKetThuc,
     });
     setOpenEditModal(true);
   };
@@ -335,7 +340,6 @@ const Vouchers = () => {
     setEditVoucher({ ...editVoucher!, [name]: value });
   };
 
-  // Xử lý kéo thả cho modal thêm
   const handleDragOverCreate = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingCreate(true);
@@ -379,7 +383,6 @@ const Vouchers = () => {
     }
   };
 
-  // Xử lý kéo thả cho modal sửa
   const handleDragOverEdit = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingEdit(true);
@@ -444,7 +447,7 @@ const Vouchers = () => {
     return pageNumbers;
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
 
   return (
     <div className="space-y-6">
@@ -501,27 +504,29 @@ const Vouchers = () => {
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                 <div className="w-full sm:w-48 space-y-1">
-                  <Label htmlFor="filterStartDate" className="text-sm font-medium text-gray-700">Ngày Bắt Đầu</Label>
-                  <Input
+         
+                  <DatePicker
                     id="filterStartDate"
-                    type="date"
-                    placeholder="Ngày bắt đầu"
-                    value={filterStartDate}
-                    onChange={(e) => setFilterStartDate(e.target.value)}
-                    max={filterEndDate || undefined}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
+                    selected={filterStartDate}
+                    onChange={(date: Date | null) => setFilterStartDate(date)}
+                    dateFormat="dd/MM/yyyy"
+                    locale={vi}
+                    placeholderText="Chọn ngày bắt đầu"
+                    className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md p-2"
+                    maxDate={filterEndDate || undefined}
                   />
                 </div>
                 <div className="w-full sm:w-48 space-y-1">
-                  <Label htmlFor="filterEndDate" className="text-sm font-medium text-gray-700">Ngày Kết Thúc</Label>
-                  <Input
+            
+                  <DatePicker
                     id="filterEndDate"
-                    type="date"
-                    placeholder="Ngày kết thúc"
-                    value={filterEndDate}
-                    onChange={(e) => setFilterEndDate(e.target.value)}
-                    min={filterStartDate || undefined}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
+                    selected={filterEndDate}
+                    onChange={(date: Date | null) => setFilterEndDate(date)}
+                    dateFormat="dd/MM/yyyy"
+                    locale={vi}
+                    placeholderText="Chọn ngày kết thúc"
+                    className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md p-2"
+                    minDate={filterStartDate || undefined}
                   />
                 </div>
               </div>
@@ -653,7 +658,6 @@ const Vouchers = () => {
         </CardContent>
       </Card>
 
-      {/* Modal xác nhận xóa */}
       <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
         <DialogContent>
           <DialogHeader>
@@ -673,7 +677,6 @@ const Vouchers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal chi tiết voucher */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
@@ -761,7 +764,6 @@ const Vouchers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal thêm voucher */}
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
@@ -785,11 +787,29 @@ const Vouchers = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
-                <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={newVoucher.ngayBatDau} onChange={handleInputChange} min={today} required />
+                <DatePicker
+                  selected={newVoucher.ngayBatDau}
+                  onChange={(date: Date | null) => setNewVoucher({ ...newVoucher, ngayBatDau: date })}
+                  dateFormat="dd/MM/yyyy"
+                  locale={vi}
+                  placeholderText="Chọn ngày bắt đầu"
+                  className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md p-2"
+                  minDate={today}
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
-                <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={newVoucher.ngayKetThuc} onChange={handleInputChange} min={newVoucher.ngayBatDau || today} required />
+                <DatePicker
+                  selected={newVoucher.ngayKetThuc}
+                  onChange={(date: Date | null) => setNewVoucher({ ...newVoucher, ngayKetThuc: date })}
+                  dateFormat="dd/MM/yyyy"
+                  locale={vi}
+                  placeholderText="Chọn ngày kết thúc"
+                  className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md p-2"
+                  minDate={newVoucher.ngayBatDau || today}
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Điều Kiện (VND)</label>
@@ -872,7 +892,6 @@ const Vouchers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal sửa voucher */}
       <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
@@ -897,11 +916,29 @@ const Vouchers = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
-                  <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={editVoucher.ngayBatDau} onChange={handleEditInputChange} min={today} required />
+                  <DatePicker
+                    selected={editVoucher.ngayBatDau instanceof Date ? editVoucher.ngayBatDau : new Date(editVoucher.ngayBatDau)}
+                    onChange={(date: Date | null) => setEditVoucher({ ...editVoucher, ngayBatDau: date })}
+                    dateFormat="dd/MM/yyyy"
+                    locale={vi}
+                    placeholderText="Chọn ngày bắt đầu"
+                    className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md p-2"
+                    minDate={today}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
-                  <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={editVoucher.ngayKetThuc} onChange={handleEditInputChange} min={editVoucher.ngayBatDau || today} required />
+                  <DatePicker
+                    selected={editVoucher.ngayKetThuc instanceof Date ? editVoucher.ngayKetThuc : new Date(editVoucher.ngayKetThuc)}
+                    onChange={(date: Date | null) => setEditVoucher({ ...editVoucher, ngayKetThuc: date })}
+                    dateFormat="dd/MM/yyyy"
+                    locale={vi}
+                    placeholderText="Chọn ngày kết thúc"
+                    className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md p-2"
+                    minDate={editVoucher.ngayBatDau instanceof Date ? editVoucher.ngayBatDau : new Date(editVoucher.ngayBatDau)}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Điều Kiện (VND)</label>

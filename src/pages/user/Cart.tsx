@@ -1075,7 +1075,7 @@ const CartPage = () => {
             action: {
               label: "Xem chi tiết",
               onClick: () =>
-                navigate("/PaymentSuccess", { state: { orderId: result.orderId } }),
+                navigate("/user/orders", { state: { orderId: result.orderId } }),
             },
           });
           

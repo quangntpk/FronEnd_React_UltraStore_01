@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Heart, ShoppingCart, Printer } from "lucide-react";
+import { Heart, ShoppingCart, Printer, Zap, CreditCard } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -13,9 +13,10 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import Swal from "sweetalert2";
-import Comments from "./Comments"; // If you actually need Comments component
+import Comments from "./Comments";
 import Testing from "@/components/default/Testing";
 import SelectSize from "@/components/default/SelectSize";
+import SanPhamLienQuan from "@/pages/products/ProductShowcase"
 
 // ---------- Types ---------- //
 interface ProductDetail {
@@ -125,6 +126,7 @@ const handlePrint = () => {
 // ---------- Component ---------- //
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   // ---- State ---- //
   const [products, setProducts] = useState<Product[]>([]);
@@ -316,6 +318,47 @@ const ProductDetail = () => {
     }
   };
 
+  const handleBuyNow = () => {
+    if (!selectedProduct) return;
+
+    if (!selectedSize) {
+      showNotification("Vui lòng chọn kích thước trước khi mua!", "error");
+      return;
+    }
+
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const maNguoiDung = userData?.maNguoiDung;
+
+    if (!maNguoiDung) {
+      showNotification("Vui lòng đăng nhập để mua sản phẩm!", "error");
+      return;
+    }
+
+    // Prepare data to save
+    const cartData = {
+      IDNguoiDung: maNguoiDung,
+      IDSanPham: selectedProduct.id.split("_")[0],
+      MauSac: selectedProduct.mauSac,
+      KichThuoc: selectedSize,
+      SoLuong: quantity,
+      TenSanPham: selectedProduct.tenSanPham,
+      Gia: selectedProduct.details.find((d) => d.kichThuoc === selectedSize)?.gia || 0,
+      NgayMua: new Date().toISOString(),
+    };
+
+    try {
+      const existingData = JSON.parse(localStorage.getItem("InstantBuy") || "[]");
+      existingData.length = 0; 
+      existingData.push(cartData);
+      localStorage.setItem("InstantBuy", JSON.stringify(existingData, null, 2));
+      // Redirect to checkout
+      navigate("/user/CheckOutInstant");
+      showNotification("Đang chuyển đến trang thanh toán!", "success");
+    } catch {
+      showNotification("Có lỗi xảy ra khi mua sản phẩm!", "error");
+    }
+  };
+
   // ---- Render ---- //
   if (loading) return <div className="container mx-auto py-8">Loading...</div>;
   if (error || !selectedProduct)
@@ -447,45 +490,103 @@ const ProductDetail = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
-            <Button
-              onClick={handleAddToCart}
-              className="flex-1 bg-crocus-600 hover:bg-crocus-700"
-              disabled={stock === 0}
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" /> Thêm Vào Giỏ Hàng
-            </Button>
-            <Button variant="outline" onClick={toggleFavorite} className="w-12">
-              <Heart
-                className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
-              />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handlePrint}
-              className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-            >
-              <Printer className="mr-2 h-4 w-4" /> In
-            </Button>
+          <div className="space-y-4">
+            {/* Main Action Buttons */}
+            <div className="flex gap-3">
+              {/* Add to Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                disabled={stock === 0}
+                className="flex-1 relative overflow-hidden group bg-gradient-to-r from-[#0E5AF0] to-[#EF00D6] text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
+                style={{
+                  background: stock === 0 ? '#gray' : 'linear-gradient(to right, #0E5AF0, #EF00D6)',
+                }}
+                onMouseEnter={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = '#EF00D6';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = 'linear-gradient(to right, #0E5AF0, #EF00D6)';
+                  }
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>Thêm Vào Giỏ Hàng</span>
+                </div>
+              </button>
+
+              {/* Buy Now Button */}
+              <button
+                onClick={handleBuyNow}
+                disabled={stock === 0}
+                className="flex-1 relative overflow-hidden group bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
+                style={{
+                  background: stock === 0 ? '#gray' : 'linear-gradient(to right, #FF6B35, #F7931E)',
+                }}
+                onMouseEnter={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = '#F7931E';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = 'linear-gradient(to right, #FF6B35, #F7931E)';
+                  }
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  <span>Mua Ngay</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Secondary Action Buttons */}
+            <div className="flex gap-3">
+              {/* Favorite Button */}
+              <button
+                onClick={toggleFavorite}
+                className="flex-1 bg-white border-2 border-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-all duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-600 flex items-center justify-center gap-2"
+              >
+                <Heart
+                  className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
+                />
+                <span>{isLiked ? "Đã Yêu Thích" : "Yêu Thích"}</span>
+              </button>
+
+              {/* Print Button */}
+              <button
+                onClick={handlePrint}
+                className="flex-1 bg-white border-2 border-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-all duration-300 hover:border-green-300 hover:bg-green-50 hover:text-green-600 flex items-center justify-center gap-2"
+              >
+                <Printer className="h-5 w-5" />
+                <span>In Sản Phẩm</span>
+              </button>
+            </div>
           </div>
 
           {/* Barcode */}
-          <div className="text-center flex justify-center">
-            <img
-              alt="Barcode"
-              src={`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
-                selectedProduct.id
-              )}&translate-esc=on`}
-            />
+          <div className="text-center flex justify-center pt-6">
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <img
+                alt="Barcode"
+                src={`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
+                  selectedProduct.id
+                )}&translate-esc=on`}
+                className="mx-auto"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-
       <Testing />
       {/* Comments Section */}
       <Comments productId={id} />
-
+      <SanPhamLienQuan productId={id}/>
     </div>
   );
 };

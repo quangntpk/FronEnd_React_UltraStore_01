@@ -19,12 +19,12 @@ const PaymentSuccess = () => {
         duration: 5000,
         action: {
           label: "Xem chi tiết",
-          onClick: () => navigate("/user/orders-history", { state: { orderId } }),
+          onClick: () => navigate("/user/orders", { state: { orderId } }),
         },
       });
       navigate("/", { state: { orderId } });
     } else {    
-      navigate("/order-history");
+      navigate("user/orders");
     }
   }, [location, navigate]);
 
