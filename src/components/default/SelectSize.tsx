@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Ruler, Weight, Image, X } from "lucide-react";
 
+interface SizeData {
+  [key: string]: string[][];
+}
+
 const SelectSize: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"huongDan" | "bangSize">("huongDan");
@@ -19,7 +23,7 @@ const SelectSize: React.FC = () => {
     cao: "Cao",
   };
 
-  const sizeData: Record<string, string[][]> = {
+  const sizeData: SizeData = {
     "Quần - Ôm": [
       ["Cân nặng (kg)", "50-60", "61-65", "66-70", "71-76", "76-80", "81-86"],
       ["Vòng lưng (cm)", "74", "78", "81", "84", "88", "91"],
@@ -140,10 +144,10 @@ const SelectSize: React.FC = () => {
   }, [showForm]);
 
   return (
-    <div className="relative">
-      <h5
+    <div className="relative z-10">
+      <button
         onClick={() => setShowForm(!showForm)}
-        className="px-3 py-1 text-sm rounded-md bg-white text-[#9b87f5] mb-2 cursor-pointer flex items-center gap-2 border border-[#9b87f5] w-fit hover:bg-[#9b87f5]/10 transition-colors duration-300"
+        className="px-3 py-1 text-sm rounded-md bg-white text-[#9b87f5] border border-[#9b87f5] flex items-center gap-2 hover:bg-[#9b87f5]/10 transition-colors duration-300"
       >
         {showForm ? (
           <>
@@ -156,19 +160,19 @@ const SelectSize: React.FC = () => {
             Hướng dẫn chọn size
           </>
         )}
-      </h5>
+      </button>
 
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center">
-          <div ref={formRef} className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full relative">
-            <span
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div ref={formRef} className="bg-white p-4 rounded-lg shadow-xl max-w-lg w-full relative max-h-[90vh]">
+            <button
               onClick={() => setShowForm(false)}
-              className="absolute top-[-10px] right-[-10px] text-xl cursor-pointer bg-[#9b87f5] text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-[#9b87f5]/80 transition-colors duration-300"
+              className="absolute top-[-10px] right-[-10px] bg-[#9b87f5] text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-[#9b87f5]/80 transition-colors duration-300"
             >
               <X size={16} />
-            </span>
+            </button>
 
-            <div className="flex justify-between items-center mb-4 transition-all duration-300">
+            <div className="flex justify-between items-center mb-4">
               <div className="flex gap-2">
                 <button
                   onClick={() => setActiveTab("huongDan")}
@@ -190,36 +194,24 @@ const SelectSize: React.FC = () => {
                 </button>
               </div>
               <select
-                className="border border-[#9b87f5] rounded px-3 py-1 text-[#9b87f5] bg-white hover:bg-[#9b87f5]/10 transition-colors duration-300 appearance-none"
+                className="border border-[#9b87f5] rounded px-3 py-1 text-[#9b87f5] bg-white hover:bg-[#9b87f5]/10 transition-colors duration-300"
                 value={loaiSanPham}
                 onChange={(e) => setLoaiSanPham(e.target.value)}
               >
-                <option value="Quần" className="flex items-center">
-                  <span className="mr-2">👖</span>Quần
-                </option>
-                <option value="Áo" className="flex items-center">
-                  <span className="mr-2">👕</span>Áo
-                </option>
-                <option value="Giày" className="flex items-center">
-                  <span className="mr-2">👞</span>Giày
-                </option>
-                <option value="Dép" className="flex items-center">
-                  <span className="mr-2">👡</span>Dép
-                </option>
-                <option value="Túi xách" className="flex items-center">
-                  <span className="mr-2">👜</span>Túi xách
-                </option>
-                <option value="Phụ kiện" className="flex items-center">
-                  <span className="mr-2">💍</span>Phụ kiện
-                </option>
+                <option value="Quần">👖 Quần</option>
+                <option value="Áo">👕 Áo</option>
+                <option value="Giày">👞 Giày</option>
+                <option value="Dép">👡 Dép</option>
+                <option value="Túi xách">👜 Túi xách</option>
+                <option value="Phụ kiện">💍 Phụ kiện</option>
               </select>
             </div>
 
             {activeTab === "huongDan" && (
               <div>
-                <div className="mb-4 flex items-center transition-all duration-300">
+                <div className="mb-4 flex items-center">
                   <label className="text-sm mr-2 text-gray-700 flex items-center">
-                    <Ruler className="mr-1 h-4 w-4" />Chiều cao (cm):
+                    <Ruler className="mr-1 h-4 w-4" /> Chiều cao (cm):
                   </label>
                   <span className="font-bold text-[#9b87f5]">{height}cm</span>
                   <input
@@ -231,9 +223,9 @@ const SelectSize: React.FC = () => {
                     className="ml-2 w-full accent-[#9b87f5]"
                   />
                 </div>
-                <div className="mb-4 flex items-center transition-all duration-300">
+                <div className="mb-4 flex items-center">
                   <label className="text-sm mr-2 text-gray-700 flex items-center">
-                    <Weight className="mr-1 h-4 w-4" />Cân nặng (kg):
+                    <Weight className="mr-1 h-4 w-4" /> Cân nặng (kg):
                   </label>
                   <span className="font-bold text-[#9b87f5]">{weight}kg</span>
                   <input
@@ -245,71 +237,71 @@ const SelectSize: React.FC = () => {
                     className="ml-2 w-full accent-[#9b87f5]"
                   />
                 </div>
-                <div className="mt-4 flex flex-row justify-center gap-2 transition-all duration-300">
+                <div className="mt-4 flex flex-row justify-center gap-2">
                   {loaiSanPham === "Quần" || loaiSanPham === "Áo" ? (
                     <>
                       <div
                         onClick={() => setFormDang("om")}
-                        className={`cursor-pointer text-center ${formDang === "om" ? "border-2 border-[#9b87f5]" : ""}`}
+                        className={`cursor-pointer text-center p-2 ${formDang === "om" ? "border-2 border-[#9b87f5]" : "border border-gray-200"} rounded-md`}
                       >
                         <img
                           src="https://file.hstatic.net/1000253775/file/om_160_519a3dbfd5314c2fb5f4d90913534ec4.jpg"
                           alt="Ôm"
                           className="w-3/4 max-w-sm mx-auto"
                         />
-                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1 inline-block">Ôm</p>
+                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1">Ôm</p>
                       </div>
                       <div
                         onClick={() => setFormDang("vua")}
-                        className={`cursor-pointer text-center ${formDang === "vua" ? "border-2 border-[#9b87f5]" : ""}`}
+                        className={`cursor-pointer text-center p-2 ${formDang === "vua" ? "border-2 border-[#9b87f5]" : "border border-gray-200"} rounded-md`}
                       >
                         <img
                           src="https://file.hstatic.net/1000253775/file/vua_160_85cf53bb243943ad90c3890031cc15ae.jpg"
                           alt="Vừa"
                           className="w-3/4 max-w-sm mx-auto"
                         />
-                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1 inline-block">Vừa</p>
-                      </div>
+                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1">Vừa</p>
+                        </div>
                       <div
                         onClick={() => setFormDang("rong")}
-                        className={`cursor-pointer text-center ${formDang === "rong" ? "border-2 border-[#9b87f5]" : ""}`}
+                        className={`cursor-pointer text-center p-2 ${formDang === "rong" ? "border-2 border-[#9b87f5]" : "border border-gray-200"} rounded-md`}
                       >
                         <img
                           src="https://file.hstatic.net/1000253775/file/rong_160_09b702fafaca4d879af662e6383baa5f.jpg"
                           alt="Rộng"
                           className="w-3/4 max-w-sm mx-auto"
                         />
-                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1 inline-block">Rộng</p>
+                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1">Rộng</p>
                       </div>
                     </>
                   ) : (
                     <>
                       <div
                         onClick={() => setFormDang("thuong")}
-                        className={`cursor-pointer text-center ${formDang === "thuong" ? "border-2 border-[#9b87f5]" : ""}`}
+                        className={`cursor-pointer text-center p-2 ${formDang === "thuong" ? "border-2 border-[#9b87f5]" : "border border-gray-200"} rounded-md`}
                       >
                         <img
                           src="https://file.hstatic.net/1000253775/file/om_160_519a3dbfd5314c2fb5f4d90913534ec4.jpg"
                           alt="Thường"
                           className="w-3/4 max-w-sm mx-auto"
                         />
-                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1 inline-block">Thường</p>
+                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1">Thường</p>
                       </div>
                       <div
                         onClick={() => setFormDang("cao")}
-                        className={`cursor-pointer text-center ${formDang === "cao" ? "border-2 border-[#9b87f5]" : ""}`}
+                        className={`cursor-pointer text-center p-2 ${formDang === "cao" ? "border-2 border-[#9b87f5]" : "border border-gray-200"} rounded-md`}
                       >
                         <img
                           src="https://file.hstatic.net/1000253775/file/rong_160_09b702fafaca4d879af662e6383baa5f.jpg"
                           alt="Cao"
                           className="w-3/4 max-w-sm mx-auto"
                         />
-                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1 inline-block">Cao</p>
+                        <p className="mt-2 bg-[#9b87f5] text-white rounded px-2 py-1">Cao</p>
                       </div>
                     </>
                   )}
                 </div>
-                <div className="mt-4 text-center transition-all duration-300">
+                <div className="mt-4 text-center">
                   <p className="text-lg text-gray-700">FashionHub gợi ý bạn</p>
                   <div className="flex justify-center gap-2 mt-2">
                     <span className="bg-[#9b87f5] text-white rounded px-3 py-1">
@@ -321,7 +313,7 @@ const SelectSize: React.FC = () => {
             )}
 
             {activeTab === "bangSize" && (
-              <div className="max-h-96 overflow-y-auto transition-all duration-300">
+              <div className="max-h-96 overflow-y-auto">
                 {["om", "vua", "rong", "thuong", "cao"].map((formKey) => {
                   const isApplicable =
                     (loaiSanPham === "Quần" || loaiSanPham === "Áo") && (formKey === "om" || formKey === "vua" || formKey === "rong") ||
@@ -329,10 +321,10 @@ const SelectSize: React.FC = () => {
                     (formKey === "thuong" || formKey === "cao");
                   return isApplicable ? (
                     <div key={formKey} className="mb-4">
-                      <h3 className="text-lg font-bold mb-2 text-[#9b87f5] transition-all duration-300">
+                      <h3 className="text-lg font-bold mb-2 text-[#9b87f5]">
                         {loaiSanPham} - {forms[formKey as "om" | "vua" | "rong" | "thuong" | "cao"]}
                       </h3>
-                      <table className="w-full border border-[#9b87f5] text-sm transition-all duration-300">
+                      <table className="w-full border border-[#9b87f5] text-sm">
                         <thead>
                           <tr className="bg-[#9b87f5] text-white">
                             <th className="p-2">SIZE</th>
@@ -378,7 +370,7 @@ const SelectSize: React.FC = () => {
                         </thead>
                         <tbody>
                           {sizeData[`${loaiSanPham} - ${forms[formKey as "om" | "vua" | "rong" | "thuong" | "cao"]}`]?.map((row, idx) => (
-                            <tr key={idx} className="border-t border-gray-300 transition-all duration-300">
+                            <tr key={idx} className="border-t border-gray-300">
                               {row.map((cell, i) => (
                                 <td key={i} className="p-2 border-r border-gray-200">
                                   {cell}
@@ -391,7 +383,7 @@ const SelectSize: React.FC = () => {
                     </div>
                   ) : null;
                 })}
-                <p className="text-sm text-gray-500 mt-2 transition-all duration-300">
+                <p className="text-sm text-gray-500 mt-2">
                   * Size có thể chênh lệch tùy theo từng dáng người, bạn nên thử trước khi mua.
                 </p>
               </div>

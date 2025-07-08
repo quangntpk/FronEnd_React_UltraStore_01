@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { HubConnectionBuilder, LogLevel, HubConnection } from "@microsoft/signalr";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
@@ -34,7 +33,6 @@ const HeroSection = () => {
   const [error, setError] = useState<string | null>(null);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const hubConnection = useRef<HubConnection | null>(null);
 
   const fetchActiveTheme = async () => {
     try {
@@ -55,38 +53,7 @@ const HeroSection = () => {
 
   useEffect(() => {
     fetchActiveTheme();
-
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${API_URL}/giaoDienHub`)
-      .configureLogging(LogLevel.Information)
-      .withAutomaticReconnect()
-      .build();
-
-    hubConnection.current = connection;
-
-    connection.on("ReceiveGiaoDienUpdated", (updated: GiaoDien) => {
-      if (updated.trangThai === 1) {
-        setActiveTheme(updated);
-      } else if (activeTheme?.maGiaoDien === updated.maGiaoDien) {
-        setActiveTheme(null);
-      }
-    });
-
-    connection.on("ReceiveGiaoDienSetActive", () => {
-      fetchActiveTheme();
-    });
-
-    connection.on("ReceiveGiaoDienDeleted", (id: number) => {
-      if (activeTheme?.maGiaoDien === id) {
-        setActiveTheme(null);
-      }
-    });
-
-    connection.start().catch(() => {});
-    return () => {
-      connection.stop();
-    };
-  }, [activeTheme?.maGiaoDien]);
+  }, []);
 
   useEffect(() => {
     if (!api) return;

@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
 import { useAuth } from "../auth/AuthContext";
+import SupportChat from "@/components/default/SupportChat";
 import {
   Menu,
   ShoppingCart,
@@ -385,6 +386,7 @@ const UserLayout = () => {
             </div>
           </div>
         </div>
+        <SupportChat />
       </footer>
     </>
   );

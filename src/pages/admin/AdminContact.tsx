@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -18,7 +17,6 @@ import {
   MoreVertical,
   CheckCircle,
   XCircle,
-  AlertCircle,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -35,9 +33,9 @@ import {
 } from "@/components/ui/select";
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
+  CardContent,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -47,17 +45,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
-import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 import Swal from "sweetalert2";
 import { Bar, Line } from "react-chartjs-2";
 import {
@@ -104,77 +102,27 @@ const AdminContact = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState<LienHe | null>(null);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState("");
-  const [deleteContact, setDeleteContact] = useState(null);
+  const [deleteContact, setDeleteContact] = useState<LienHe | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSending, setIsSending] = useState(false);
-  const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [aiError, setAiError] = useState("");
-  const [selectedLienHeIds, setSelectedLienHeIds] = useState([]);
-  const [phanLoaiData, setPhanLoaiData] = useState({ tích_cực: 0, tiêu_cực: 0, bình_thường: 0 });
-  const [phanLoaiTheoNgay, setPhanLoaiTheoNgay] = useState({});
-  const [statusLoading, setStatusLoading] = useState({});
-  const [confirmStatusChange, setConfirmStatusChange] = useState(null);
-  const hubConnection = useRef(null);
-  const searchTimeout = useRef(null);
+  const [selectedLienHeIds, setSelectedLienHeIds] = useState<number[]>([]);
+  const [statusLoading, setStatusLoading] = useState<{ [key: number]: boolean }>({});
+  const [confirmStatusChange, setConfirmStatusChange] = useState<{ contact: LienHe; newStatus: string } | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchLienHe();
-    fetchPhanLoaiGopY();
 
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${API_URL}/lienHeHub`)
-      .configureLogging(LogLevel.Information)
-      .build();
-
-    connection.on("ReceiveLienHeAdded", (newLienHe) => {
-      setLienHeList((prev) => [...prev, newLienHe].sort((a, b) => b.maLienHe - a.maLienHe));
-    });
-
-    connection.on("ReceiveLienHeUpdated", (updatedLienHe) => {
-      setLienHeList((prev) =>
-        prev.map((lh) => (lh.maLienHe === updatedLienHe.maLienHe ? updatedLienHe : lh))
-      );
-    });
-
-    connection.on("ReceiveLienHeDeleted", (maLienHe) => {
-      setLienHeList((prev) => prev.filter((lh) => lh.maLienHe !== maLienHe));
-      setSelectedLienHeIds((prev) => prev.filter((id) => id !== maLienHe));
-    });
-
-    connection.on("ReceiveLienHeDeletedMultiple", (ids) => {
-      setLienHeList((prev) => prev.filter((lh) => !ids.includes(lh.maLienHe)));
-      setSelectedLienHeIds((prev) => prev.filter((id) => !ids.includes(id)));
-    });
-
-    connection
-      .start()
-      .then(() => console.log("SignalR Connected"))
-      .catch((err) => console.error("SignalR Connection Error: ", err));
-
-    hubConnection.current = connection;
-
-    return () => {
-      connection.stop();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (searchTimeout.current) {
-      clearTimeout(searchTimeout.current);
-    }
-    searchTimeout.current = setTimeout(() => {
+    const searchTimeout = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300);
 
     return () => {
-      if (searchTimeout.current) {
-        clearTimeout(searchTimeout.current);
-      }
+      clearTimeout(searchTimeout);
     };
   }, [searchTerm]);
 
@@ -185,65 +133,12 @@ const AdminContact = () => {
       if (!response.ok) throw new Error("Lỗi khi tải danh sách liên hệ");
       const data = await response.json();
       setLienHeList(data);
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Lỗi không xác định");
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: "Lỗi khi tải danh sách liên hệ: " + err.message,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPhanLoaiGopY = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/LienHe`);
-      if (!response.ok) throw new Error("Lỗi khi tải danh sách liên hệ");
-      const lienHeList = await response.json();
-
-      const phanLoai = { tích_cực: 0, tiêu_cực: 0, bình_thường: 0 };
-      const phanLoaiTheoNgayTemp = {};
-
-      for (const lienHe of lienHeList) {
-        const res = await fetch(
-          `${API_URL}/api/Gemini/PhanLoaiGopY?noiDung=${encodeURIComponent(lienHe.noiDung)}`
-        );
-        const data = await res.json();
-        if (data.responseCode === 201) {
-          const type = data.result;
-          const date = new Date(lienHe.ngayTao).toISOString().split("T")[0];
-
-          if (!phanLoaiTheoNgayTemp[date]) {
-            phanLoaiTheoNgayTemp[date] = { tích_cực: 0, tiêu_cực: 0, bình_thường: 0 };
-          }
-
-          if (type.includes("tích cực")) {
-            phanLoai.tích_cực++;
-            phanLoaiTheoNgayTemp[date].tích_cực++;
-          } else if (type.includes("tiêu cực")) {
-            phanLoai.tiêu_cực++;
-            phanLoaiTheoNgayTemp[date].tiêu_cực++;
-          } else {
-            phanLoai.bình_thường++;
-            phanLoaiTheoNgayTemp[date].bình_thường++;
-          }
-        }
-      }
-      setPhanLoaiData(phanLoai);
-      setPhanLoaiTheoNgay(phanLoaiTheoNgayTemp);
-    } catch (err) {
-      setError(err.message);
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Lỗi khi tải dữ liệu thống kê: " + err.message,
+        text: "Lỗi khi tải danh sách liên hệ: " + (err instanceof Error ? err.message : "Lỗi không xác định"),
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -279,27 +174,29 @@ const AdminContact = () => {
     selectedLienHeIds.includes(lienHe.maLienHe)
   );
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value.toLowerCase());
     setCurrentPage(1);
   };
 
-  const handleStatusFilterChange = (value) => {
+  const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setCurrentPage(1);
   };
 
-  const openConfirmStatusChange = (contact, newStatus) => {
+  const openConfirmStatusChange = (contact: LienHe, newStatus: string) => {
     setConfirmStatusChange({ contact, newStatus });
   };
 
   const closeConfirmStatusChange = () => {
     setConfirmStatusChange(null);
+    setIsConfirming(false);
   };
 
   const handleConfirmStatusChange = async () => {
     if (!confirmStatusChange) return;
     const { contact, newStatus } = confirmStatusChange;
+    setIsConfirming(true);
     setStatusLoading((prev) => ({ ...prev, [contact.maLienHe]: true }));
     try {
       const response = await fetch(`${API_URL}/api/LienHe/${contact.maLienHe}`, {
@@ -308,7 +205,9 @@ const AdminContact = () => {
         body: JSON.stringify({ ...contact, trangThai: Number(newStatus) }),
       });
       if (!response.ok) throw new Error("Lỗi khi cập nhật trạng thái");
-
+      setLienHeList((prev) =>
+        prev.map((lh) => (lh.maLienHe === contact.maLienHe ? { ...lh, trangThai: Number(newStatus) } : lh))
+      );
       Swal.fire({
         icon: "success",
         title: "Thành công",
@@ -318,12 +217,12 @@ const AdminContact = () => {
         showConfirmButton: false,
         showCloseButton: true,
       });
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Lỗi không xác định");
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: "Lỗi khi cập nhật trạng thái: " + err.message,
+        text: "Lỗi khi cập nhật trạng thái: " + (err instanceof Error ? err.message : "Lỗi không xác định"),
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -331,12 +230,12 @@ const AdminContact = () => {
       });
     } finally {
       setStatusLoading((prev) => ({ ...prev, [contact.maLienHe]: false }));
+      setIsConfirming(false);
       closeConfirmStatusChange();
     }
-    setIsConfirming(false);
   };
 
-  const handleSelectLienHe = (id) => {
+  const handleSelectLienHe = (id: number) => {
     setSelectedLienHeIds((prev) =>
       prev.includes(id) ? prev.filter((selectedId) => selectedId !== id) : [...prev, id]
     );
@@ -366,6 +265,7 @@ const AdminContact = () => {
         showCloseButton: true,
       });
       setDeleteContact(null);
+      setIsDeleting(false);
       return;
     }
 
@@ -377,12 +277,14 @@ const AdminContact = () => {
           body: JSON.stringify(selectedLienHeIds),
         });
         if (!response.ok) throw new Error("Lỗi khi xóa nhiều liên hệ");
+        setLienHeList((prev) => prev.filter((lh) => !selectedLienHeIds.includes(lh.maLienHe)));
         setSelectedLienHeIds([]);
       } else if (deleteContact) {
         const response = await fetch(`${API_URL}/api/LienHe/${deleteContact.maLienHe}`, {
           method: "DELETE",
         });
         if (!response.ok) throw new Error("Lỗi khi xóa liên hệ");
+        setLienHeList((prev) => prev.filter((lh) => lh.maLienHe !== deleteContact.maLienHe));
       }
       setDeleteContact(null);
       setCurrentPage(1);
@@ -395,12 +297,12 @@ const AdminContact = () => {
         showConfirmButton: false,
         showCloseButton: true,
       });
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Lỗi không xác định");
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: "Lỗi khi xóa liên hệ: " + err.message,
+        text: "Lỗi khi xóa liên hệ: " + (err instanceof Error ? err.message : "Lỗi không xác định"),
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -410,7 +312,7 @@ const AdminContact = () => {
     setIsDeleting(false);
   };
 
-  const openSupportModal = (contact) => {
+  const openSupportModal = (contact: LienHe) => {
     setSelectedContact(contact);
     setSupportModalOpen(true);
     setSupportMessage("");
@@ -421,7 +323,6 @@ const AdminContact = () => {
     setSelectedContact(null);
     setSupportMessage("");
     setError("");
-    setAiError("");
   };
 
   const handleSendSupport = async () => {
@@ -451,6 +352,9 @@ const AdminContact = () => {
           body: JSON.stringify({ ...selectedContact, trangThai: 1 }),
         });
         if (!updateResponse.ok) throw new Error("Lỗi khi cập nhật trạng thái");
+        setLienHeList((prev) =>
+          prev.map((lh) => (lh.maLienHe === selectedContact.maLienHe ? { ...lh, trangThai: 1 } : lh))
+        );
       }
 
       Swal.fire({
@@ -463,12 +367,12 @@ const AdminContact = () => {
         showCloseButton: true,
       });
       closeSupportModal();
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Lỗi không xác định");
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: "Lỗi khi gửi email hỗ trợ: " + err.message,
+        text: "Lỗi khi gửi email hỗ trợ: " + (err instanceof Error ? err.message : "Lỗi không xác định"),
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -479,94 +383,8 @@ const AdminContact = () => {
     }
   };
 
-  const handleGetAIResponse = async () => {
-    if (!selectedContact) return;
-    setIsLoadingAI(true);
-    setAiError("");
-    try {
-      const response = await fetch(
-        `${API_URL}/api/Gemini/TraLoiLienHe?question=${encodeURIComponent(selectedContact.noiDung)}`
-      );
-      if (!response.ok) throw new Error("Lỗi khi gọi API Gemini AI");
-      const data = await response.json();
-      if (data.responseCode === 201) {
-        setSupportMessage(data.result);
-      } else {
-        throw new Error(data.errorMessage || "Không thể nhận phản hồi từ AI");
-      }
-    } catch (err) {
-      setAiError(err.message);
-    } finally {
-      setIsLoadingAI(false);
-    }
-  };
-
-  const handlePageChange = (page) => {
+  const handlePageChange = (page: number) => {
     setCurrentPage(page);
-  };
-
-  const phanLoaiChartData = {
-    labels: ["Tích cực", "Tiêu cực", "Bình thường"],
-    datasets: [
-      {
-        label: "Số lượng góp ý",
-        data: [phanLoaiData.tích_cực, phanLoaiData.tiêu_cực, phanLoaiData.bình_thường],
-        backgroundColor: ["#4CAF50", "#F44336", "#9E9E9E"],
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" as const },
-      title: { display: true, text: "Phân loại góp ý" },
-    },
-  };
-
-  const tangGiamChartData = {
-    labels: Object.keys(phanLoaiTheoNgay).sort(),
-    datasets: [
-      {
-        label: "Tích cực",
-        data: Object.keys(phanLoaiTheoNgay)
-          .sort()
-          .map((date) => phanLoaiTheoNgay[date].tích_cực),
-        borderColor: "#4CAF50",
-        backgroundColor: "#4CAF50",
-        fill: false,
-      },
-      {
-        label: "Tiêu cực",
-        data: Object.keys(phanLoaiTheoNgay)
-          .sort()
-          .map((date) => phanLoaiTheoNgay[date].tiêu_cực),
-        borderColor: "#F44336",
-        backgroundColor: "#F44336",
-        fill: false,
-      },
-      {
-        label: "Bình thường",
-        data: Object.keys(phanLoaiTheoNgay)
-          .sort()
-          .map((date) => phanLoaiTheoNgay[date].bình_thường),
-        borderColor: "#9E9E9E",
-        backgroundColor: "#9E9E9E",
-        fill: false,
-      },
-    ],
-  };
-
-  const tangGiamChartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" as const },
-      title: { display: true, text: "Tăng giảm góp ý theo thời gian" },
-    },
-    scales: {
-      x: { title: { display: true, text: "Ngày" } },
-      y: { title: { display: true, text: "Số lượng góp ý" }, beginAtZero: true },
-    },
   };
 
   const totalLienHeChartData = {
@@ -589,7 +407,7 @@ const AdminContact = () => {
   };
 
   const totalLienHeTangGiamData = useMemo(() => {
-    const countsByDate = {};
+    const countsByDate: { [key: string]: number } = {};
     lienHeList.forEach((lienHe) => {
       const date = new Date(lienHe.ngayTao).toISOString().split("T")[0];
       countsByDate[date] = (countsByDate[date] || 0) + 1;
@@ -634,7 +452,7 @@ const AdminContact = () => {
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" /> Danh sách liên hệ
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
+          <TabsTrigger value="statistics" className="flex items-center gap-2">
             <Palette className="h-4 w-4" /> Danh sách thống kê
           </TabsTrigger>
         </TabsList>
@@ -664,7 +482,7 @@ const AdminContact = () => {
             {selectedLienHeIds.length > 0 && (
               <Button
                 variant="destructive"
-                onClick={() => setDeleteContact({})}
+                onClick={() => setDeleteContact({} as LienHe)}
                 className="bg-[#9b87f5] text-white hover:bg-[#8a76e3]"
               >
                 <Trash className="h-4 w-4 mr-2" /> Xóa nhiều
@@ -731,10 +549,7 @@ const AdminContact = () => {
                                   className="opacity-0 w-0 h-0"
                                   checked={lienHe.trangThai === 1}
                                   onChange={(e) =>
-                                    openConfirmStatusChange(
-                                      lienHe,
-                                      e.target.checked ? "1" : "0"
-                                    )
+                                    openConfirmStatusChange(lienHe, e.target.checked ? "1" : "0")
                                   }
                                   disabled={statusLoading[lienHe.maLienHe]}
                                 />
@@ -823,37 +638,8 @@ const AdminContact = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="appearance">
+        <TabsContent value="statistics">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Thống kê phân loại góp ý</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <p>Đang tải dữ liệu thống kê...</p>
-                ) : error ? (
-                  <p className="text-red-500">{error}</p>
-                ) : (
-                  <Bar data={phanLoaiChartData} options={chartOptions} />
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Tăng giảm góp ý theo thời gian</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <p>Đang tải dữ liệu thống kê...</p>
-                ) : error ? (
-                  <p className="text-red-500">{error}</p>
-                ) : (
-                  <Line data={tangGiamChartData} options={tangGiamChartOptions} />
-                )}
-              </CardContent>
-            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Tổng số lượng liên hệ</CardTitle>
@@ -907,23 +693,16 @@ const AdminContact = () => {
                 className="w-full rounded-md border border-gray-300 p-2"
                 rows={5}
               />
-              {aiError && <p className="text-red-500">{aiError}</p>}
               {error && <p className="text-red-500">{error}</p>}
             </div>
             <DialogFooter className="flex justify-between items-center mt-4">
               <Button variant="ghost" onClick={closeSupportModal} className="flex items-center gap-2 bg-[#e7e4f5]">
                 <X className="h-4 w-4" /> Đóng
               </Button>
-              <Button onClick={handleGetAIResponse} disabled={isLoadingAI} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3]">
-                {isLoadingAI ? "Đang tải..." : "AI hỗ trợ"}
-                <AlertCircle className="ml-2 h-4 w-4" />
+              <Button onClick={handleSendSupport} disabled={isSending} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3]">
+                {isSending ? "Đang gửi..." : "Gửi hỗ trợ"}
+                <Mail className="ml-2 h-4 w-4" />
               </Button>
-              <div className="flex space-x-2">
-                <Button onClick={handleSendSupport} disabled={isSending} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3]">
-                  {isSending ? "Đang gửi..." : "Gửi hỗ trợ"}
-                  <Mail className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
