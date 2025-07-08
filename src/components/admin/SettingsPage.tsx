@@ -970,16 +970,16 @@ export function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full md:w-auto grid-cols-2 md:grid-cols-3 gap-1">
+        <TabsList className="grid w-full md:w-auto grid-cols-2 md:grid-cols-2 gap-1">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" /> Giao diện
           </TabsTrigger>
           <TabsTrigger value="restore" className="flex items-center gap-2">
             <RotateCcw className="h-4 w-4" /> Khôi phục
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
+          {/* <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" /> Màu sắc
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="appearance" className="space-y-4 mt-4">
