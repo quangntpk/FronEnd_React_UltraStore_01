@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
@@ -26,29 +25,6 @@ interface CancelOrderResponse {
 }
 
 // Component Notification
-const Notification = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div
-      className={cn(
-        "fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 font-roboto",
-        type === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-      )}
-    >
-      <p>{message}</p>
-      <button
-        onClick={onClose}
-        className="absolute top-1 right-1 text-white hover:text-gray-200"
-      >
-        ×
-      </button>
-    </div>
-  );
-};
 
 const orderStatuses = {
   pending: { color: "bg-yellow-500", icon: ClipboardList, label: "Chờ xác nhận" },
@@ -148,10 +124,9 @@ interface OrderItemProps {
   onCancel: (orderId: string) => void;
   onAddComment: (orderId: string, productId: number, content: string, rating: number) => Promise<boolean>;
   commentedProducts: Set<number>;
-  setNotification: React.Dispatch<React.SetStateAction<{ message: string; type: "success" | "error" } | null>>;
 }
 
-const OrderItem = ({ order, onCancel, onAddComment, commentedProducts, setNotification }: OrderItemProps) => {
+const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentStates, setCommentStates] = useState<{ [key: number]: CommentState }>({});
   const [isCommenting, setIsCommenting] = useState<{ [key: number]: boolean }>({});
@@ -178,7 +153,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts, setNotifi
   const handleAddComment = async (productId: number) => {
     const comment = commentStates[productId];
     if (!comment || !comment.content || comment.rating < 1 || comment.rating > 5) {
-      setNotification({ message: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!", type: "error" });
+      alert("Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!");
       return;
     }
 
@@ -794,13 +769,6 @@ const OrderHistory = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto my-[50px]">
           <div className="text-center mb-8">
@@ -808,6 +776,7 @@ const OrderHistory = () => {
             <p className="mt-2 text-muted-foreground">Xem và quản lý các đơn hàng của bạn</p>
           </div>
           <div className="colorful-card p-6 rounded-lg shadow-lg">
+            
             <Tabs defaultValue="all-orders" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="all-orders">
@@ -834,7 +803,6 @@ const OrderHistory = () => {
                         <SelectItem value="processing">Đang xử lý</SelectItem>
                         <SelectItem value="shipping">Đang giao hàng</SelectItem>
                         <SelectItem value="completed">Đã hoàn thành</SelectItem>
-                        <SelectItem value="paid">Đã thanh toán</SelectItem>
                         <SelectItem value="canceled">Đã hủy</SelectItem>
                       </SelectContent>
                     </Select>
@@ -849,7 +817,6 @@ const OrderHistory = () => {
                         onCancel={handleCancelClick}
                         onAddComment={handleAddComment}
                         commentedProducts={commentedProducts}
-                        setNotification={setNotification}
                       />
                     ))}
                   </div>
@@ -883,7 +850,6 @@ const OrderHistory = () => {
                         onCancel={handleCancelClick}
                         onAddComment={handleAddComment}
                         commentedProducts={commentedProducts}
-                        setNotification={setNotification}
                       />
                     ))}
                   </div>

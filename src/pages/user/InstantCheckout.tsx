@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 import Swal from "sweetalert2";
-
+import DiaChiCart from "@/components/default/DiaChiCart";
 interface CartItem {
   idSanPham: string;
   tenSanPham: string;
@@ -400,7 +400,7 @@ const CheckOutInstant = () => {
         setAddresses(
           addressData.sort((a: Address, b: Address) => b.trangThai - a.trangThai)
         );
-
+        console.log(addressData)
         setFinalAmount(subtotal + shippingFee);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -678,7 +678,7 @@ const CheckOutInstant = () => {
         shippingFee: expectedShippingFee,
         finalAmount: newFinalAmount,
       };
-
+      console.log(paymentRequest);
       const paymentResponse = await fetch(
         "http://localhost:5261/api/CheckOut/InstantCheckOut",
         {
@@ -754,6 +754,9 @@ const CheckOutInstant = () => {
                     <h2 className="text-xl font-semibold mb-6">
                       Thông tin giao hàng
                     </h2>
+                    <div className="relative -top-[7px]">
+                        <DiaChiCart />
+                    </div>
                     <div className="space-x-2">
                       <Button
                         type="button"
@@ -913,7 +916,6 @@ const CheckOutInstant = () => {
                   <div className="space-y-3 mb-6">
                     {cartItems.map((item) => {
                       const product = productDetails.find((p) => p.id === item.idSanPham);
-                      console.log(product)
                       return (
                         <div key={item.idSanPham} className="flex flex-col space-y-2">
                           <div className="flex items-start gap-4">
@@ -932,16 +934,19 @@ const CheckOutInstant = () => {
                               </div>
                               {product && (
                                 <div className="text-sm text-muted-foreground mt-2">
-                                  <p><strong>Màu sắc:</strong> {item.mauSac}</p>
+                                  <p style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <strong>Màu Sắc:</strong>
+                                    <span
+                                      className={`w-5 h-5 rounded-full border ? "border-crocus-500 ring-2 ring-crocus-500" : "border-gray-200 hover:border-gray-300"}`}
+                                      style={{ backgroundColor: `#${item.mauSac}` }}
+                                      title={item.mauSac}
+                                    ></span>
+                                    <span> {item.mauSac}</span>
+                                  </p>                                          
                                   <p><strong>Kích thước:</strong> {item.kickThuoc}</p>
                                   <p><strong>Chất liệu:</strong> {product.chatLieu}</p>
                                   <p><strong>Loại sản phẩm:</strong> {product.loaiSanPham}</p>
                                   <p><strong>Thương hiệu:</strong> {product.thuongHieu}</p>
-                                  {product.moTa && (
-                                    <p><strong>Mô tả:</strong> {product.moTa}</p>
-                                  )}
-                                  <p><strong>Số lượng còn lại:</strong> {product.soLuong}</p>
-                                  <p><strong>Đã bán:</strong> {product.soLuongDaBan}</p>
                                 </div>
                               )}
                             </div>
@@ -1005,6 +1010,59 @@ const CheckOutInstant = () => {
           )}
         </div>
       </main>
+            <Dialog.Root
+              open={showAddressModal}
+              onOpenChange={(open) => setShowAddressModal(open)}
+            >
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+                <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full overflow-y-auto max-h-[600px]">
+                  <h2 className="text-xl font-bold mb-4">Chọn địa chỉ giao hàng</h2>
+                  {addresses.length === 0 ? (
+                    <p>Chưa có địa chỉ nào. Vui lòng thêm địa chỉ mới.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {addresses.map((address) => (
+                        <div
+                          key={address.maDiaChi}
+                          className="border p-4 rounded-lg bg-white shadow-sm flex justify-between"
+                        >
+                          <div>
+                            <p>
+                              <strong>Họ tên:</strong> {address.hoTen}
+                            </p>
+                            <p>
+                              <strong>SĐT:</strong> {address.sdt}
+                            </p>
+                            <p>
+                              <strong>Địa chỉ:</strong> {address.diaChi},{" "}
+                              {address.phuongXa}, {address.quanHuyen}, {address.tinh}
+                            </p>
+                            <p>
+                              <strong>Trạng thái:</strong>{" "}
+                              {address.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => handleSelectAddress(address)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            Chọn
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setShowAddressModal(false)}
+                  >
+                    Đóng
+                  </Button>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
     </div>
   );
 };

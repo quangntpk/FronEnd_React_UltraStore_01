@@ -36,7 +36,7 @@ interface MyDB extends DBSchema {
 
 const APP_TITLE = import.meta.env.VITE_TITLE;
 
-const Contact = () => {
+const VoucherUser = () => {
   // Khai báo các state từ Voucher
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
@@ -304,11 +304,7 @@ const Contact = () => {
 
   return (
     <div className="container mx-auto py-8">
-     
-
-      
-
-      <section id="voucher" >
+      <section id="voucher">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4" style={{ color: "#9B59B6" }}>
@@ -511,10 +507,8 @@ const Contact = () => {
           </div>
         </div>
       </section>
-
-     
     </div>
   );
 };
 
-export default Contact;
+export default VoucherUser;

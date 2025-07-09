@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { FaPlus, FaEdit, FaTrashAlt, FaEye, FaDoorOpen } from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrashAlt, FaEye, FaDoorOpen, FaFileExcel, FaCheck } from "react-icons/fa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Filter, Grid2X2, List, MoreVertical, Tag } from "lucide-react";
+import { Search, Plus, Filter, Grid2X2, List, MoreVertical, Tag, Download, CheckSquare, Square } from "lucide-react";
 import EditProductModal from "@/components/admin/SanPhamAdmin/EditProductModal";
 import CreateSanPhamModal from "@/components/admin/SanPhamAdmin/CreateSanPhamModal";
 import DetailSanPhamModal from "@/components/admin/SanPhamAdmin/DetailSanPhamModal";
 import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -29,6 +31,8 @@ const Products = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [sortBy, setSortBy] = useState(""); // Sắp xếp: "" | "price-asc" | "price-desc" | "name-asc" | "name-desc"
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedProducts, setSelectedProducts] = useState(new Set()); // Danh sách sản phẩm đã chọn
+  const [selectMode, setSelectMode] = useState(false); // Chế độ chọn sản phẩm
   const productsPerPage = 12;
 
   const fetchProducts = async () => {
@@ -109,6 +113,122 @@ const Products = () => {
     setCurrentPage(page);
   };
 
+  // Xử lý chọn sản phẩm
+  const handleSelectProduct = (productId) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  // Xử lý chọn tất cả sản phẩm
+  const handleSelectAll = () => {
+    if (selectedProducts.size === currentProducts.length) {
+      // Nếu đã chọn tất cả, bỏ chọn tất cả
+      setSelectedProducts(new Set());
+    } else {
+      // Chọn tất cả sản phẩm hiện tại
+      const allCurrentIds = new Set(currentProducts.map(product => product.id));
+      setSelectedProducts(allCurrentIds);
+    }
+  };
+
+  // Bật/tắt chế độ chọn
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedProducts(new Set()); // Reset selection khi đổi chế độ
+  };
+
+  // Xuất Excel
+  const exportToExcel = async () => {
+  if (selectedProducts.size === 0) {
+    Swal.fire({
+      title: "Thông báo",
+      text: "Vui lòng chọn ít nhất một sản phẩm để xuất Excel.",
+      icon: "warning",
+    });
+    return;
+  }
+
+  try {
+    // Fetch data từ API
+    const selectedProductsData = [];
+    for (const productId of selectedProducts) {
+      const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
+      if (!response.ok) {
+        throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
+      }
+      const data = await response.json();
+      selectedProductsData.push(...data);
+    }
+
+    // Chuẩn bị dữ liệu cho Excel theo định dạng mẫu
+    const excelData = selectedProductsData.map((product, index) => {
+      const [baseId, color, size] = product.maSanPham.split("_");
+      // Tính số lượng còn lại
+      const productRemain = product.soLuongDaBan != null 
+        ? product.soLuong - product.soLuongDaBan 
+        : product.soLuong;
+      return {
+        "STT": index + 1,
+        "Mã sản phẩm": baseId || "N/A",
+        "Tên sản phẩm": product.tenSanPham || "Không có tên",
+        "Loại sản phẩm": product.maLoaiSanPhamNavigation?.tenLoai || "Quần", // Default to "Quần" per template
+        "Thương hiệu": product.maThuongHieuNavigation?.tenThuongHieu || "Gucci", // Default to "Gucci" per template
+        "Chất liệu": product.chatLieu || "N/A",
+        "Màu Sắc": color || "N/A",
+        "Kích Thước": size?.trim() || "N/A",
+        "Đơn giá (VND)": product.gia || 0,
+        "Số lượng Còn lại": productRemain,
+        "Số Lượng Đã bán": product.soLuongDaBan || 0,
+        "Trạng thái": product.trangThai === 0 ? "Tạm ngừng bán" : "Đang bán",
+        "Mô tả": product.moTa || "Không có mô tả",
+      };
+    });
+
+    // Tạo workbook và worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Tự động điều chỉnh độ rộng cột
+    const colWidths = [];
+    const headers = Object.keys(excelData[0] || {});
+    headers.forEach((header, index) => {
+      const maxLength = Math.max(
+        header.length,
+        ...excelData.map((row) => String(row[header] || "").length)
+      );
+      colWidths[index] = { width: Math.min(maxLength + 2, 50) };
+    });
+    ws["!cols"] = colWidths;
+
+    // Thêm worksheet vào workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Danh sách sản phẩm");
+
+    // Xuất file với tên theo định dạng mẫu
+    const fileName = `SanPham_${new Date().toISOString().split("T")[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    // Hiển thị thông báo thành công
+    Swal.fire({
+      title: "Thành công!",
+      text: `Đã xuất ${selectedProducts.size} sản phẩm ra file Excel thành công!`,
+      icon: "success",
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
+  } catch (error) {
+    Swal.fire({
+      title: "Lỗi",
+      text: `Không thể xuất Excel: ${error.message}`,
+      icon: "error",
+    });
+  }
+};
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
     setIsEditModalOpen(true);
@@ -227,21 +347,63 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight">Sản phẩm</h1>
           <p className="text-muted-foreground mt-1">Quản lý sản phẩm trong cửa hàng của bạn</p>
         </div>
-        <Button
-          className="bg-purple-400 hover:bg-purple-500 text-white"
-          onClick={() => {
-            console.log("Nút Thêm Sản Phẩm Mới được nhấn");
-            setIsAddModalOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm Sản Phẩm Mới
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={selectMode ? "secondary" : "outline"}
+            onClick={toggleSelectMode}
+            className="flex items-center gap-2"
+          >
+            {selectMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+            {selectMode ? "Thoát chế độ chọn" : "Chọn sản phẩm"}
+          </Button>
+          {selectMode && (
+            <Button
+              variant="outline"
+              onClick={exportToExcel}
+              className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+              disabled={selectedProducts.size === 0}
+            >
+              <FaFileExcel className="h-4 w-4" />
+              Xuất Excel ({selectedProducts.size})
+            </Button>
+          )}
+          <Button
+            className="bg-purple-400 hover:bg-purple-500 text-white"
+            onClick={() => {
+              console.log("Nút Thêm Sản Phẩm Mới được nhấn");
+              setIsAddModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm Sản Phẩm Mới
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Tất cả sản phẩm</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Tất cả sản phẩm</CardTitle>
+            {selectMode && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="flex items-center gap-2"
+                >
+                  {selectedProducts.size === currentProducts.length ? (
+                    <><FaCheck className="h-3 w-3" /> Bỏ chọn tất cả</>
+                  ) : (
+                    <><CheckSquare className="h-3 w-3" /> Chọn tất cả</>
+                  )}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Đã chọn: {selectedProducts.size} sản phẩm
+                </span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-start sm:items-center">
@@ -308,7 +470,16 @@ const Products = () => {
           {view === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {currentProducts.map((product) => (
-                <Card key={product.id} className="hover-scale overflow-hidden group">
+                <Card key={product.id} className="hover-scale overflow-hidden group relative">
+                  {selectMode && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <Checkbox
+                        checked={selectedProducts.has(product.id)}
+                        onCheckedChange={() => handleSelectProduct(product.id)}
+                        className="bg-white border-2 border-gray-300 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                      />
+                    </div>
+                  )}
                   <div className="aspect-square bg-purple-light flex items-center justify-center">
                     <img
                       src={
@@ -328,34 +499,36 @@ const Products = () => {
                           Thương hiệu: {product.thuongHieu || "Không xác định"}
                         </p>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                            <FaEdit className="mr-2 h-4 w-4 text-blue-500" /> Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
-                            <FaEye className="mr-2 h-4 w-4 text-green-500" /> Chi tiết
-                          </DropdownMenuItem>
-                          {product.trangThai === 0 ? (
-                            <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
-                              <FaDoorOpen className="mr-2 h-4 w-4 text-green-500" /> Mở bán
+                      {!selectMode && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                              <FaEdit className="mr-2 h-4 w-4 text-blue-500" /> Chỉnh sửa
                             </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
-                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Ngừng Bán
+                            <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
+                              <FaEye className="mr-2 h-4 w-4 text-green-500" /> Chi tiết
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            {product.trangThai === 0 ? (
+                              <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
+                                <FaDoorOpen className="mr-2 h-4 w-4 text-green-500" /> Mở bán
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
+                                <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Ngừng Bán
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-3">
                       <Badge variant="outline" className="bg-secondary text-white border-0">
@@ -390,6 +563,13 @@ const Products = () => {
                   key={product.id}
                   className="p-4 flex items-center gap-4 hover:bg-muted/50"
                 >
+                  {selectMode && (
+                    <Checkbox
+                      checked={selectedProducts.has(product.id)}
+                      onCheckedChange={() => handleSelectProduct(product.id)}
+                      className="data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                    />
+                  )}
                   <div className="h-20 w-20 bg-purple-light rounded-md flex items-center justify-center">
                     <img
                       src={
@@ -420,30 +600,32 @@ const Products = () => {
                       Số lượng: {product.soLuong || 0}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                        Chỉnh Sửa
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
-                        Chi Tiết
-                      </DropdownMenuItem>
-                      {product.trangThai === 0 ? (
-                        <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
-                          Mở Bán
+                  {!selectMode && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                          Chỉnh Sửa
                         </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
-                          Ngừng Bán
+                        <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
+                          Chi Tiết
                         </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {product.trangThai === 0 ? (
+                          <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
+                            Mở Bán
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
+                            Ngừng Bán
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               ))}
             </div>
