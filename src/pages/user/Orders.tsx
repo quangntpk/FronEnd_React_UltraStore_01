@@ -19,12 +19,14 @@ import { Textarea } from "@/components/ui/textarea";
 
 // Interface for API Responses
 interface CancelOrderResponse {
-  isAccountLocked?: boolean;
+  message: string;
+  isAccountLocked: boolean;
   lockoutMessage?: string;
-  message?: string;
+  remainingCancellations?: number;
 }
-
-// Component Notification
+interface CancelOrderRequest {
+  lyDoHuy: string;
+}
 
 const orderStatuses = {
   pending: { color: "bg-yellow-500", icon: ClipboardList, label: "Chờ xác nhận" },
@@ -455,6 +457,65 @@ const mapStatus = (status: number): OrderStatus => {
   }
 };
 
+ const NotificationComponent = ({ notification, onClose }: { 
+  notification: { message: string; type: "success" | "error"; duration?: number } | null, 
+  onClose: () => void 
+}) => {
+  useEffect(() => {
+    if (notification) {
+      // Thời gian hiển thị mặc định: success = 5s, error = 8s, hoặc theo duration custom
+      const defaultDuration = notification.type === 'success' ? 5000 : 8000;
+      const duration = notification.duration || defaultDuration;
+      
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, onClose]);
+
+  if (!notification) return null;
+
+  const isLongMessage = notification.message.length > 100;
+
+  return (
+    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md transition-all duration-300 ${
+      notification.type === 'success' 
+        ? 'bg-green-100 border border-green-400 text-green-700' 
+        : 'bg-red-100 border border-red-400 text-red-700'
+    } ${isLongMessage ? 'max-w-lg' : ''}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-start">
+          {notification.type === 'success' ? (
+            <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          ) : (
+            <div className="h-5 w-5 mr-2 mt-0.5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-bold">!</span>
+            </div>
+          )}
+          <div className="flex-1">
+            <div className="font-medium text-sm leading-relaxed">
+              {notification.message}
+            </div>
+            {notification.type === 'error' && notification.message.includes('khóa') && (
+              <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded border-l-4 border-red-400">
+                💡 <strong>Lưu ý:</strong> Tài khoản sẽ được tự động mở khóa sau 3 ngày kể từ thời điểm bị khóa.
+              </div>
+            )}
+          </div>
+        </div>
+        <button 
+          onClick={onClose}
+          className="ml-3 text-gray-400 hover:text-gray-600 text-lg font-bold leading-none"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
 const OrderHistory = () => {
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -463,7 +524,11 @@ const OrderHistory = () => {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [notification, setNotification] = useState<{ 
+  message: string; 
+  type: "success" | "error"; 
+  duration?: number 
+} | null>(null);
   const [commentedProducts, setCommentedProducts] = useState<Set<number>>(new Set());
 
   const cancelReasonsSuggestions = [
@@ -688,13 +753,54 @@ const OrderHistory = () => {
     ? orders
     : orders.filter(order => mapStatus(order.trangThaiDonHang) === filterStatus);
 
-  const handleCancelClick = (orderId: string) => {
-    setCancelOrderId(orderId);
-    setCancelReason('');
-    setShowCancelModal(true);
-  };
 
-  const handleCancel = async () => {
+const handleCancelClick = (orderId: string) => {
+  const userData = JSON.parse(localStorage.getItem("user") || "{}");
+  const token = localStorage.getItem("token");
+  
+  console.log("Debug cancel click:", {
+    orderId,
+    userData,
+    hasToken: !!token
+  });
+  
+  if (!userData?.maNguoiDung || !token) {
+    setNotification({ 
+      message: "Vui lòng đăng nhập để hủy đơn hàng!", 
+      type: "error" 
+    });
+    navigate("/login");
+    return;
+  }
+
+  // Kiểm tra xem đơn hàng có tồn tại trong danh sách không
+  const order = orders.find(o => o.maDonHang.toString() === orderId);
+  if (!order) {
+    setNotification({ 
+      message: "Đơn hàng không tồn tại!", 
+      type: "error" 
+    });
+    return;
+  }
+
+  // Kiểm tra trạng thái đơn hàng có thể hủy không
+  const orderStatus = mapStatus(order.trangThaiDonHang);
+  if (orderStatus !== "pending" && orderStatus !== "processing") {
+    setNotification({ 
+      message: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!", 
+      type: "error" 
+    });
+    return;
+  }
+
+  // Mở modal hủy đơn hàng
+  setCancelOrderId(orderId);
+  setCancelReason('');
+  setShowCancelModal(true);
+};
+
+// Cập nhật hàm handleCancel trong component OrderHistory
+const handleCancel = async () => {
   if (!cancelReason.trim()) {
     setNotification({ message: "Vui lòng nhập lý do hủy!", type: "error" });
     return;
@@ -704,64 +810,194 @@ const OrderHistory = () => {
   try {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const maNguoiDung = userData?.maNguoiDung;
-    const orderIdNumber = parseInt(cancelOrderId);
-    if (isNaN(orderIdNumber)) {
-      throw new Error("Mã đơn hàng không hợp lệ");
+    const token = localStorage.getItem("token");
+    
+    if (!maNguoiDung || !token) {
+      setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
+      navigate("/login");
+      return;
     }
 
+    const orderIdNumber = parseInt(cancelOrderId);
+    if (isNaN(orderIdNumber)) {
+      setNotification({ message: "Mã đơn hàng không hợp lệ!", type: "error" });
+      return;
+    }
+
+    // Kiểm tra quyền sở hữu đơn hàng trước khi gửi request
+    const order = orders.find(o => o.maDonHang === orderIdNumber);
+    if (!order) {
+      setNotification({ message: "Đơn hàng không tồn tại!", type: "error" });
+      setShowCancelModal(false);
+      return;
+    }
+
+    console.log("Canceling order:", {
+      orderId: orderIdNumber,
+      reason: cancelReason.trim(),
+      userId: maNguoiDung
+    });
+
+    // Tạo request object theo đúng interface
+    const cancelRequest: CancelOrderRequest = {
+      lyDoHuy: cancelReason.trim()
+    };
+
+    console.log("Cancel request payload:", cancelRequest);
+
+    // Gọi API hủy đơn hàng với headers đầy đủ
     const response = await axios.put<CancelOrderResponse>(
       `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
-      cancelReason,
+      cancelRequest,
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
+        timeout: 10000 // 10 seconds timeout
       }
     );
 
-      if (response.data.isAccountLocked) {
-        setNotification({ 
-          message: response.data.lockoutMessage || "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần.", 
-          type: "error" 
-        });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        if (maNguoiDung) {
-          localStorage.removeItem(`likedComments_${maNguoiDung}`);
-        }
-        navigate("/login");
-      } else {
-        setNotification({ 
-          message: response.data.message || "Hủy đơn hàng thành công!", 
-          type: "success" 
-        });
-      }
+    console.log("Cancel response:", response.data);
 
-      setShowCancelModal(false);
-      setCancelReason('');
-      setCancelOrderId(null);
-      fetchOrdersByUserId();
-    } catch (error: any) {
-      console.error("Error canceling order:", error);
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const maNguoiDung = userData?.maNguoiDung;
-      if (error.response?.status === 401) {
-        setNotification({ message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", type: "error" });
+    // Đóng modal trước khi xử lý response
+    setShowCancelModal(false);
+    setCancelReason('');
+    setCancelOrderId(null);
+
+    // Xử lý response
+    if (response.data.isAccountLocked) {
+      // Hiển thị thông báo chi tiết khi tài khoản bị khóa
+      const lockMessage = response.data.lockoutMessage || 
+        "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
+      
+      setNotification({ 
+        message: lockMessage, 
+        type: "error" 
+      });
+      
+      // Thêm thông báo bổ sung về việc đăng xuất
+      setTimeout(() => {
+        setNotification({ 
+          message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
+          type: "error" 
+        });
+      }, 3000);
+      
+      // Clear localStorage và chuyển hướng về login sau 6 giây
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (maNguoiDung) {
+        localStorage.removeItem(`likedComments_${maNguoiDung}`);
+      }
+      
+      // Chuyển hướng về trang login sau 6 giây để người dùng có thể đọc thông báo
+      setTimeout(() => {
+        navigate("/login");
+      }, 6000);
+    } else {
+      // Hiển thị thông báo hủy thành công
+      let successMessage = response.data.message || "Hủy đơn hàng thành công!";
+      
+      // Nếu có thông tin về số lần hủy còn lại, hiển thị cảnh báo
+      if (response.data.remainingCancellations !== undefined) {
+        if (response.data.remainingCancellations === 1) {
+          successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 1 lần hủy đơn hàng. Nếu hủy thêm 1 lần nữa, tài khoản sẽ bị khóa trong 3 ngày.";
+        } else if (response.data.remainingCancellations === 2) {
+          successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 2 lần hủy đơn hàng. Hãy cẩn thận khi đặt hàng để tránh bị khóa tài khoản.";
+        }
+      }
+      
+      setNotification({ 
+        message: successMessage, 
+        type: "success" 
+      });
+      
+      // Refresh danh sách đơn hàng
+      await fetchOrdersByUserId();
+    }
+
+  } catch (error: any) {
+    console.error("Error canceling order:", error);
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const maNguoiDung = userData?.maNguoiDung;
+    
+    // Đóng modal khi có lỗi
+    setShowCancelModal(false);
+    setCancelReason('');
+    setCancelOrderId(null);
+    
+    if (error.response?.status === 401) {
+      setNotification({ 
+        message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", 
+        type: "error" 
+      });
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (maNguoiDung) {
+        localStorage.removeItem(`likedComments_${maNguoiDung}`);
+      }
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+    } else if (error.response?.status === 403) {
+      setNotification({ 
+        message: "Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.", 
+        type: "error" 
+      });
+    } else if (error.response?.status === 400) {
+      // Xử lý các lỗi BadRequest từ server
+      if (error.response?.data?.isAccountLocked) {
+        const lockMessage = error.response.data.lockoutMessage || 
+          "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
+        
+        setNotification({ 
+          message: lockMessage, 
+          type: "error" 
+        });
+        
+        // Thông báo bổ sung
+        setTimeout(() => {
+          setNotification({ 
+            message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
+            type: "error" 
+          });
+        }, 3000);
+        
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         if (maNguoiDung) {
           localStorage.removeItem(`likedComments_${maNguoiDung}`);
         }
-        navigate("/login");
+        
+        setTimeout(() => {
+          navigate("/login");
+        }, 6000);
       } else {
         setNotification({ 
-          message: error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng.", 
+          message: error.response.data.message || "Không thể hủy đơn hàng này.", 
           type: "error" 
         });
       }
+    } else if (error.response?.status === 404) {
+      setNotification({ 
+        message: "Đơn hàng không tồn tại hoặc không thuộc về bạn.", 
+        type: "error" 
+      });
+    } else if (error.code === 'ECONNABORTED') {
+      setNotification({ 
+        message: "Yêu cầu hủy đơn hàng bị timeout. Vui lòng thử lại.", 
+        type: "error" 
+      });
+    } else {
+      setNotification({ 
+        message: error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.", 
+        type: "error" 
+      });
     }
-  };
+  }
+};
 
   const handleReasonSuggestionClick = (reason: string) => {
     setCancelReason(reason);

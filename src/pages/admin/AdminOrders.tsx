@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import OrderDetailsOrder from './AdminDetailsOrder';
+import OrderDetailsModal from './OrderDetailsModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -356,6 +357,7 @@ const AdminOrders: React.FC = () => {
                   </TableCell>
                   <TableCell>{order.hinhThucThanhToan || 'COD'}</TableCell>
                   <TableCell>{order.hoTenNhanVien || 'Chưa có'}</TableCell>
+
                   {activeTab === 'canceled' && <TableCell>{order.lyDoHuy || 'Không có lý do'}</TableCell>}
                   <TableCell className="text-center">
                     <div className="flex justify-center space-x-2">
@@ -368,6 +370,7 @@ const AdminOrders: React.FC = () => {
                           size="sm"
                           onClick={() => handleApprove(order.maDonHang)}
                           disabled={
+                            // Nếu là nhân viên và đơn hàng đã có nhân viên xử lý khác
                             isStaff && order.maNhanVien && order.maNhanVien !== userId
                           }
                         >
