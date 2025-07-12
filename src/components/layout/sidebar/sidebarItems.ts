@@ -23,12 +23,14 @@ export const adminItems: SidebarItemType[] = [
   { title: "Combo", icon: Layers, path: "/admin/combos", color: "text-teal-600" },
   { title: "Thương hiệu", icon: Tag, path: "/admin/thuonghieu", color: "text-indigo-600" },
   { title: "Loại sản phẩm", icon: LayoutGrid, path: "/admin/loaisanpham", color: "text-teal-600" },
+  { title: "HashTag", icon: Globe, path: "/admin/hashtag", color: "text-teal-600" },
   { title: "Tài khoản", icon: Users, path: "/admin/users", color: "text-red-600" },
   { title: "Bình luận", icon: MessageSquare, path: "/admin/inventory", color: "text-cyan-600" },
   { title: "Voucher", icon: Tag, path: "/admin/invoices", color: "text-gray-600" },
   { title: "Blog", icon: MessageSquare, path: "/admin/blog", color: "text-blue-600" },
   { title: "Liên hệ", icon: HelpCircle, path: "/admin/contact", color: "text-blue-600" },
   { title: "Cài đặt", icon: Settings, path: "/admin/settings", color: "text-gray-600" },
+
 ];
 
 export const staffItems: SidebarItemType[] = [

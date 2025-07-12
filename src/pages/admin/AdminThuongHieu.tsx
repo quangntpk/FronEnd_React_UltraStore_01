@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { FaPlus, FaEdit, FaTrashAlt, FaEye } from "react-icons/fa";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { FaPlus, FaEdit, FaTrashAlt, FaEye, FaUndo, FaTrash } from "react-icons/fa";
 import {
   Card,
   CardContent,
@@ -30,36 +30,49 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, MoreVertical, RefreshCw, Upload } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import { Search, MoreVertical, Upload, X, Loader2, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
+import Swal from "sweetalert2";
 
-interface ThuongHieu {
+interface Trademark {
   maThuongHieu: number;
   tenThuongHieu: string;
   hinhAnh?: string;
+  trangThai?: number;
 }
 
-const ThuongHieu = () => {
-  const [thuongHieus, setThuongHieus] = useState<ThuongHieu[]>([]);
-  const [filteredThuongHieus, setFilteredThuongHieus] = useState<ThuongHieu[]>([]);
-  const [tuKhoaTimKiem, setTuKhoaTimKiem] = useState("");
-  const [dangTai, setDangTai] = useState(true);
+const ITEMS_PER_PAGE = 10;
+const API_URL = import.meta.env.VITE_API_URL;
+
+const AdminTrademark = () => {
+  const [trademarks, setTrademarks] = useState<Trademark[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"active" | "inactive">("active");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [moModalThem, setMoModalThem] = useState(false);
   const [moModalSua, setMoModalSua] = useState(false);
   const [moModalXoa, setMoModalXoa] = useState(false);
+  const [moModalXoaVinhVien, setMoModalXoaVinhVien] = useState(false);
+  const [moModalKhoiPhuc, setMoModalKhoiPhuc] = useState(false);
   const [moModalChiTiet, setMoModalChiTiet] = useState(false);
-  const [thuongHieuCanXoa, setThuongHieuCanXoa] = useState<ThuongHieu | null>(null);
-  const [thuongHieuChiTiet, setThuongHieuChiTiet] = useState<ThuongHieu | null>(null);
+  const [trademarkCanXoa, setTrademarkCanXoa] = useState<Trademark | null>(null);
+  const [trademarkCanXoaVinhVien, setTrademarkCanXoaVinhVien] = useState<Trademark | null>(null);
+  const [trademarkCanKhoiPhuc, setTrademarkCanKhoiPhuc] = useState<Trademark | null>(null);
+  const [trademarkChiTiet, setTrademarkChiTiet] = useState<Trademark | null>(null);
   const [tenThuongHieuMoi, setTenThuongHieuMoi] = useState("");
   const [hinhAnhMoi, setHinhAnhMoi] = useState("");
-  const [thuongHieuDangSua, setThuongHieuDangSua] = useState<ThuongHieu | null>(null);
-  const [trangHienTai, setTrangHienTai] = useState(1);
+  const [trademarkDangSua, setTrademarkDangSua] = useState<Trademark | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [errorsThem, setErrorsThem] = useState({ ten: "", hinhAnh: "" });
   const [errorsSua, setErrorsSua] = useState({ ten: "", hinhAnh: "" });
-
-  const soThuongHieuMoiTrang = 10;
-  const API_URL = "http://localhost:5261";
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const formatBase64Image = (base64String: string) => {
     if (!base64String) return "";
@@ -75,60 +88,58 @@ const ThuongHieu = () => {
     return imageString;
   };
 
-  const layDanhSachThuongHieu = async () => {
+  const fetchTrademarks = useCallback(async () => {
     try {
-      setDangTai(true);
-      const response = await fetch(`${API_URL}/api/ThuongHieu`);
+      setLoading(true);
+      const targetStatus = activeTab === "active" ? 1 : 0;
+      const response = await fetch(`${API_URL}/api/ThuongHieu?trangThai=${targetStatus}`);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "Không thể lấy danh sách thương hiệu");
       }
       const data = await response.json();
-      setThuongHieus(data.sort((a: ThuongHieu, b: ThuongHieu) => b.maThuongHieu - a.maThuongHieu));
-      setFilteredThuongHieus(data.sort((a: ThuongHieu, b: ThuongHieu) => b.maThuongHieu - a.maThuongHieu));
+      setTrademarks(data);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra khi tải danh sách");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi tải danh sách thương hiệu: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     } finally {
-      setDangTai(false);
+      setLoading(false);
     }
+  }, [activeTab]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value.toLowerCase());
+    setCurrentPage(1);
   };
 
-  const locThuongHieu = useCallback(() => {
-    if (!tuKhoaTimKiem.trim()) {
-      setFilteredThuongHieus(thuongHieus);
-    } else {
-      const tuKhoa = tuKhoaTimKiem.toLowerCase();
-      const filtered = thuongHieus.filter(
+  const sortedAndFilteredTrademarks = useMemo(() => {
+    const targetStatus = activeTab === "active" ? 1 : 0;
+    const filtered = trademarks
+      .filter(
         (th) =>
-          (th.tenThuongHieu?.toLowerCase().includes(tuKhoa) || "") ||
-          (th.maThuongHieu?.toString().includes(tuKhoa) || "")
-      );
-      setFilteredThuongHieus(filtered);
-      setTrangHienTai(1);
-    }
-  }, [tuKhoaTimKiem, thuongHieus]);
+          th.trangThai === targetStatus &&
+          (th.tenThuongHieu.toLowerCase().includes(searchTerm) ||
+            th.maThuongHieu.toString().includes(searchTerm))
+      )
+      .sort((a, b) => b.maThuongHieu - a.maThuongHieu);
+    return filtered;
+  }, [trademarks, searchTerm, activeTab]);
 
-  useEffect(() => {
-    layDanhSachThuongHieu();
-  }, []);
+  const totalPages = Math.ceil(sortedAndFilteredTrademarks.length / ITEMS_PER_PAGE);
+  const paginatedTrademarks = sortedAndFilteredTrademarks.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-  useEffect(() => {
-    locThuongHieu();
-  }, [locThuongHieu]);
-
-  const handleFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      if (moModalThem) {
-        setHinhAnhMoi(base64String);
-        setErrorsThem((prev) => ({ ...prev, hinhAnh: "" }));
-      } else if (moModalSua && thuongHieuDangSua) {
-        setThuongHieuDangSua({ ...thuongHieuDangSua, hinhAnh: base64String });
-        setErrorsSua((prev) => ({ ...prev, hinhAnh: "" }));
-      }
-    };
-    reader.readAsDataURL(file);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -136,45 +147,59 @@ const ThuongHieu = () => {
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
+  const handleDragLeave = () => setIsDragging(false);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleFile(file);
+    if (file && file.size <= 2 * 1024 * 1024) {
+      const reader = new FileReader();
+      reader.onloadend = () => setHinhAnhMoi(reader.result as string);
+      reader.readAsDataURL(file);
     } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Hình ảnh phải nhỏ hơn 2MB!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      handleFile(file);
+    if (file && file.size <= 2 * 1024 * 1024) {
+      const reader = new FileReader();
+      reader.onloadend = () => setHinhAnhMoi(reader.result as string);
+      reader.readAsDataURL(file);
     } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Hình ảnh phải nhỏ hơn 2MB!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     }
   };
 
   const validateThem = () => {
     let valid = true;
     const newErrors = { ten: "", hinhAnh: "" };
-
     if (!tenThuongHieuMoi.trim()) {
       newErrors.ten = "Tên thương hiệu không được để trống!";
       valid = false;
     }
-
     if (!hinhAnhMoi) {
       newErrors.hinhAnh = "Hình ảnh không được để trống!";
       valid = false;
     }
-
     setErrorsThem(newErrors);
     return valid;
   };
@@ -182,266 +207,598 @@ const ThuongHieu = () => {
   const validateSua = () => {
     let valid = true;
     const newErrors = { ten: "", hinhAnh: "" };
-
-    if (!thuongHieuDangSua?.tenThuongHieu?.trim()) {
+    if (!trademarkDangSua?.tenThuongHieu?.trim()) {
       newErrors.ten = "Tên thương hiệu không được để trống!";
       valid = false;
     }
-
-    if (!thuongHieuDangSua?.hinhAnh) {
+    if (!trademarkDangSua?.hinhAnh) {
       newErrors.hinhAnh = "Hình ảnh không được để trống!";
       valid = false;
     }
-
     setErrorsSua(newErrors);
     return valid;
   };
 
-  const themThuongHieu = async () => {
+  const themTrademark = async () => {
     if (!validateThem()) return;
-
     try {
+      setIsProcessing(true);
       const base64Image = getBase64(hinhAnhMoi);
       const response = await fetch(`${API_URL}/api/ThuongHieu`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           TenThuongHieu: tenThuongHieuMoi,
           HinhAnh: base64Image,
+          TrangThai: 1,
         }),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "Không thể thêm thương hiệu");
       }
-
       setTenThuongHieuMoi("");
       setHinhAnhMoi("");
       setErrorsThem({ ten: "", hinhAnh: "" });
       setMoModalThem(false);
-      layDanhSachThuongHieu();
-      toast.success("Thêm thương hiệu thành công!");
+      await fetchTrademarks();
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Thêm thương hiệu thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra khi thêm");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi thêm thương hiệu: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const suaThuongHieu = async () => {
-    if (!validateSua()) return;
-
+  const suaTrademark = async () => {
+    if (!validateSua() || !trademarkDangSua) return;
     try {
-      const base64Image = getBase64(thuongHieuDangSua!.hinhAnh!);
-      const response = await fetch(`${API_URL}/api/ThuongHieu/${thuongHieuDangSua!.maThuongHieu}`, {
+      setIsProcessing(true);
+      setErrorMessage("");
+      const base64Image = getBase64(trademarkDangSua.hinhAnh || "");
+      const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkDangSua.maThuongHieu}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          MaThuongHieu: thuongHieuDangSua!.maThuongHieu,
-          TenThuongHieu: thuongHieuDangSua!.tenThuongHieu,
+          MaThuongHieu: trademarkDangSua.maThuongHieu,
+          TenThuongHieu: trademarkDangSua.tenThuongHieu,
           HinhAnh: base64Image,
+          TrangThai: trademarkDangSua.trangThai,
         }),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Không thể cập nhật thương hiệu");
+        if (response.status === 404) {
+          throw new Error("Thương hiệu không tồn tại");
+        } else if (response.status === 409) {
+          setErrorMessage("Tên thương hiệu đã tồn tại");
+          return;
+        } else if (response.status === 500) {
+          throw new Error("Lỗi máy chủ, vui lòng thử lại sau");
+        }
+        throw new Error(errorText || "Không thể sửa thương hiệu");
       }
-
       setMoModalSua(false);
-      setThuongHieuDangSua(null);
-      setErrorsSua({ ten: "", hinhAnh: "" });
-      layDanhSachThuongHieu();
-      toast.success("Cập nhật thương hiệu thành công!");
+      setTrademarkDangSua(null);
+      setErrorMessage("");
+      await fetchTrademarks();
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Sửa thương hiệu thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi sửa thương hiệu: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const xoaThuongHieu = async () => {
-    if (!thuongHieuCanXoa) return;
-
+  const anTrademark = async () => {
+    if (!trademarkCanXoa) return;
     try {
-      const response = await fetch(`${API_URL}/api/ThuongHieu/${thuongHieuCanXoa.maThuongHieu}`, {
-        method: "DELETE",
+      setIsProcessing(true);
+      const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanXoa.maThuongHieu}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          MaThuongHieu: trademarkCanXoa.maThuongHieu,
+          TenThuongHieu: trademarkCanXoa.tenThuongHieu,
+          HinhAnh: trademarkCanXoa.hinhAnh,
+          TrangThai: trademarkCanXoa.trangThai === 1 ? 0 : 1,
+        }),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
+        if (response.status === 404) {
+          throw new Error("Thương hiệu không tồn tại");
+        } else if (response.status === 409) {
+          throw new Error("Tên thương hiệu đã tồn tại");
+        } else if (response.status === 500) {
+          throw new Error("Lỗi máy chủ, vui lòng thử lại sau");
+        }
         throw new Error(errorText || "Không thể xóa thương hiệu");
       }
-
       setMoModalXoa(false);
-      setThuongHieuCanXoa(null);
-      layDanhSachThuongHieu();
-      toast.success("Xóa thương hiệu thành công!");
+      setTrademarkCanXoa(null);
+      setCurrentPage(1);
+      await fetchTrademarks();
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Xóa thương hiệu thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra khi xóa");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi xóa thương hiệu: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const chiSoThuongHieuCuoi = trangHienTai * soThuongHieuMoiTrang;
-  const chiSoThuongHieuDau = chiSoThuongHieuCuoi - soThuongHieuMoiTrang;
-  const thuongHieuHienTai = filteredThuongHieus.slice(chiSoThuongHieuDau, chiSoThuongHieuCuoi);
-  const tongSoTrang = Math.ceil(filteredThuongHieus.length / soThuongHieuMoiTrang);
+  const khoiPhucTrademark = async () => {
+    if (!trademarkCanKhoiPhuc) return;
+    try {
+      setIsProcessing(true);
+      const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanKhoiPhuc.maThuongHieu}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          MaThuongHieu: trademarkCanKhoiPhuc.maThuongHieu,
+          TenThuongHieu: trademarkCanKhoiPhuc.tenThuongHieu,
+          HinhAnh: trademarkCanKhoiPhuc.hinhAnh,
+          TrangThai: 1,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 404) {
+          throw new Error("Thương hiệu không tồn tại");
+        } else if (response.status === 409) {
+          throw new Error("Tên thương hiệu đã tồn tại");
+        } else if (response.status === 500) {
+          throw new Error("Lỗi máy chủ, vui lòng thử lại sau");
+        }
+        throw new Error(errorText || "Không thể khôi phục thương hiệu");
+      }
+      setMoModalKhoiPhuc(false);
+      setTrademarkCanKhoiPhuc(null);
+      setCurrentPage(1);
+      await fetchTrademarks();
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Khôi phục thương hiệu thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi khôi phục thương hiệu: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const xoaVinhVienTrademark = async () => {
+    if (!trademarkCanXoaVinhVien) return;
+    try {
+      setIsProcessing(true);
+      const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanXoaVinhVien.maThuongHieu}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 404) {
+          throw new Error("Thương hiệu không tồn tại");
+        } else if (response.status === 409) {
+          throw new Error("Không thể xóa vì có dữ liệu liên quan");
+        } else if (response.status === 500) {
+          throw new Error("Lỗi máy chủ, vui lòng thử lại sau");
+        }
+        throw new Error(errorText || "Không thể xóa thương hiệu");
+      }
+      setMoModalXoaVinhVien(false);
+      setTrademarkCanXoaVinhVien(null);
+      setCurrentPage(1);
+      await fetchTrademarks();
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Xóa vĩnh viễn thương hiệu thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi xóa thương hiệu: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrademarks();
+  }, [fetchTrademarks]);
 
   return (
-    <div className="space-y-6 relative">
-      <Toaster position="top-right" />
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Thương Hiệu</h1>
-        </div>
-       <Button 
-          className="bg-[#C600F5] hover:bg-[radial-gradient(circle_at_top,#C600F5,#FF00FF)] text-white border rounded-md" 
-          onClick={() => setMoModalThem(true)}
-        >
-          <FaPlus className="mr-2 h-4 w-4" /> Thêm Thương Hiệu
-        </Button>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-800">
+          Quản Lý Thương Hiệu
+        </h1>
+        {activeTab === "active" && (
+          <Button
+            className="bg-[#9b87f5] text-white hover:bg-[#8a76e3]"
+            onClick={() => setMoModalThem(true)}
+            disabled={loading || isProcessing}
+          >
+            <FaPlus className="mr-2 h-4 w-4" /> Thêm Thương Hiệu
+          </Button>
+        )}
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Danh Sách Thương Hiệu</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-start sm:items-center">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-black" />
+      <Tabs defaultValue="active" className="w-full" onValueChange={(value) => setActiveTab(value as "active" | "inactive")}>
+        <TabsList className="grid w-full md:w-auto grid-cols-2 gap-1">
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4" /> Danh Sách Thương Hiệu
+          </TabsTrigger>
+          <TabsTrigger value="inactive" className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4" /> Khôi Phục Thương Hiệu
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="relative">
               <Input
                 type="search"
                 placeholder="Tìm kiếm thương hiệu..."
-                className="pl-8 w-full sm:w-[300px]"
-                value={tuKhoaTimKiem}
-                onChange={(e) => setTuKhoaTimKiem(e.target.value)}
-                maxLength={40}
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-full md:w-[820px] pl-10"
               />
-            </div>
-            <div className="flex gap-2 self-end">
-              <Button variant="outline" size="sm" className="h-9" onClick={layDanhSachThuongHieu}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Làm Mới
-              </Button>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
           </div>
 
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>STT</TableHead>
-                  <TableHead>Hình Ảnh</TableHead>
-                  <TableHead>Tên Thương Hiệu</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dangTai ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                      Đang tải...
-                    </TableCell>
-                  </TableRow>
-                ) : thuongHieuHienTai.length > 0 ? (
-                  thuongHieuHienTai.map((th, index) => (
-                    <TableRow key={th.maThuongHieu} className="hover:bg-muted/50">
-                      <TableCell>{chiSoThuongHieuDau + index + 1}</TableCell>
-                      <TableCell>
-                        {th.hinhAnh ? (
-                          <img
-                            src={formatBase64Image(th.hinhAnh)}
-                            alt={th.tenThuongHieu}
-                            className="h-12 w-12 object-cover rounded"
-                            onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
-                          />
-                        ) : (
-                          "Không có hình"
-                        )}
-                      </TableCell>
-                      <TableCell>{th.tenThuongHieu}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setThuongHieuChiTiet(th);
-                                setMoModalChiTiet(true);
-                              }}
-                            >
-                              <FaEye className="mr-2 h-4 w-4 text-green-500" /> Chi tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setThuongHieuDangSua(th);
-                                setMoModalSua(true);
-                              }}
-                            >
-                              <FaEdit className="mr-2 h-4 w-4 text-blue-500" /> Sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setThuongHieuCanXoa(th);
-                                setMoModalXoa(true);
-                              }}
-                            >
-                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Xóa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                      Không tìm thấy thương hiệu nào.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+          {loading ? (
+            <div className="flex justify-center items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-[#9b87f5]" />
+            </div>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Danh Sách Thương Hiệu</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>STT</TableHead>
+                        <TableHead>Hình Ảnh</TableHead>
+                        <TableHead>Tên Thương Hiệu</TableHead>
+                        <TableHead>Hành Động</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedTrademarks.length > 0 ? (
+                        paginatedTrademarks.map((th, index) => (
+                          <TableRow key={th.maThuongHieu} className="hover:bg-muted/50">
+                            <TableCell>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                            <TableCell>
+                              {th.hinhAnh ? (
+                                <img
+                                  src={formatBase64Image(th.hinhAnh)}
+                                  alt={th.tenThuongHieu}
+                                  className="h-12 w-12 object-cover rounded"
+                                  onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
+                                />
+                              ) : (
+                                "Không có hình"
+                              )}
+                            </TableCell>
+                            <TableCell>{th.tenThuongHieu}</TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setTrademarkChiTiet(th);
+                                      setMoModalChiTiet(true);
+                                    }}
+                                    className="text-green-700"
+                                  >
+                                    <FaEye className="mr-2 h-4 w-4" /> Xem
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setTrademarkDangSua({ ...th });
+                                      setMoModalSua(true);
+                                    }}
+                                    className="text-blue-700"
+                                  >
+                                    <FaEdit className="mr-2 h-4 w-4" /> Sửa
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setTrademarkCanXoa(th);
+                                      setMoModalXoa(true);
+                                    }}
+                                    className="text-red-700"
+                                  >
+                                    <FaTrashAlt className="mr-2 h-4 w-4" /> Xóa
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                            Không tìm thấy thương hiệu nào.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-6">
+                  <Button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    variant="outline"
+                    className="flex items-center"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Trước
+                  </Button>
+
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <Button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      variant={currentPage === page ? "default" : "outline"}
+                      className={currentPage === page ? "bg-[#9b87f5] text-white hover:bg-[#8a76e3]" : ""}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+
+                  <Button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    variant="outline"
+                    className="flex items-center"
+                  >
+                    Sau
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="inactive">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="relative">
+              <Input
+                type="search"
+                placeholder="Tìm kiếm thương hiệu đã xóa..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-full md:w-[820px] pl-10"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
           </div>
 
-          <div className="flex justify-between items-center mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTrangHienTai(Math.max(1, trangHienTai - 1))}
-              disabled={trangHienTai === 1}
-            >
-              Trang Trước
-            </Button>
-            <span>Trang {trangHienTai} / {tongSoTrang}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTrangHienTai(Math.min(tongSoTrang, trangHienTai + 1))}
-              disabled={trangHienTai === tongSoTrang}
-            >
-              Trang Sau
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          {loading ? (
+            <div className="flex justify-center items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-[#9b87f5]" />
+            </div>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Danh Sách Thương Hiệu Đã Xóa</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>STT</TableHead>
+                        <TableHead>Hình Ảnh</TableHead>
+                        <TableHead>Tên Thương Hiệu</TableHead>
+                        <TableHead>Hành Động</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedTrademarks.length > 0 ? (
+                        paginatedTrademarks.map((th, index) => (
+                          <TableRow key={th.maThuongHieu} className="hover:bg-muted/50">
+                            <TableCell>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</TableCell>
+                            <TableCell>
+                              {th.hinhAnh ? (
+                                <img
+                                  src={formatBase64Image(th.hinhAnh)}
+                                  alt={th.tenThuongHieu}
+                                  className="h-12 w-12 object-cover rounded"
+                                  onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
+                                />
+                              ) : (
+                                "Không có hình"
+                              )}
+                            </TableCell>
+                            <TableCell>{th.tenThuongHieu}</TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setTrademarkChiTiet(th);
+                                      setMoModalChiTiet(true);
+                                    }}
+                                    className="text-green-700"
+                                  >
+                                    <FaEye className="mr-2 h-4 w-4" /> Chi tiết
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setTrademarkCanKhoiPhuc(th);
+                                      setMoModalKhoiPhuc(true);
+                                    }}
+                                    className="text-blue-700"
+                                  >
+                                    <FaUndo className="mr-2 h-4 w-4" /> Khôi phục
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setTrademarkCanXoaVinhVien(th);
+                                      setMoModalXoaVinhVien(true);
+                                    }}
+                                    className="text-red-700"
+                                  >
+                                    <FaTrash className="mr-2 h-4 w-4" /> Xóa vĩnh viễn
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                            Không tìm thấy thương hiệu nào.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
 
-      {/* Modal Thêm Thương Hiệu */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-6">
+                  <Button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    variant="outline"
+                    className="flex items-center"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Trước
+                  </Button>
+
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <Button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      variant={currentPage === page ? "default" : "outline"}
+                      className={currentPage === page ? "bg-[#9b87f5] text-white hover:bg-[#8a76e3]" : ""}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+
+                  <Button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    variant="outline"
+                    className="flex items-center"
+                  >
+                    Sau
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
+
       <Dialog open={moModalThem} onOpenChange={setMoModalThem}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>Thêm Thương Hiệu</DialogTitle>
             <DialogDescription>Nhập thông tin thương hiệu mới.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tên Thương Hiệu</label>
               <Input
                 value={tenThuongHieuMoi}
                 onChange={(e) => {
@@ -449,25 +806,39 @@ const ThuongHieu = () => {
                   setErrorsThem((prev) => ({ ...prev, ten: "" }));
                 }}
                 placeholder="Tên thương hiệu"
+                disabled={isProcessing}
               />
               {errorsThem.ten && <p className="text-red-500 text-sm mt-1">{errorsThem.ten}</p>}
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hình Ảnh</label>
               <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center ${
-                  isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                }`}
+                className={`border-2 border-dashed rounded-lg p-4 text-center ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                  }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
                 {hinhAnhMoi ? (
-                  <img src={hinhAnhMoi} alt="Preview" className="h-20 w-20 mx-auto object-cover rounded" />
+                  <div className="relative">
+                    <img
+                      src={hinhAnhMoi}
+                      alt="Preview"
+                      className="h-20 w-20 mx-auto object-cover rounded"
+                    />
+                    <button
+                      onClick={() => setHinhAnhMoi("")}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                      disabled={isProcessing}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ) : (
                   <div>
                     <Upload className="h-8 w-8 mx-auto text-gray-400" />
                     <p className="mt-2 text-sm text-gray-600">
-                      Kéo và thả hình ảnh vào đây hoặc nhấp để chọn
+                      Kéo và thả hình ảnh vào đây hoặc nhấp để chọn (Tối đa 2MB)
                     </p>
                     <input
                       type="file"
@@ -475,6 +846,7 @@ const ThuongHieu = () => {
                       className="hidden"
                       id="fileInputThem"
                       onChange={handleFileInputChange}
+                      disabled={isProcessing}
                     />
                     <label htmlFor="fileInputThem" className="cursor-pointer text-blue-500 hover:underline">
                       Chọn tệp
@@ -484,114 +856,138 @@ const ThuongHieu = () => {
               </div>
               {errorsThem.hinhAnh && <p className="text-red-500 text-sm mt-1">{errorsThem.hinhAnh}</p>}
             </div>
-            {hinhAnhMoi && (
-              <Button variant="outline" onClick={() => setHinhAnhMoi("")} className="w-full">
-                Xóa hình ảnh
-              </Button>
-            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoModalThem(false)}>
-              Hủy
+          <DialogFooter className="flex justify-end space-x-2 mt-4">
+            <Button variant="ghost" onClick={() => setMoModalThem(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+              <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={themThuongHieu}>Thêm</Button>
+            <Button onClick={themTrademark} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
+              {isProcessing ? "Đang xử lý..." : "Thêm"}
+              <FaPlus className="h-4 w-4" />
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Sửa Thương Hiệu */}
+      {/* Modal Sửa */}
       <Dialog open={moModalSua} onOpenChange={setMoModalSua}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>Sửa Thương Hiệu</DialogTitle>
             <DialogDescription>Cập nhật thông tin thương hiệu.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Input
-                value={thuongHieuDangSua?.tenThuongHieu || ""}
-                onChange={(e) => {
-                  setThuongHieuDangSua({ ...thuongHieuDangSua!, tenThuongHieu: e.target.value });
-                  setErrorsSua((prev) => ({ ...prev, ten: "" }));
-                }}
-                placeholder="Tên thương hiệu"
-              />
-              {errorsSua.ten && <p className="text-red-500 text-sm mt-1">{errorsSua.ten}</p>}
-            </div>
-            <div>
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 text-center ${
-                  isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                {thuongHieuDangSua?.hinhAnh ? (
-                  <img
-                    src={formatBase64Image(thuongHieuDangSua.hinhAnh)}
-                    alt="Preview"
-                    className="h-20 w-20 mx-auto object-cover rounded"
-                  />
-                ) : (
-                  <div>
-                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
-                      Kéo và thả hình ảnh vào đây hoặc nhấp để chọn
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      id="fileInputSua"
-                      onChange={handleFileInputChange}
-                    />
-                    <label htmlFor="fileInputSua" className="cursor-pointer text-blue-500 hover:underline">
-                      Chọn tệp
-                    </label>
-                  </div>
-                )}
+          {trademarkDangSua && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Thương Hiệu</label>
+                <Input
+                  value={trademarkDangSua.tenThuongHieu}
+                  onChange={(e) => {
+                    setTrademarkDangSua({ ...trademarkDangSua, tenThuongHieu: e.target.value });
+                    setErrorsSua((prev) => ({ ...prev, ten: "" }));
+                    setErrorMessage("");
+                  }}
+                  placeholder="Tên thương hiệu"
+                  disabled={isProcessing}
+                />
+                {errorsSua.ten && <p className="text-red-500 text-sm mt-1">{errorsSua.ten}</p>}
+                {errorMessage && <p className="text-red-500 text-sm mt-1">{errorMessage}</p>}
               </div>
-              {errorsSua.hinhAnh && <p className="text-red-500 text-sm mt-1">{errorsSua.hinhAnh}</p>}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hình Ảnh</label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 text-center ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                    }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  {trademarkDangSua.hinhAnh ? (
+                    <div className="relative">
+                      <img
+                        src={formatBase64Image(trademarkDangSua.hinhAnh)}
+                        alt="Preview"
+                        className="h-20 w-20 mx-auto object-cover rounded"
+                      />
+                      <button
+                        onClick={() => setTrademarkDangSua({ ...trademarkDangSua, hinhAnh: "" })}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                        disabled={isProcessing}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        Kéo và thả hình ảnh vào đây hoặc nhấp để chọn (Tối đa 2MB)
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="fileInputSua"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && file.size <= 2 * 1024 * 1024) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setTrademarkDangSua({ ...trademarkDangSua, hinhAnh: reader.result as string });
+                            reader.readAsDataURL(file);
+                          } else {
+                            Swal.fire({
+                              icon: "error",
+                              title: "Lỗi",
+                              text: "Hình ảnh phải nhỏ hơn 2MB!",
+                              timer: 3000,
+                              timerProgressBar: true,
+                              showConfirmButton: false,
+                              showCloseButton: true,
+                            });
+                          }
+                        }}
+                        disabled={isProcessing}
+                      />
+                      <label htmlFor="fileInputSua" className="cursor-pointer text-blue-500 hover:underline">
+                        Chọn tệp
+                      </label>
+                    </div>
+                  )}
+                </div>
+                {errorsSua.hinhAnh && <p className="text-red-500 text-sm mt-1">{errorsSua.hinhAnh}</p>}
+              </div>
             </div>
-            {thuongHieuDangSua?.hinhAnh && (
-              <Button
-                variant="outline"
-                onClick={() => setThuongHieuDangSua({ ...thuongHieuDangSua!, hinhAnh: "" })}
-                className="w-full"
-              >
-                Xóa hình ảnh
-              </Button>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoModalSua(false)}>
-              Hủy
+          )}
+          <DialogFooter className="flex justify-end space-x-2 mt-4">
+            <Button variant="ghost" onClick={() => setMoModalSua(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+              <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={suaThuongHieu}>Lưu</Button>
+            <Button onClick={suaTrademark} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
+              {isProcessing ? "Đang xử lý..." : "Lưu"}
+              <FaEdit className="h-4 w-4" />
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Chi Tiết Thương Hiệu */}
       <Dialog open={moModalChiTiet} onOpenChange={setMoModalChiTiet}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>Chi Tiết Thương Hiệu</DialogTitle>
             <DialogDescription>Thông tin chi tiết của thương hiệu.</DialogDescription>
           </DialogHeader>
-          {thuongHieuChiTiet && (
-            <div className="space-y-4">
+          {trademarkChiTiet && (
+            <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tên Thương Hiệu</label>
-                <Input value={thuongHieuChiTiet.tenThuongHieu} disabled />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Thương Hiệu</label>
+                <Input value={trademarkChiTiet.tenThuongHieu} disabled />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
-                {thuongHieuChiTiet.hinhAnh ? (
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hình Ảnh</label>
+                {trademarkChiTiet.hinhAnh ? (
                   <img
-                    src={formatBase64Image(thuongHieuChiTiet.hinhAnh)}
-                    alt={thuongHieuChiTiet.tenThuongHieu}
+                    src={formatBase64Image(trademarkChiTiet.hinhAnh)}
+                    alt={trademarkChiTiet.tenThuongHieu}
                     className="h-20 w-20 object-cover rounded"
                   />
                 ) : (
@@ -600,9 +996,9 @@ const ThuongHieu = () => {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoModalChiTiet(false)}>
-              Đóng
+          <DialogFooter className="flex justify-end mt-4">
+            <Button variant="ghost" onClick={() => setMoModalChiTiet(false)} className="flex items-center gap-2 bg-[#e7e4f5]">
+              <X className="h-4 w-4" /> Đóng
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -611,17 +1007,58 @@ const ThuongHieu = () => {
       <Dialog open={moModalXoa} onOpenChange={setMoModalXoa}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xác nhận xóa thương hiệu</DialogTitle>
+            <DialogTitle>Xác Nhận Xóa</DialogTitle>
             <DialogDescription>
-              Bạn có chắc chắn muốn xóa thương hiệu này không? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa thương hiệu "{trademarkCanXoa?.tenThuongHieu}" không?
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMoModalXoa(false)}>
-              Hủy
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button variant="ghost" onClick={() => setMoModalXoa(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+              <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button variant="destructive" onClick={xoaThuongHieu}>
-              Xóa
+            <Button onClick={anTrademark} disabled={isProcessing} className="bg-red-500 text-white hover:bg-red-600 flex items-center gap-2">
+              {isProcessing ? "Đang xử lý..." : "Xóa"}
+              <FaTrashAlt className="h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={moModalKhoiPhuc} onOpenChange={setMoModalKhoiPhuc}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác Nhận Khôi Phục</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn khôi phục thương hiệu "{trademarkCanKhoiPhuc?.tenThuongHieu}" không?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button variant="ghost" onClick={() => setMoModalKhoiPhuc(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+              <X className="h-4 w-4" /> Hủy
+            </Button>
+            <Button onClick={khoiPhucTrademark} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
+              {isProcessing ? "Đang xử lý..." : "Khôi phục"}
+              <FaUndo className="h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={moModalXoaVinhVien} onOpenChange={setMoModalXoaVinhVien}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác Nhận Xóa Vĩnh Viễn</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa vĩnh viễn thương hiệu "{trademarkCanXoaVinhVien?.tenThuongHieu}" không? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button variant="ghost" onClick={() => setMoModalXoaVinhVien(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+              <X className="h-4 w-4" /> Hủy
+            </Button>
+            <Button onClick={xoaVinhVienTrademark} disabled={isProcessing} className="bg-red-500 text-white hover:bg-red-600 flex items-center gap-2">
+              {isProcessing ? "Đang xử lý..." : "Xóa"}
+              <FaTrash className="h-4 w-4" />
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -630,4 +1067,4 @@ const ThuongHieu = () => {
   );
 };
 
-export default ThuongHieu;
+export default AdminTrademark;

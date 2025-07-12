@@ -53,6 +53,7 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminCombos from "./pages/admin/AdminCombos";
 import AdminThuongHieu from "./pages/admin/AdminThuongHieu";
 import AdminLoaiSanPham from "./pages/admin/AdminLoaiSanPham";
+import AdminHashTag from "./pages/admin/AdminHashTag";
 import VoucherUser from "./components/layout/voucher/VoucherUser";
 import PaymentSuccess from "./pages/user/PaymentSuccess";
 import PaymentFail from "./pages/user/PaymentFail";
@@ -201,6 +202,7 @@ const App = () => (
                 <Route path="combos" element={<AdminCombos />} />
                 <Route path="thuonghieu" element={<AdminThuongHieu />} />
                 <Route path="loaisanpham" element={<AdminLoaiSanPham />} />
+                <Route path="hashtag" element={<AdminHashTag />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
                 <Route path="products/form" element={<ProductsForm />} />
