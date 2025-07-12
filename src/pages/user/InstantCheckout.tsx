@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
 import Swal from "sweetalert2";
-
+import DiaChiCart from "@/components/default/DiaChiCart";
 interface CartItem {
   idSanPham: string;
   tenSanPham: string;
@@ -280,6 +280,7 @@ const provinceMapping: { [key: string]: string } = {
 
 const CheckOutInstant = () => {
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
@@ -400,7 +401,7 @@ const CheckOutInstant = () => {
         setAddresses(
           addressData.sort((a: Address, b: Address) => b.trangThai - a.trangThai)
         );
-
+        console.log(addressData)
         setFinalAmount(subtotal + shippingFee);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -609,130 +610,136 @@ const CheckOutInstant = () => {
   };
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  setIsSubmitting(true); // Disable button when submission starts
 
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      Swal.fire({
-        title: "Vui lòng đăng nhập!",
-        text: "Bạn cần đăng nhập để thanh toán.",
-        icon: "warning",
-        timer: 2000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-      }).then(() => {
-        navigate("/login");
-      });
-      return;
-    }
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    Swal.fire({
+      title: "Vui lòng đăng nhập!",
+      text: "Bạn cần đăng nhập để thanh toán.",
+      icon: "warning",
+      timer: 2000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    }).then(() => {
+      navigate("/login");
+      setIsSubmitting(false); // Re-enable button after redirect
+    });
+    return;
+  }
 
-    const requiredFields = [
-      "tenNguoiNhan",
-      "sdt",
-      "province",
-      "district",
-      "ward",
-      "specificAddress",
-    ];
-    const emptyFields = requiredFields.filter(
-      (field) => !checkoutForm[field as keyof CheckoutForm]
+  const requiredFields = [
+    "tenNguoiNhan",
+    "sdt",
+    "province",
+    "district",
+    "ward",
+    "specificAddress",
+  ];
+  const emptyFields = requiredFields.filter(
+    (field) => !checkoutForm[field as keyof CheckoutForm]
+  );
+  if (emptyFields.length > 0) {
+    toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
+    setIsSubmitting(false); // Re-enable button if validation fails
+    return;
+  }
+
+  try {
+    const selectedProvince = provinces.find(
+      (p) => p.code.toString() === checkoutForm.province
     );
-    if (emptyFields.length > 0) {
-      toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
+    if (!selectedProvince) {
+      toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
+      setIsSubmitting(false); // Re-enable button if province is invalid
       return;
     }
-
-    try {
-      const selectedProvince = provinces.find(
-        (p) => p.code.toString() === checkoutForm.province
-      );
-      if (!selectedProvince) {
-        toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
-        return;
-      }
-      const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
-      const expectedShippingFee = shippingData[normalizedProvinceName]?.fee || 0;
-      if (shippingFee !== expectedShippingFee) {
-        setShippingFee(expectedShippingFee);
-      }
-
-      const subtotal = calculateSubtotal();
-      const newFinalAmount = subtotal - discountAmount + expectedShippingFee;
-
-      const selectedDistrict =
-        districts.find((d) => d.code.toString() === checkoutForm.district)?.name ||
-        "";
-      const selectedWard =
-        wards.find((w) => w.code.toString() === checkoutForm.ward)?.name || "";
-      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.name}`;
-
-      const paymentRequest = {
-        userId: userId,
-        items: cartItems,
-        couponCode: promoCode || null,
-        paymentMethod: paymentMethod,
-        tenNguoiNhan: checkoutForm.tenNguoiNhan,
-        sdt: checkoutForm.sdt,
-        diaChi: fullAddress,
-        discountAmount: discountAmount,
-        shippingFee: expectedShippingFee,
-        finalAmount: newFinalAmount,
-      };
-
-      const paymentResponse = await fetch(
-        "http://localhost:5261/api/CheckOut/InstantCheckOut",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(paymentRequest),
-        }
-      );
-
-      const result = await paymentResponse.json();
-
-      if (result.success) {
-        if (paymentMethod === "cod") {
-          toast.success(result.message, {
-            description: `Mã đơn hàng: ${result.orderId}`,
-            duration: 3000,
-            action: {
-              label: "Xem chi tiết",
-              onClick: () =>
-                navigate("/user/orders", { state: { orderId: result.orderId } }),
-            },
-          });
-
-          setCartItems([]);
-          setPromoCode("");
-          setDiscountApplied(false);
-          setDiscountAmount(0);
-          setFinalAmount(0);
-          localStorage.removeItem("InstantBuy");
-          localStorage.removeItem("checkoutForm");
-          navigate("/", { state: { orderId: result.orderId } });
-        } else if (paymentMethod === "vnpay") {
-          if (result.finalAmount !== newFinalAmount) {
-            toast.error(
-              `Tổng tiền VNPay (${formatCurrency(
-                result.finalAmount
-              )} VND) không khớp với kỳ vọng (${formatCurrency(
-                newFinalAmount
-              )} VND). Vui lòng thử lại.`
-            );
-            return;
-          }
-          window.location.href = result.message;
-        }
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
-      console.error("Error during checkout:", error);
+    const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
+    const expectedShippingFee = shippingData[normalizedProvinceName]?.fee || 0;
+    if (shippingFee !== expectedShippingFee) {
+      setShippingFee(expectedShippingFee);
     }
-  };
+
+    const subtotal = calculateSubtotal();
+    const newFinalAmount = subtotal - discountAmount + expectedShippingFee;
+
+    const selectedDistrict =
+      districts.find((d) => d.code.toString() === checkoutForm.district)?.name || "";
+    const selectedWard =
+      wards.find((w) => w.code.toString() === checkoutForm.ward)?.name || "";
+    const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.name}`;
+
+    const paymentRequest = {
+      userId: userId,
+      items: cartItems,
+      couponCode: promoCode || null,
+      paymentMethod: paymentMethod,
+      tenNguoiNhan: checkoutForm.tenNguoiNhan,
+      sdt: checkoutForm.sdt,
+      diaChi: fullAddress,
+      discountAmount: discountAmount,
+      shippingFee: expectedShippingFee,
+      finalAmount: newFinalAmount,
+    };
+    console.log(paymentRequest);
+    const paymentResponse = await fetch(
+      "http://localhost:5261/api/CheckOut/InstantCheckOut",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(paymentRequest),
+      }
+    );
+
+    const result = await paymentResponse.json();
+
+    if (result.success) {
+      if (paymentMethod === "cod") {
+        toast.success(result.message, {
+          description: `Mã đơn hàng: ${result.orderId}`,
+          duration: 3000,
+          action: {
+            label: "Xem chi tiết",
+            onClick: () =>
+              navigate("/user/orders", { state: { orderId: result.orderId } }),
+          },
+        });
+
+        setCartItems([]);
+        setPromoCode("");
+        setDiscountApplied(false);
+        setDiscountAmount(0);
+        setFinalAmount(0);
+        localStorage.removeItem("InstantBuy");
+        localStorage.removeItem("checkoutForm");
+        navigate("/", { state: { orderId: result.orderId } });
+      } else if (paymentMethod === "vnpay") {
+        if (result.finalAmount !== newFinalAmount) {
+          toast.error(
+            `Tổng tiền VNPay (${formatCurrency(
+              result.finalAmount
+            )} VND) không khớp với kỳ vọng (${formatCurrency(
+              newFinalAmount
+            )} VND). Vui lòng thử lại.`
+          );
+          setIsSubmitting(false); // Re-enable button if VNPay amount mismatch
+          return;
+        }
+        window.location.href = result.message;
+      }
+    } else {
+      toast.error(result.message);
+      setIsSubmitting(false); // Re-enable button if API returns error
+    }
+  } catch (error) {
+    toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
+    console.error("Error during checkout:", error);
+    setIsSubmitting(false); // Re-enable button on error
+  }
+};
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -754,6 +761,9 @@ const CheckOutInstant = () => {
                     <h2 className="text-xl font-semibold mb-6">
                       Thông tin giao hàng
                     </h2>
+                    <div className="relative -top-[7px]">
+                        <DiaChiCart />
+                    </div>
                     <div className="space-x-2">
                       <Button
                         type="button"
@@ -797,7 +807,7 @@ const CheckOutInstant = () => {
                         value={checkoutForm.province}
                         onChange={(e) => handleProvinceChange(e.target.value)}
                         className="w-full p-2 border rounded-md"
-                        required
+                        required disabled
                       >
                         <option value="">Chọn tỉnh/thành phố</option>
                         {provinces.map((province) => (
@@ -816,7 +826,7 @@ const CheckOutInstant = () => {
                         value={checkoutForm.district}
                         onChange={(e) => handleDistrictChange(e.target.value)}
                         className="w-full p-2 border rounded-md"
-                        required
+                        required disabled
                       >
                         <option value="">Chọn quận/huyện</option>
                         {districts.map((district) => (
@@ -835,7 +845,7 @@ const CheckOutInstant = () => {
                         value={checkoutForm.ward}
                         onChange={handleCheckoutFormChange}
                         className="w-full p-2 border rounded-md"
-                        required
+                        required disabled
                       >
                         <option value="">Chọn phường/xã</option>
                         {wards.map((ward) => (
@@ -855,7 +865,7 @@ const CheckOutInstant = () => {
                         name="specificAddress"
                         value={checkoutForm.specificAddress}
                         onChange={handleCheckoutFormChange}
-                        required
+                        required readOnly
                       />
                     </div>
                   </div>
@@ -889,7 +899,7 @@ const CheckOutInstant = () => {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2 mt-6">
-                    <Button type="submit" className="flex-1 sm:order-2">
+                    <Button type="submit" className={`flex-1 sm:order-2 isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600"}`} disabled={isSubmitting}>                   
                       {paymentMethod === "cod"
                         ? "Xác nhận thanh toán COD"
                         : "Thanh toán qua VNPay"}
@@ -913,7 +923,6 @@ const CheckOutInstant = () => {
                   <div className="space-y-3 mb-6">
                     {cartItems.map((item) => {
                       const product = productDetails.find((p) => p.id === item.idSanPham);
-                      console.log(product)
                       return (
                         <div key={item.idSanPham} className="flex flex-col space-y-2">
                           <div className="flex items-start gap-4">
@@ -932,16 +941,19 @@ const CheckOutInstant = () => {
                               </div>
                               {product && (
                                 <div className="text-sm text-muted-foreground mt-2">
-                                  <p><strong>Màu sắc:</strong> {item.mauSac}</p>
+                                  <p style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <strong>Màu Sắc:</strong>
+                                    <span
+                                      className={`w-5 h-5 rounded-full border ? "border-crocus-500 ring-2 ring-crocus-500" : "border-gray-200 hover:border-gray-300"}`}
+                                      style={{ backgroundColor: `#${item.mauSac}` }}
+                                      title={item.mauSac}
+                                    ></span>
+                                    <span> {item.mauSac}</span>
+                                  </p>                                          
                                   <p><strong>Kích thước:</strong> {item.kickThuoc}</p>
                                   <p><strong>Chất liệu:</strong> {product.chatLieu}</p>
                                   <p><strong>Loại sản phẩm:</strong> {product.loaiSanPham}</p>
                                   <p><strong>Thương hiệu:</strong> {product.thuongHieu}</p>
-                                  {product.moTa && (
-                                    <p><strong>Mô tả:</strong> {product.moTa}</p>
-                                  )}
-                                  <p><strong>Số lượng còn lại:</strong> {product.soLuong}</p>
-                                  <p><strong>Đã bán:</strong> {product.soLuongDaBan}</p>
                                 </div>
                               )}
                             </div>
@@ -1005,6 +1017,59 @@ const CheckOutInstant = () => {
           )}
         </div>
       </main>
+            <Dialog.Root
+              open={showAddressModal}
+              onOpenChange={(open) => setShowAddressModal(open)}
+            >
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+                <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full overflow-y-auto max-h-[600px]">
+                  <h2 className="text-xl font-bold mb-4">Chọn địa chỉ giao hàng</h2>
+                  {addresses.length === 0 ? (
+                    <p>Chưa có địa chỉ nào. Vui lòng thêm địa chỉ mới.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {addresses.map((address) => (
+                        <div
+                          key={address.maDiaChi}
+                          className="border p-4 rounded-lg bg-white shadow-sm flex justify-between"
+                        >
+                          <div>
+                            <p>
+                              <strong>Họ tên:</strong> {address.hoTen}
+                            </p>
+                            <p>
+                              <strong>SĐT:</strong> {address.sdt}
+                            </p>
+                            <p>
+                              <strong>Địa chỉ:</strong> {address.diaChi},{" "}
+                              {address.phuongXa}, {address.quanHuyen}, {address.tinh}
+                            </p>
+                            <p>
+                              <strong>Trạng thái:</strong>{" "}
+                              {address.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => handleSelectAddress(address)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            Chọn
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setShowAddressModal(false)}
+                  >
+                    Đóng
+                  </Button>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
     </div>
   );
 };

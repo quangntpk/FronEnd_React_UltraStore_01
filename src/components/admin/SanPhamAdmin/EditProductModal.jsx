@@ -2,21 +2,30 @@ import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Plus, Minus, X, Upload, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
 
 const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct, productData }) => {
-  const [colors, setColors] = useState([]);
+  const [colors, setColors] = useState([
+    {
+      color: "#ffffff",
+      image: null,
+      sizes: [{ size: "S", price: "", giaNhap: "", quantity: "1" }],
+    },
+  ]);
   const [tenSanPham, setTenSanPham] = useState("");
   const [maThuongHieu, setMaThuongHieu] = useState("");
   const [loaiSanPham, setLoaiSanPham] = useState("");
   const [moTa, setMoTa] = useState("");
   const [chatLieu, setChatLieu] = useState("");
+  const [gioiTinh, setGioiTinh] = useState("");
   const [images, setImages] = useState([]);
   const [errors, setErrors] = useState({});
   const [loaiSanPhamList, setLoaiSanPhamList] = useState([]);
   const [thuongHieuList, setThuongHieuList] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const colorImageInputRefs = useRef({});
 
   useEffect(() => {
     const fetchLoaiSanPham = async () => {
@@ -59,33 +68,54 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     fetchThuongHieu();
   }, []);
 
+  // Initialize product data after fetching thuongHieuList and loaiSanPhamList
   useEffect(() => {
-    if (productData && productData.length > 0) {
+    if (
+      productData &&
+      productData.length > 0 &&
+      thuongHieuList.length > 0 &&
+      loaiSanPhamList.length > 0
+    ) {
       const productInfo = productData[0];
       setTenSanPham(productInfo.tenSanPham || "");
-      setMaThuongHieu(productInfo.maThuongHieu || "");
-      setLoaiSanPham(productInfo.loaiSanPham || "");
+      const selectedThuongHieu = thuongHieuList.find(
+        (th) => th.maThuongHieu === productInfo.th
+      );
+      const selectedLoaiSanPham = loaiSanPhamList.find(
+        (lsp) => lsp.maLoaiSanPham === productInfo.lsp
+      );
+      setMaThuongHieu(selectedThuongHieu ? String(productInfo.th) : "");
+      setLoaiSanPham(selectedLoaiSanPham ? String(productInfo.lsp) : "");
       setMoTa(productInfo.moTa || "");
       setChatLieu(productInfo.chatLieu || "");
-      const cleanedImages = (productInfo.hinhAnhs || []).map(img => img);
+      setGioiTinh(productInfo.gioiTinh !== undefined ? String(productInfo.gioiTinh) : "");
+      const cleanedImages = (productInfo.hinhAnhs || []).map((img) => img);
       setImages(cleanedImages);
       initializeColors(productData);
     }
-  }, [productData]);
+  }, [productData, thuongHieuList, loaiSanPhamList]);
 
   const initializeColors = (data) => {
     if (data && data.length > 0) {
-      const uniqueColors = data.map(item => ({
+      const uniqueColors = data.map((item) => ({
         color: `#${item.mauSac}`,
-        sizes: item.details.map(detail => ({
+        image: item.details[0]?.hinhAnh || null, // Use the first detail's hinhAnh
+        sizes: item.details.map((detail) => ({
           size: detail.kichThuoc.trim(),
           price: detail.gia.toString(),
-          quantity: detail.soLuong.toString(),
+          giaNhap: detail.giaNhap ? detail.giaNhap.toString() : "",
+          quantity: detail.soLuong!=null?detail.soLuong.toString():"0"
         })),
       }));
       setColors(uniqueColors);
     } else {
-      setColors([{ color: "#ffffff", sizes: [{ size: "S", price: "", quantity: "" }] }]);
+      setColors([
+        {
+          color: "#ffffff",
+          image: null,
+          sizes: [{ size: "S", price: "", giaNhap: "", quantity: "1" }],
+        },
+      ]);
     }
   };
 
@@ -106,13 +136,13 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     e.stopPropagation();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
+    files.forEach((file) => {
+      if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
-          setImages(prevImages => [...prevImages, base64String]);
-          setErrors(prevErrors => ({ ...prevErrors, images: "" }));
+          setImages((prevImages) => [...prevImages, base64String]);
+          setErrors((prevErrors) => ({ ...prevErrors, images: "" }));
         };
         reader.readAsDataURL(file);
       }
@@ -121,34 +151,57 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
+    files.forEach((file) => {
+      if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
-          setImages(prevImages => [...prevImages, base64String]);
-          setErrors(prevErrors => ({ ...prevErrors, images: "" }));
+          setImages((prevImages) => [...prevImages, base64String]);
+          setErrors((prevErrors) => ({ ...prevErrors, images: "" }));
         };
         reader.readAsDataURL(file);
       }
     });
   };
 
-  const handleClickChooseFile = () => {
-    fileInputRef.current.click();
+  const handleColorImageChange = (colorIndex, e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
+        const newColors = [...colors];
+        newColors[colorIndex].image = base64String;
+        setColors(newColors);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleDeleteImage = (index) => {
-    setImages(prevImages => prevImages.filter((_, i) => i !== index));
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteColorImage = (colorIndex) => {
+    const newColors = [...colors];
+    newColors[colorIndex].image = null;
+    setColors(newColors);
   };
 
   const handleAddColor = () => {
-    setColors([...colors, { color: "#ffffff", sizes: [{ size: "S", price: "", quantity: "" }] }]);
+    setColors([
+      ...colors,
+      {
+        color: "#ffffff",
+        image: null,
+        sizes: [{ size: "S", price: "", giaNhap: "", quantity: "1" }],
+      },
+    ]);
   };
 
   const handleAddSize = (colorIndex) => {
     const newColors = [...colors];
-    newColors[colorIndex].sizes.push({ size: "S", price: "", quantity: "" });
+    newColors[colorIndex].sizes.push({ size: "S", price: "", giaNhap: "", quantity: "1" });
     setColors(newColors);
   };
 
@@ -173,6 +226,14 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     setColors(newColors);
   };
 
+  const handleQuantityChange = (colorIndex, sizeIndex, increment) => {
+    const newColors = [...colors];
+    const currentQuantity = parseInt(newColors[colorIndex].sizes[sizeIndex].quantity) || 0;
+    const newQuantity = Math.max(1, currentQuantity + increment);
+    newColors[colorIndex].sizes[sizeIndex].quantity = newQuantity.toString();
+    setColors(newColors);
+  };
+
   const handleSaveChanges = async () => {
     let errorList = {};
     let hasError = false;
@@ -190,28 +251,35 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       errorList["loaiSanPham"] = "Vui lòng chọn loại sản phẩm.";
       hasError = true;
     }
+    if (!gioiTinh) {
+      errorList["gioiTinh"] = "Vui lòng chọn giới tính.";
+      hasError = true;
+    }
     if (images.length === 0) {
       errorList["images"] = "Vui lòng thêm ít nhất một hình ảnh.";
       hasError = true;
     }
 
-    const imagesToSend = images.map(img => 
+    const imagesToSend = images.map((img) =>
       img.startsWith("data:image") ? img.replace(/^data:image\/[a-z]+;base64,/, "") : img
     );
 
-    const updatedData = colors.map(colorItem => ({
+    const updatedData = colors.map((colorItem) => ({
       ID: selectedProduct?.id || "A00001",
       TenSanPham: tenSanPham,
       MaThuongHieu: parseInt(maThuongHieu),
       LoaiSanPham: parseInt(loaiSanPham),
       MauSac: colorItem.color.slice(1),
       MoTa: moTa || null,
+      ChatLieu: chatLieu || null,
+      GioiTinh: parseInt(gioiTinh) || null,
       HinhAnhs: imagesToSend,
-      ChatLieu: chatLieu,
-      Details: colorItem.sizes.map(sizeItem => ({
+      Details: colorItem.sizes.map((sizeItem) => ({
         KichThuoc: sizeItem.size.padEnd(10, " ").trim(),
         SoLuong: parseInt(sizeItem.quantity) || 0,
         Gia: parseInt(sizeItem.price) || 0,
+        GiaNhap: parseInt(sizeItem.giaNhap) || 0,
+        HinhAnh: colorItem.image || null,
       })),
     }));
 
@@ -231,12 +299,16 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
         } else {
           sizeSet.add(detail.KichThuoc);
         }
-        if (detail.SoLuong <= 0) {
+        if (detail.SoLuong < 0) {
           errorList[`${index}-details-${detailIndex}-soLuong`] = `- Số lượng của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
           hasError = true;
         }
         if (detail.Gia <= 0) {
           errorList[`${index}-details-${detailIndex}-gia`] = `- Giá của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
+          hasError = true;
+        }
+        if (detail.GiaNhap <= 0) {
+          errorList[`${index}-details-${detailIndex}-giaNhap`] = `- Giá nhập của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
           hasError = true;
         }
       });
@@ -254,7 +326,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       });
       return;
     }
-
+    console.log(updatedData)
     setErrors({});
     try {
       const response = await fetch("http://localhost:5261/api/SanPham/EditSanPham", {
@@ -381,23 +453,72 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                     )}
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 font-medium text-gray-700">Giới Tính</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="gioiTinh"
+                          value="0"
+                          checked={gioiTinh == "0"}
+                          onChange={(e) => {
+                            setGioiTinh(e.target.value);
+                            setErrors({ ...errors, gioiTinh: "" });
+                          }}
+                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span className="text-gray-700">Nam</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="gioiTinh"
+                          value="1"
+                          checked={gioiTinh == "1"}
+                          onChange={(e) => {
+                            setGioiTinh(e.target.value);
+                            setErrors({ ...errors, gioiTinh: "" });
+                          }}
+                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span className="text-gray-700">Nữ</span>
+                      </label>
+                    </div>
+                    {errors.gioiTinh && (
+                      <p className="text-red-500 text-sm mt-1">{errors.gioiTinh}</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4">
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-4">
                   <label className="block font-medium text-gray-700">Màu Sắc và Kích Thước</label>
+                  <Button
+                    onClick={handleAddColor}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Thêm Màu Sắc
+                  </Button>
                 </div>
-                <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 mb-2 px-2">
-                  <div className="col-span-2 text-center">Màu sắc</div>
-                  <div className="col-span-3 text-center">Kích thước</div>
-                  <div className="col-span-3 text-center">Đơn giá</div>
-                  <div className="col-span-4 text-center">Số lượng</div>
-                </div>
-                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-3">
+                <div className="space-y-4">
                   {colors.length === 0 ? (
-                    <div className="text-center py-6 text-gray-500">
-                      <svg className="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                      <svg
+                        className="w-12 h-12 mx-auto mb-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                        />
                       </svg>
                       <p className="text-sm">Chưa có màu sắc hoặc kích thước nào</p>
                       <p className="text-xs">Nhấn "Thêm Màu Sắc" để bắt đầu</p>
@@ -406,38 +527,89 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                     colors.map((colorItem, colorIndex) => (
                       <div
                         key={colorIndex}
-                        className="relative p-3 bg-white rounded-md border border-gray-200 shadow-sm"
+                        className="relative border border-gray-200 rounded-lg p-4 bg-white shadow-sm"
                       >
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleRemoveColor(colorIndex)}
-                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0 text-xs"
-                        >
-                          ×
-                        </Button>
+                        {/* Color Header with Delete Button */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={colorItem.color}
+                                onChange={(e) =>
+                                  handleInputChange(colorIndex, null, "color", e.target.value)
+                                }
+                                className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
+                              />
+                              <span className="font-medium text-gray-700">
+                                Màu {colorIndex + 1}
+                              </span>
+                            </div>
+                            {/* Color Image Upload */}
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                ref={(el) => (colorImageInputRefs.current[colorIndex] = el)}
+                                onChange={(e) => handleColorImageChange(colorIndex, e)}
+                                accept="image/*"
+                                className="hidden"
+                              />
+                              {colorItem.image ? (
+                                <div className="relative">
+                                  <img
+                                    src={`data:image/jpeg;base64,${colorItem.image}`}
+                                    alt={`Color ${colorIndex + 1}`}
+                                    className="w-12 h-12 object-cover rounded-lg border-2 border-gray-300"
+                                  />
+                                  <button
+                                    onClick={() => handleDeleteColorImage(colorIndex)}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-colors"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => colorImageInputRefs.current[colorIndex]?.click()}
+                                  className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 transition-colors"
+                                >
+                                  <Upload size={16} className="text-gray-400" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {/* Delete Color Button */}
+                          <button
+                            onClick={() => handleRemoveColor(colorIndex)}
+                            className="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                            title="Xóa màu sắc"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        {/* Size Headers */}
+                        <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-600 mb-2 px-2">
+                          <div className="col-span-2 text-center">Kích thước</div>
+                          <div className="col-span-3 text-center">Giá Nhập</div>
+                          <div className="col-span-3 text-center">Đơn Giá</div>
+                          <div className="col-span-3 text-center">Số Lượng</div>
+                          <div className="col-span-1 text-center">Thao tác</div>
+                        </div>
+                        {/* Size Variants */}
                         <div className="space-y-2">
                           {colorItem.sizes.map((sizeItem, sizeIndex) => (
-                            <div key={sizeIndex} className="grid grid-cols-12 gap-1 items-center">
-                              {sizeIndex === 0 && (
-                                <div className="col-span-2 flex justify-center items-center">
-                                  <input
-                                    type="color"
-                                    value={colorItem.color}
-                                    onChange={(e) => handleInputChange(colorIndex, null, "color", e.target.value)}
-                                    className="w-16 h-16 border-2 border-gray-300 rounded-md cursor-pointer"
-                                  />
-                                </div>
-                              )}
-                              {sizeIndex !== 0 && <div className="col-span-2"></div>}
-                              <div className="col-span-3">
+                            <div key={sizeIndex} className="grid grid-cols-12 gap-2 items-center">
+                              <div className="col-span-2">
                                 <select
                                   value={sizeItem.size}
-                                  onChange={(e) => handleInputChange(colorIndex, sizeIndex, "size", e.target.value)}
+                                  onChange={(e) =>
+                                    handleInputChange(colorIndex, sizeIndex, "size", e.target.value)
+                                  }
                                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 >
                                   <option value="S">S</option>
                                   <option value="M">M</option>
+                                  <option value="L">L</option>
                                   <option value="XL">XL</option>
                                   <option value="XXL">XXL</option>
                                   <option value="XXXL">XXXL</option>
@@ -447,63 +619,95 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                                 <Input
                                   type="number"
                                   min="1"
-                                  placeholder="Đơn Giá"
-                                  value={sizeItem.price}
-                                  onChange={(e) => handleInputChange(colorIndex, sizeIndex, "price", e.target.value)}
+                                  placeholder="Giá Nhập"
+                                  value={sizeItem.giaNhap}
+                                  onChange={(e) =>
+                                    handleInputChange(colorIndex, sizeIndex, "giaNhap", e.target.value)
+                                  }
                                   className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 />
                               </div>
-                              <div className="col-span-4 flex items-center gap-2">
+                              <div className="col-span-3">
                                 <Input
                                   type="number"
                                   min="1"
-                                  placeholder="Số Lượng"
-                                  value={sizeItem.quantity}
-                                  onChange={(e) => handleInputChange(colorIndex, sizeIndex, "quantity", e.target.value)}
-                                  className="w-40 p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                  placeholder="Đơn Giá"
+                                  value={sizeItem.price}
+                                  onChange={(e) =>
+                                    handleInputChange(colorIndex, sizeIndex, "price", e.target.value)
+                                  }
+                                  className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 />
-                                <div className="flex gap-2">
-                                  {colorItem.sizes.length > 1 && (
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={() => handleRemoveSize(colorIndex, sizeIndex)}
-                                      className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0 text-xs"
-                                    >
-                                      ×
-                                    </Button>
-                                  )}
-                                  {sizeIndex === colorItem.sizes.length - 1 && (
-                                    <Button
-                                      onClick={() => handleAddSize(colorIndex)}
-                                      size="sm"
-                                      className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0 text-xs"
-                                    >
-                                      +
-                                    </Button>
-                                  )}
+                              </div>
+                              <div className="col-span-3">
+                                <div className="flex items-center border border-gray-300 rounded-md">
+                                  <button
+                                    onClick={() => handleQuantityChange(colorIndex, sizeIndex, -1)}
+                                    className="p-1 hover:bg-gray-100 transition-colors"
+                                  >
+                                    <Minus size={16} />
+                                  </button>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={sizeItem.quantity}
+                                    onChange={(e) =>
+                                      handleInputChange(colorIndex, sizeIndex, "quantity", e.target.value)
+                                    }
+                                    className="flex-1 border-0 text-center text-sm focus:ring-0"
+                                  />
+                                  <button
+                                    onClick={() => handleQuantityChange(colorIndex, sizeIndex, 1)}
+                                    className="p-1 hover:bg-gray-100 transition-colors"
+                                  >
+                                    <Plus size={16} />
+                                  </button>
                                 </div>
                               </div>
+                              <div className="col-span-1 flex justify-center">
+                                {colorItem.sizes.length > 1 ? (
+                                  <button
+                                    onClick={() => handleRemoveSize(colorIndex, sizeIndex)}
+                                    className="bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+                                    title="Xóa kích thước"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                ) : (
+                                  <div className="w-6 h-6" />
+                                )}
+                              </div>
+                              {errors[`${colorIndex}-details-${sizeIndex}-giaNhap`] && (
+                                <p className="text-red-500 text-sm col-span-12">
+                                  {errors[`${colorIndex}-details-${sizeIndex}-giaNhap`]}
+                                </p>
+                              )}
                             </div>
                           ))}
+                        </div>
+                        {/* Add Size Button */}
+                        <div className="flex justify-center mt-3">
+                          <Button
+                            onClick={() => handleAddSize(colorIndex)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                          >
+                            <Plus size={14} />
+                            Thêm Kích Thước
+                          </Button>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
-                <Button
-                  onClick={handleAddColor}
-                  className="mt-4 w-fit mx-auto bg-purple-400 hover:bg-purple-500 text-white rounded-lg py-1.5 text-sm"
-                >
-                  Thêm Màu Sắc
-                </Button>
               </div>
             </div>
 
             {/* Right Section: Images and Description */}
             <div className="col-span-1 space-y-6">
               <div>
-                <label className="block mb-2 font-medium text-gray-700">Hình Ảnh</label>
+                <label className="block mb-2 font-medium text-gray-700">Hình Ảnh Chung</label>
                 <div
                   className={`relative w-full h-48 border-2 border-dashed rounded-lg transition-all duration-200 ${
                     isDragging
@@ -526,9 +730,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                   />
                   {images.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                      <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
+                      <Upload className="w-12 h-12 mb-3" />
                       <p className="text-lg font-medium">Kéo thả ảnh vào đây</p>
                       <p className="text-sm">hoặc nhấp để chọn file</p>
                       <p className="text-xs mt-2 text-gray-400">PNG, JPG, GIF (tối đa 5MB)</p>
@@ -546,14 +748,12 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                             alt={`Image ${index}`}
                             className="w-16 h-16 object-cover rounded-lg"
                           />
-                          <Button
-                            variant="destructive"
-                            size="sm"
+                          <button
                             onClick={() => handleDeleteImage(index)}
-                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center p-0"
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
                           >
-                            ×
-                          </Button>
+                            <X size={12} />
+                          </button>
                         </div>
                       ))}
                     </div>
