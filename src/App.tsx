@@ -20,6 +20,7 @@ import FavoritesList from "./pages/favorites/FavoritesList";
 import Contact from "./pages/contact/Contact";
 import About from "./pages/about/About";
 import Login from "./pages/auth/Login";
+import LoginAdmin from "./pages/auth/LoginAdmin";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Profile from "./pages/user/Profile";
@@ -151,6 +152,7 @@ const App = () => (
                 <Route path="contact" element={<Contact />} />
                 <Route path="about" element={<About />} />
                 <Route path="auth/login" element={<Login />} />
+                <Route path="auth/loginadmin" element={<LoginAdmin />} />
                 <Route path="auth/register" element={<Register />} />
                 <Route path="auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="user/profile" element={<Profile />} />
