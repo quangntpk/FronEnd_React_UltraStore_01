@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FaPlus, FaEdit, FaTrashAlt, FaEye, FaDoorOpen, FaFileExcel, FaCheck } from "react-icons/fa";
+import { FaFilePdf, FaPlus, FaEdit, FaTrashAlt, FaEye, FaDoorOpen, FaFileExcel, FaCheck } from "react-icons/fa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import CreateSanPhamModal from "@/components/admin/SanPhamAdmin/CreateSanPhamMod
 import DetailSanPhamModal from "@/components/admin/SanPhamAdmin/DetailSanPhamModal";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
+import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin/ProductPrintUtils"
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -44,7 +45,6 @@ const Products = () => {
       if (response.ok) {
         const data = await response.json();
         setProducts(data || []);
-        console.log(data)
       } else {
         console.error("Lỗi khi lấy danh sách sản phẩm:", response.status);
         setProducts([]);
@@ -141,94 +141,347 @@ const Products = () => {
     setSelectMode(!selectMode);
     setSelectedProducts(new Set()); // Reset selection khi đổi chế độ
   };
-
-  // Xuất Excel
-  const exportToExcel = async () => {
-  if (selectedProducts.size === 0) {
-    Swal.fire({
-      title: "Thông báo",
-      text: "Vui lòng chọn ít nhất một sản phẩm để xuất Excel.",
-      icon: "warning",
-    });
-    return;
-  }
-
-  try {
-    // Fetch data từ API
-    const selectedProductsData = [];
-    for (const productId of selectedProducts) {
-      const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
-      if (!response.ok) {
-        throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
-      }
-      const data = await response.json();
-      selectedProductsData.push(...data);
+  // Xuất HTML 
+  // Thêm hàm này vào trong component Products
+  const exportToHTML = async () => {
+    if (selectedProducts.size === 0) {
+      Swal.fire({
+        title: "Thông báo",
+        text: "Vui lòng chọn ít nhất một sản phẩm để xuất báo cáo.",
+        icon: "warning",
+      });
+      return;
     }
 
-    // Chuẩn bị dữ liệu cho Excel theo định dạng mẫu
-    const excelData = selectedProductsData.map((product, index) => {
-      const [baseId, color, size] = product.maSanPham.split("_");
-      // Tính số lượng còn lại
-      const productRemain = product.soLuongDaBan != null 
-        ? product.soLuong - product.soLuongDaBan 
-        : product.soLuong;
-      return {
-        "STT": index + 1,
-        "Mã sản phẩm": baseId || "N/A",
-        "Tên sản phẩm": product.tenSanPham || "Không có tên",
-        "Loại sản phẩm": product.maLoaiSanPhamNavigation?.tenLoai || "Quần", // Default to "Quần" per template
-        "Thương hiệu": product.maThuongHieuNavigation?.tenThuongHieu || "Gucci", // Default to "Gucci" per template
-        "Chất liệu": product.chatLieu || "N/A",
-        "Màu Sắc": color || "N/A",
-        "Kích Thước": size?.trim() || "N/A",
-        "Đơn giá (VND)": product.gia || 0,
-        "Số lượng Còn lại": productRemain,
-        "Số Lượng Đã bán": product.soLuongDaBan || 0,
-        "Trạng thái": product.trangThai === 0 ? "Tạm ngừng bán" : "Đang bán",
-        "Mô tả": product.moTa || "Không có mô tả",
-      };
-    });
+    try {
+      // Fetch data từ API
+      const selectedProductsData = [];
+      for (const productId of selectedProducts) {
+        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
+        if (!response.ok) {
+          throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
+        }
+        const data = await response.json();
+        selectedProductsData.push(...data);
+      }
 
-    // Tạo workbook và worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
+      // Tạo HTML content
+      const currentDate = new Date();
+      const fromDate = "01/01/2030";
+      const toDate = "31/01/2030";
+      
+      // Tính toán tổng cộng
+      let totalNhap = 0;
+      let totalGiaTriNhap = 0;
+      let totalXuat = 0;
+      let totalGiaTriXuat = 0;
+      let totalTonCuoi = 0;
+      let totalGiaTriTonCuoi = 0;
 
-    // Tự động điều chỉnh độ rộng cột
-    const colWidths = [];
-    const headers = Object.keys(excelData[0] || {});
-    headers.forEach((header, index) => {
-      const maxLength = Math.max(
-        header.length,
-        ...excelData.map((row) => String(row[header] || "").length)
-      );
-      colWidths[index] = { width: Math.min(maxLength + 2, 50) };
-    });
-    ws["!cols"] = colWidths;
+      // Tạo các dòng dữ liệu
+      const tableRows = selectedProductsData.map((product, index) => {
+        const [baseId, color, size] = product.maSanPham.split("_");
+        const nhap = product.soLuong || 0;
+        const giaTriNhap = nhap * (product.giaNhap || 0);
+        const xuat = product.soLuongDaBan || 0;
+        const giaTriXuat = xuat * (product.gia || 0);
+        const tonCuoi = nhap - xuat;
+        const giaTriTonCuoi = tonCuoi * (product.giaNhap || 0);
 
-    // Thêm worksheet vào workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Danh sách sản phẩm");
+        // Cộng vào tổng
+        totalNhap += nhap;
+        totalGiaTriNhap += giaTriNhap;
+        totalXuat += xuat;
+        totalGiaTriXuat += giaTriXuat;
+        totalTonCuoi += tonCuoi;
+        totalGiaTriTonCuoi += giaTriTonCuoi;
 
-    // Xuất file với tên theo định dạng mẫu
-    const fileName = `SanPham_${new Date().toISOString().split("T")[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+        return `
+          <tr>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${index + 1}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${baseId || 'N/A'}</td>
+            <td style="text-align: left; border: 1px solid #000; padding: 4px;">${product.tenSanPham || 'Không có tên'}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${product.thuongHieu || 'N/A'}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${product.chatLieu || 'N/A'}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${product.loaiSanPham || 'N/A'}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">#${color || 'N/A'}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${size || 'N/A'}</td>
+            <td style="text-align: center; border: 1px solid #000; padding: 4px;">Chiếc</td>
+            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${nhap.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
+            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${giaTriNhap.toLocaleString('vi-VN')}</td>
+            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${xuat.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
+            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${giaTriXuat.toLocaleString('vi-VN')}</td>
+            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${tonCuoi.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
+            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${giaTriTonCuoi.toLocaleString('vi-VN')}</td>
+          </tr>
+        `;
+      }).join('');
 
-    // Hiển thị thông báo thành công
-    Swal.fire({
-      title: "Thành công!",
-      text: `Đã xuất ${selectedProducts.size} sản phẩm ra file Excel thành công!`,
-      icon: "success",
-      timer: 3000,
-      timerProgressBar: true,
-      showConfirmButton: false,
-    });
-  } catch (error) {
-    Swal.fire({
-      title: "Lỗi",
-      text: `Không thể xuất Excel: ${error.message}`,
-      icon: "error",
-    });
-  }
-};
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Báo cáo vật tư</title>
+          <style>
+            body {
+              font-family: 'Times New Roman', serif;
+              margin: 20px;
+              font-size: 12px;
+              line-height: 1.2;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+            }
+            .header-left {
+              text-align: left;
+            }
+            .header-right {
+              text-align: right;
+            }
+            .title {
+              text-align: center;
+              font-size: 16px;
+              font-weight: bold;
+              margin: 20px 0;
+            }
+            .subtitle {
+              text-align: center;
+              font-size: 12px;
+              margin-bottom: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th, td {
+              border: 1px solid #000;
+              padding: 4px;
+              text-align: center;
+            }
+            th {
+              background-color: #f0f0f0;
+              font-weight: bold;
+            }
+            .total-row {
+              font-weight: bold;
+              background-color: #f5f5f5;
+            }
+            .signature {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 30px;
+            }
+            .signature-block {
+              text-align: center;
+              width: 30%;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="header-left">
+              <strong>CÔNG TY PHẦN MỀM QUẢN LÝ DOANH NGHIỆP (FAST)</strong><br>
+              Tầng 3, Tòa nhà CTTB - Khu VOV, Mễ Trì, Nam Từ Liêm, Hà Nội<br>
+              www.fast.com.vn
+            </div>
+            <div class="header-right">
+              <strong>Mẫu số S11-DN</strong><br>
+              (Ban hành theo Thông tư số<br>
+              200/2014/TT-BTC ngày 22/12/2014<br>
+              của Bộ Tài Chính)
+            </div>
+          </div>
+
+          <h1 class="title">BẢNG TỔNG HỢP SẢN PHẨM</h1>
+          <div class="subtitle">
+            <strong>Tài khoản: 152 - Vật liệu chính</strong><br>
+            Từ ngày ${fromDate} đến ngày ${toDate}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th rowspan="2" style="width: 5%;">Stt</th>
+                <th rowspan="2" style="width: 8%;">Mã vật tư</th>
+                <th rowspan="2" style="width: 15%;">Tên vật tư</th>
+                <th rowspan="2" style="width: 8%;">Thương hiệu</th>
+                <th rowspan="2" style="width: 8%;">Chất liệu</th>
+                <th rowspan="2" style="width: 8%;">Loại sản phẩm</th>
+                <th rowspan="2" style="width: 8%;">Màu sắc</th>
+                <th rowspan="2" style="width: 8%;">Kích thước</th>
+                <th rowspan="2" style="width: 5%;">Đvt</th>
+                <th colspan="2" style="width: 12%;">Nhập</th>
+                <th colspan="2" style="width: 12%;">Xuất</th>
+                <th colspan="2" style="width: 12%;">Tồn cuối</th>
+              </tr>
+              <tr>
+                <th>Số lượng</th>
+                <th>Giá trị</th>
+                <th>Số lượng</th>
+                <th>Giá trị</th>
+                <th>Số lượng</th>
+                <th>Giá trị</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+              <tr class="total-row">
+                <td colspan="9" style="text-align: center; font-weight: bold;">Tổng cộng</td>
+                <td style="text-align: right; font-weight: bold;">${totalNhap.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
+                <td style="text-align: right; font-weight: bold;">${totalGiaTriNhap.toLocaleString('vi-VN')}</td>
+                <td style="text-align: right; font-weight: bold;">${totalXuat.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
+                <td style="text-align: right; font-weight: bold;">${totalGiaTriXuat.toLocaleString('vi-VN')}</td>
+                <td style="text-align: right; font-weight: bold;">${totalTonCuoi.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
+                <td style="text-align: right; font-weight: bold;">${totalGiaTriTonCuoi.toLocaleString('vi-VN')}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="text-align: right; margin-top: 20px;">
+            Ngày.......tháng.......năm...............
+          </div>
+
+          <div class="signature">
+            <div class="signature-block">
+              <strong>NGƯỜI GHI SỔ</strong><br>
+              <em>(Ký, họ tên)</em>
+            </div>
+            <div class="signature-block">
+              <strong>KẾ TOÁN TRƯỞNG</strong><br>
+              <em>(Ký, họ tên)</em>
+            </div>
+            <div class="signature-block">
+              <strong>NGƯỜI ĐẠI DIỆN THEO PHÁP LUẬT</strong><br>
+              <em>(Ký, họ tên, đóng dấu)</em>
+            </div>
+          </div>
+
+          <div class="no-print" style="text-align: center; margin-top: 30px;">
+            <button onclick="window.print()" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+              In báo cáo
+            </button>
+            <button onclick="window.close()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;">
+              Đóng
+            </button>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Mở cửa sổ mới với báo cáo
+      const newWindow = window.open('', '_blank');
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+
+      Swal.fire({
+        title: "Thành công!",
+        text: "Đã tạo báo cáo vật tư thành công!",
+        icon: "success",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+
+    } catch (error) {
+      Swal.fire({
+        title: "Lỗi",
+        text: `Không thể tạo báo cáo: ${error.message}`,
+        icon: "error",
+      });
+    }
+  };
+  // Xuất Excel
+  const exportToExcel = async () => {
+    if (selectedProducts.size === 0) {
+      Swal.fire({
+        title: "Thông báo",
+        text: "Vui lòng chọn ít nhất một sản phẩm để xuất Excel.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      // Fetch data từ API
+      const selectedProductsData = [];
+      for (const productId of selectedProducts) {
+        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
+        if (!response.ok) {
+          throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
+        }
+        const data = await response.json();
+        selectedProductsData.push(...data);
+      }
+      const excelData = selectedProductsData.map((product, index) => {
+        const [baseId, color, size] = product.maSanPham.split("_");
+        const productRemain = product.soLuongDaBan != null 
+          ? product.soLuong - product.soLuongDaBan 
+          : product.soLuong;
+        return {
+          "STT": index + 1,
+          "Mã sản phẩm": baseId || "N/A",
+          "Tên sản phẩm": product.tenSanPham || "Không có tên",
+          "Loại sản phẩm": product.thuongHieu,
+          "Thương hiệu": product.loaiSanPham,
+          "Chất liệu": product.chatLieu || "N/A",
+          "Màu Sắc": color || "N/A",
+          "Kích Thước": size?.trim() || "N/A",
+          "Đơn giá nhập (VND)": product.giaNhap || 0,
+          "Đơn giá bán (VND)": product.gia || 0,
+          "Số lượng Còn lại": productRemain,
+          "Số Lượng Đã bán": product.soLuongDaBan || 0,
+          "Trạng thái": product.trangThai === 0 ? "Tạm ngừng bán" : "Đang bán",
+          "Mô tả": product.moTa || "Không có mô tả",
+        };
+      });
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      const colWidths = [];
+      const headers = Object.keys(excelData[0] || {});
+      headers.forEach((header, index) => {
+        const maxLength = Math.max(
+          header.length,
+          ...excelData.map((row) => String(row[header] || "").length)
+        );
+        colWidths[index] = { width: Math.min(maxLength + 2, 50) };
+      });
+      ws["!cols"] = colWidths;
+
+      // Thêm worksheet vào workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Danh sách sản phẩm");
+
+      // Xuất file với tên theo định dạng mẫu
+      const fileName = `SanPham_${new Date().toISOString().split("T")[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      // Hiển thị thông báo thành công
+      Swal.fire({
+        title: "Thành công!",
+        text: `Đã xuất ${selectedProducts.size} sản phẩm ra file Excel thành công!`,
+        icon: "success",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire({
+        title: "Lỗi",
+        text: `Không thể xuất Excel: ${error.message}`,
+        icon: "error",
+      });
+    }
+  };
+
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
     setIsEditModalOpen(true);
@@ -357,15 +610,39 @@ const Products = () => {
             {selectMode ? "Thoát chế độ chọn" : "Chọn sản phẩm"}
           </Button>
           {selectMode && (
-            <Button
-              variant="outline"
-              onClick={exportToExcel}
-              className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
-              disabled={selectedProducts.size === 0}
-            >
-              <FaFileExcel className="h-4 w-4" />
-              Xuất Excel ({selectedProducts.size})
-            </Button>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                    disabled={selectedProducts.size === 0}
+                  >
+                    <FaFilePdf className="h-4 w-4" />
+                    Tùy Chọn ({selectedProducts.size})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={exportToHTML}>
+                    <FaFilePdf className="mr-2 h-4 w-4" />
+                    Báo cáo vật tư
+                  </DropdownMenuItem>
+                  <DropdownMenuItem  onClick={exportToExcel}
+                      disabled={selectedProducts.size === 0}>
+                    <FaFileExcel className="mr-2 h-4 w-4" />
+                    Xuất Excel 
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => previewProductCards(selectedProducts)}>
+                    <FaEye className="mr-2 h-4 w-4" />
+                    Xem trước File PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => printToPDF(selectedProducts)}>
+                    <FaFilePdf className="mr-2 h-4 w-4" />
+                    In Thành PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
           <Button
             className="bg-purple-400 hover:bg-purple-500 text-white"

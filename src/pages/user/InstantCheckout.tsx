@@ -280,6 +280,7 @@ const provinceMapping: { [key: string]: string } = {
 
 const CheckOutInstant = () => {
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState("");
@@ -609,130 +610,136 @@ const CheckOutInstant = () => {
   };
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  setIsSubmitting(true); // Disable button when submission starts
 
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      Swal.fire({
-        title: "Vui lòng đăng nhập!",
-        text: "Bạn cần đăng nhập để thanh toán.",
-        icon: "warning",
-        timer: 2000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-      }).then(() => {
-        navigate("/login");
-      });
-      return;
-    }
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    Swal.fire({
+      title: "Vui lòng đăng nhập!",
+      text: "Bạn cần đăng nhập để thanh toán.",
+      icon: "warning",
+      timer: 2000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    }).then(() => {
+      navigate("/login");
+      setIsSubmitting(false); // Re-enable button after redirect
+    });
+    return;
+  }
 
-    const requiredFields = [
-      "tenNguoiNhan",
-      "sdt",
-      "province",
-      "district",
-      "ward",
-      "specificAddress",
-    ];
-    const emptyFields = requiredFields.filter(
-      (field) => !checkoutForm[field as keyof CheckoutForm]
+  const requiredFields = [
+    "tenNguoiNhan",
+    "sdt",
+    "province",
+    "district",
+    "ward",
+    "specificAddress",
+  ];
+  const emptyFields = requiredFields.filter(
+    (field) => !checkoutForm[field as keyof CheckoutForm]
+  );
+  if (emptyFields.length > 0) {
+    toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
+    setIsSubmitting(false); // Re-enable button if validation fails
+    return;
+  }
+
+  try {
+    const selectedProvince = provinces.find(
+      (p) => p.code.toString() === checkoutForm.province
     );
-    if (emptyFields.length > 0) {
-      toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
+    if (!selectedProvince) {
+      toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
+      setIsSubmitting(false); // Re-enable button if province is invalid
       return;
     }
-
-    try {
-      const selectedProvince = provinces.find(
-        (p) => p.code.toString() === checkoutForm.province
-      );
-      if (!selectedProvince) {
-        toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
-        return;
-      }
-      const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
-      const expectedShippingFee = shippingData[normalizedProvinceName]?.fee || 0;
-      if (shippingFee !== expectedShippingFee) {
-        setShippingFee(expectedShippingFee);
-      }
-
-      const subtotal = calculateSubtotal();
-      const newFinalAmount = subtotal - discountAmount + expectedShippingFee;
-
-      const selectedDistrict =
-        districts.find((d) => d.code.toString() === checkoutForm.district)?.name ||
-        "";
-      const selectedWard =
-        wards.find((w) => w.code.toString() === checkoutForm.ward)?.name || "";
-      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.name}`;
-
-      const paymentRequest = {
-        userId: userId,
-        items: cartItems,
-        couponCode: promoCode || null,
-        paymentMethod: paymentMethod,
-        tenNguoiNhan: checkoutForm.tenNguoiNhan,
-        sdt: checkoutForm.sdt,
-        diaChi: fullAddress,
-        discountAmount: discountAmount,
-        shippingFee: expectedShippingFee,
-        finalAmount: newFinalAmount,
-      };
-      console.log(paymentRequest);
-      const paymentResponse = await fetch(
-        "http://localhost:5261/api/CheckOut/InstantCheckOut",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(paymentRequest),
-        }
-      );
-
-      const result = await paymentResponse.json();
-
-      if (result.success) {
-        if (paymentMethod === "cod") {
-          toast.success(result.message, {
-            description: `Mã đơn hàng: ${result.orderId}`,
-            duration: 3000,
-            action: {
-              label: "Xem chi tiết",
-              onClick: () =>
-                navigate("/user/orders", { state: { orderId: result.orderId } }),
-            },
-          });
-
-          setCartItems([]);
-          setPromoCode("");
-          setDiscountApplied(false);
-          setDiscountAmount(0);
-          setFinalAmount(0);
-          localStorage.removeItem("InstantBuy");
-          localStorage.removeItem("checkoutForm");
-          navigate("/", { state: { orderId: result.orderId } });
-        } else if (paymentMethod === "vnpay") {
-          if (result.finalAmount !== newFinalAmount) {
-            toast.error(
-              `Tổng tiền VNPay (${formatCurrency(
-                result.finalAmount
-              )} VND) không khớp với kỳ vọng (${formatCurrency(
-                newFinalAmount
-              )} VND). Vui lòng thử lại.`
-            );
-            return;
-          }
-          window.location.href = result.message;
-        }
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
-      console.error("Error during checkout:", error);
+    const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
+    const expectedShippingFee = shippingData[normalizedProvinceName]?.fee || 0;
+    if (shippingFee !== expectedShippingFee) {
+      setShippingFee(expectedShippingFee);
     }
-  };
+
+    const subtotal = calculateSubtotal();
+    const newFinalAmount = subtotal - discountAmount + expectedShippingFee;
+
+    const selectedDistrict =
+      districts.find((d) => d.code.toString() === checkoutForm.district)?.name || "";
+    const selectedWard =
+      wards.find((w) => w.code.toString() === checkoutForm.ward)?.name || "";
+    const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.name}`;
+
+    const paymentRequest = {
+      userId: userId,
+      items: cartItems,
+      couponCode: promoCode || null,
+      paymentMethod: paymentMethod,
+      tenNguoiNhan: checkoutForm.tenNguoiNhan,
+      sdt: checkoutForm.sdt,
+      diaChi: fullAddress,
+      discountAmount: discountAmount,
+      shippingFee: expectedShippingFee,
+      finalAmount: newFinalAmount,
+    };
+    console.log(paymentRequest);
+    const paymentResponse = await fetch(
+      "http://localhost:5261/api/CheckOut/InstantCheckOut",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(paymentRequest),
+      }
+    );
+
+    const result = await paymentResponse.json();
+
+    if (result.success) {
+      if (paymentMethod === "cod") {
+        toast.success(result.message, {
+          description: `Mã đơn hàng: ${result.orderId}`,
+          duration: 3000,
+          action: {
+            label: "Xem chi tiết",
+            onClick: () =>
+              navigate("/user/orders", { state: { orderId: result.orderId } }),
+          },
+        });
+
+        setCartItems([]);
+        setPromoCode("");
+        setDiscountApplied(false);
+        setDiscountAmount(0);
+        setFinalAmount(0);
+        localStorage.removeItem("InstantBuy");
+        localStorage.removeItem("checkoutForm");
+        navigate("/", { state: { orderId: result.orderId } });
+      } else if (paymentMethod === "vnpay") {
+        if (result.finalAmount !== newFinalAmount) {
+          toast.error(
+            `Tổng tiền VNPay (${formatCurrency(
+              result.finalAmount
+            )} VND) không khớp với kỳ vọng (${formatCurrency(
+              newFinalAmount
+            )} VND). Vui lòng thử lại.`
+          );
+          setIsSubmitting(false); // Re-enable button if VNPay amount mismatch
+          return;
+        }
+        window.location.href = result.message;
+      }
+    } else {
+      toast.error(result.message);
+      setIsSubmitting(false); // Re-enable button if API returns error
+    }
+  } catch (error) {
+    toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
+    console.error("Error during checkout:", error);
+    setIsSubmitting(false); // Re-enable button on error
+  }
+};
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -800,7 +807,7 @@ const CheckOutInstant = () => {
                         value={checkoutForm.province}
                         onChange={(e) => handleProvinceChange(e.target.value)}
                         className="w-full p-2 border rounded-md"
-                        required
+                        required disabled
                       >
                         <option value="">Chọn tỉnh/thành phố</option>
                         {provinces.map((province) => (
@@ -819,7 +826,7 @@ const CheckOutInstant = () => {
                         value={checkoutForm.district}
                         onChange={(e) => handleDistrictChange(e.target.value)}
                         className="w-full p-2 border rounded-md"
-                        required
+                        required disabled
                       >
                         <option value="">Chọn quận/huyện</option>
                         {districts.map((district) => (
@@ -838,7 +845,7 @@ const CheckOutInstant = () => {
                         value={checkoutForm.ward}
                         onChange={handleCheckoutFormChange}
                         className="w-full p-2 border rounded-md"
-                        required
+                        required disabled
                       >
                         <option value="">Chọn phường/xã</option>
                         {wards.map((ward) => (
@@ -858,7 +865,7 @@ const CheckOutInstant = () => {
                         name="specificAddress"
                         value={checkoutForm.specificAddress}
                         onChange={handleCheckoutFormChange}
-                        required
+                        required readOnly
                       />
                     </div>
                   </div>
@@ -892,7 +899,7 @@ const CheckOutInstant = () => {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2 mt-6">
-                    <Button type="submit" className="flex-1 sm:order-2">
+                    <Button type="submit" className={`flex-1 sm:order-2 isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600"}`} disabled={isSubmitting}>                   
                       {paymentMethod === "cod"
                         ? "Xác nhận thanh toán COD"
                         : "Thanh toán qua VNPay"}
