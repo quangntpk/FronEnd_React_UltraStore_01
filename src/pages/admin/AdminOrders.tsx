@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import OrderDetailsOrder from './AdminDetailsOrder';
 import OrderDetailsModal from './OrderDetailsModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -253,8 +252,9 @@ const AdminOrders: React.FC = () => {
       setCancelReason('');
       setCancelOrderId(null);
       
-      // **SỬA: Fetch lại orders và chuyển sang tab "Đã hủy"**
+      // **SỬA: Fetch lại orders và đợi để state được cập nhật**
       await fetchOrders();
+      // **SỬA: Chuyển sang tab "Đã hủy" để xem đơn hàng vừa hủy**
       setActiveTab('canceled');
       
     } catch (error) {
@@ -433,7 +433,7 @@ const AdminOrders: React.FC = () => {
       )}
 
       {showDetailsModal && selectedOrder && (
-        <OrderDetailsOrder
+        <OrderDetailsModal
           orderId={selectedOrder.maDonHang}
           onClose={() => {
             setShowDetailsModal(false);

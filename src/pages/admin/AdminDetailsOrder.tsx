@@ -14,7 +14,6 @@ interface OrderDetailProduct {
   gia: number;
   thanhTien: number;
   hinhAnh?: string;
-  // Thêm các thuộc tính mới
   mauSac?: string;
   kichThuoc?: string;
   combo?: {
@@ -42,7 +41,6 @@ interface OrderDetail {
   lyDoHuy?: string;
   tongTien: number;
   finalAmount: number;
-  // Thêm các thuộc tính mới
   shippingFee?: number;
   discountAmount?: number;
   sanPhams: OrderDetailProduct[];
@@ -62,7 +60,7 @@ interface OrderDetail {
 
 interface ApiOrderResponse {
   maDonHang: number;
-  maNguoiDung: number;
+  maNguoiDung: string;
   tenNguoiNhan: string;
   ngayDat: string;
   trangThaiDonHang: number;
@@ -74,6 +72,9 @@ interface ApiOrderResponse {
   shippingFee?: number;
   discountAmount?: number;
   hoTenKhachHang?: string;
+  diaChi?: string;
+  sdt?: string;
+  sanPhams?: OrderDetailProduct[];
   [key: string]: any;
 }
 
@@ -89,13 +90,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
 
   // Hàm parse thông tin từ ID sản phẩm
   const parseProductInfo = (productId: string) => {
-    // Ví dụ: A00001_ff0000_S hoặc A00001_ff0000_XL
     const parts = productId.split('_');
     if (parts.length >= 3) {
       const colorCode = parts[1];
       const size = parts[2];
-      
-      // Chuyển đổi mã màu hex thành tên màu (có thể cần mapping phức tạp hơn)
+
       const getColorName = (hex: string) => {
         const colorMap: { [key: string]: string } = {
           'ff0000': 'Đỏ',
@@ -105,12 +104,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
           '000000': 'Đen',
           'ff00ff': 'Hồng',
           '0C06F5': 'Xanh navy',
-          // Thêm các màu khác
         };
         return colorMap[hex.toLowerCase()] || `#${hex}`;
       };
 
-      // Chuyển đổi size code thành tên size
       const getSizeName = (sizeCode: string) => {
         const sizeMap: { [key: string]: string } = {
           'S': 'S',
@@ -139,76 +136,61 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
     try {
       setLoading(true);
       setError(null);
-      
+
       const token = localStorage.getItem('token');
-      
-      // Gọi API lấy chi tiết đơn hàng theo ID
+
+      // Gọi API lấy chi tiết đơn hàng
       const response = await axios.get(`http://localhost:5261/api/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const allOrders = response.data as ApiOrderResponse[];
       const foundOrder = allOrders.find((order: ApiOrderResponse) => order.maDonHang === orderId);
-      
       if (!foundOrder) {
         throw new Error('Không tìm thấy đơn hàng');
       }
-      
-      // Lấy thông tin chi tiết từ API orders/{userId}
-      const detailResponse = await axios.get(`http://localhost:5261/api/orders/${foundOrder.maNguoiDung}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const detailOrders = detailResponse.data as OrderDetail[];
-      const detailOrder = detailOrders.find((order: OrderDetail) => order.maDonHang === orderId);
-      
-      if (detailOrder) {
-        // Parse thông tin màu sắc và kích thước cho từng sản phẩm
-        const updatedSanPhams = detailOrder.sanPhams.map(product => {
-          const productInfo = parseProductInfo(product.tenSanPham);
-          return {
-            ...product,
-            mauSac: productInfo.mauSac,
-            kichThuoc: productInfo.kichThuoc
-          };
-        });
 
-        setOrderDetail({
-          ...detailOrder,
-          sanPhams: updatedSanPhams,
-          shippingFee: foundOrder.shippingFee || 0,
-          discountAmount: foundOrder.discountAmount || 0
-        });
-      } else {
-        // Fallback nếu không tìm thấy chi tiết
-        setOrderDetail({
-          maDonHang: foundOrder.maDonHang,
+      // Parse thông tin màu sắc và kích thước cho sản phẩm và combo
+      const updatedSanPhams = foundOrder.sanPhams?.map(product => ({
+        ...product,
+        mauSac: product.mauSac ? parseProductInfo(product.mauSac).mauSac : undefined,
+        kichThuoc: product.kichThuoc || (product.mauSac ? parseProductInfo(product.mauSac).kichThuoc : undefined),
+        combo: product.combo ? {
+          ...product.combo,
+          sanPhamsTrongCombo: product.combo.sanPhamsTrongCombo.map(comboProduct => ({
+            ...comboProduct,
+            mauSac: comboProduct.mauSac ? parseProductInfo(comboProduct.mauSac).mauSac : undefined,
+            kichThuoc: comboProduct.kichThuoc || (comboProduct.mauSac ? parseProductInfo(comboProduct.mauSac).kichThuoc : undefined)
+          }))
+        } : undefined
+      })) || [];
+      setOrderDetail({
+        maDonHang: foundOrder.maDonHang,
+        tenNguoiNhan: foundOrder.tenNguoiNhan,
+        ngayDat: foundOrder.ngayDat,
+        trangThaiDonHang: foundOrder.trangThaiDonHang,
+        trangThaiThanhToan: foundOrder.trangThaiThanhToan,
+        hinhThucThanhToan: foundOrder.hinhThucThanhToan,
+        lyDoHuy: foundOrder.lyDoHuy,
+        tongTien: foundOrder.tongTien || 0,
+        finalAmount: foundOrder.finalAmount || 0,
+        shippingFee: foundOrder.shippingFee || 0,
+        discountAmount: foundOrder.discountAmount || 0,
+        sanPhams: updatedSanPhams,
+        thongTinNguoiDung: {
           tenNguoiNhan: foundOrder.tenNguoiNhan,
+          diaChi: foundOrder.diaChi || '',
+          sdt: foundOrder.sdt || '',
+          tenNguoiDat: foundOrder.hoTenKhachHang || ''
+        },
+        thongTinDonHang: {
           ngayDat: foundOrder.ngayDat,
-          trangThaiDonHang: foundOrder.trangThaiDonHang,
-          trangThaiThanhToan: foundOrder.trangThaiThanhToan,
-          hinhThucThanhToan: foundOrder.hinhThucThanhToan,
-          lyDoHuy: foundOrder.lyDoHuy,
-          tongTien: foundOrder.tongTien || 0,
-          finalAmount: foundOrder.finalAmount || 0,
-          shippingFee: foundOrder.shippingFee || 0,
-          discountAmount: foundOrder.discountAmount || 0,
-          sanPhams: [],
-          thongTinNguoiDung: {
-            tenNguoiNhan: foundOrder.tenNguoiNhan,
-            diaChi: '',
-            sdt: '',
-            tenNguoiDat: foundOrder.hoTenKhachHang || ''
-          },
-          thongTinDonHang: {
-            ngayDat: foundOrder.ngayDat,
-            trangThai: foundOrder.trangThaiDonHang,
-            thanhToan: foundOrder.trangThaiThanhToan,
-            hinhThucThanhToan: foundOrder.hinhThucThanhToan
-          }
-        });
-      }
-      
+          trangThai: foundOrder.trangThaiDonHang,
+          thanhToan: foundOrder.trangThaiThanhToan,
+          hinhThucThanhToan: foundOrder.hinhThucThanhToan
+        }
+      });
+      console.log(orderDetail)
     } catch (error) {
       console.error('Error fetching order detail:', error);
       setError('Không thể tải chi tiết đơn hàng');
@@ -359,23 +341,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                         />
                       )}
                       <div className="flex-1">
-                        <h4 className="font-medium">{product.tenSanPham}</h4>
+                        <h4 className="font-medium">{product.laCombo ? product.tenSanPham : product.tenSanPham.split('_')[0]}</h4>
                         
                         {/* Thông tin màu sắc và kích thước */}
-                        <div className="flex gap-4 mt-2">
-                          {product.mauSac && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Màu:</span>
-                              <Badge variant="outline" className="text-xs">{product.mauSac}</Badge>
-                            </div>
-                          )}
-                          {product.kichThuoc && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Size:</span>
-                              <Badge variant="outline" className="text-xs">{product.kichThuoc}</Badge>
-                            </div>
-                          )}
-                        </div>
+                        {!product.laCombo && (
+                          <div className="flex gap-4 mt-2">
+                            {product.mauSac && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Màu:</span>
+                                <Badge variant="outline" className="text-xs">{product.mauSac}</Badge>
+                              </div>
+                            )}
+                            {product.kichThuoc && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Size:</span>
+                                <Badge variant="outline" className="text-xs">{product.kichThuoc}</Badge>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         <p className="text-sm text-gray-600 mt-2">
                           Số lượng: {product.soLuong} × {product.gia?.toLocaleString('vi-VN')}đ
@@ -397,7 +381,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                                       className="w-8 h-8 object-cover rounded"
                                     />
                                   )}
-                                  <span>{item.tenSanPham}</span>
+                                  <span>{item.tenSanPham.split('_')[0]}</span>
                                   {item.mauSac && <Badge variant="outline" className="text-xs">{item.mauSac}</Badge>}
                                   {item.kichThuoc && <Badge variant="outline" className="text-xs">{item.kichThuoc}</Badge>}
                                   <span className="text-gray-500">x{item.soLuong}</span>

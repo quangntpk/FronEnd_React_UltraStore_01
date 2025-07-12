@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -16,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 // Interface for API Responses
 interface CancelOrderResponse {
@@ -66,8 +66,8 @@ type ComboDetail = {
     hinhAnh: string;
     maSanPham: string;
     mauSac?: string;
-  kichThuoc?: string;
-  mauSacHex?: string;
+    kichThuoc?: string;
+    mauSacHex?: string;
   }[];
 };
 
@@ -155,7 +155,11 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
   const handleAddComment = async (productId: number) => {
     const comment = commentStates[productId];
     if (!comment || !comment.content || comment.rating < 1 || comment.rating > 5) {
-      alert("Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!");
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!',
+      });
       return;
     }
 
@@ -224,7 +228,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
               <div key={item.maChiTietDh} className="flex flex-col gap-4">
                 {/* Product Item */}
                 <a
-                  href={`http://localhost:8080/${item.laCombo ? 'combo' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham.substring(0,6)}`}
+                  href={`http://localhost:8080/${item.laCombo ? 'combo' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
                   className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
                 >
                   {/* Product Image */}
@@ -457,65 +461,6 @@ const mapStatus = (status: number): OrderStatus => {
   }
 };
 
- const NotificationComponent = ({ notification, onClose }: { 
-  notification: { message: string; type: "success" | "error"; duration?: number } | null, 
-  onClose: () => void 
-}) => {
-  useEffect(() => {
-    if (notification) {
-      // Thời gian hiển thị mặc định: success = 5s, error = 8s, hoặc theo duration custom
-      const defaultDuration = notification.type === 'success' ? 5000 : 8000;
-      const duration = notification.duration || defaultDuration;
-      
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
-      return () => clearTimeout(timer);
-    }
-  }, [notification, onClose]);
-
-  if (!notification) return null;
-
-  const isLongMessage = notification.message.length > 100;
-
-  return (
-    <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md transition-all duration-300 ${
-      notification.type === 'success' 
-        ? 'bg-green-100 border border-green-400 text-green-700' 
-        : 'bg-red-100 border border-red-400 text-red-700'
-    } ${isLongMessage ? 'max-w-lg' : ''}`}>
-      <div className="flex items-start justify-between">
-        <div className="flex items-start">
-          {notification.type === 'success' ? (
-            <CheckCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          ) : (
-            <div className="h-5 w-5 mr-2 mt-0.5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">!</span>
-            </div>
-          )}
-          <div className="flex-1">
-            <div className="font-medium text-sm leading-relaxed">
-              {notification.message}
-            </div>
-            {notification.type === 'error' && notification.message.includes('khóa') && (
-              <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded border-l-4 border-red-400">
-                💡 <strong>Lưu ý:</strong> Tài khoản sẽ được tự động mở khóa sau 3 ngày kể từ thời điểm bị khóa.
-              </div>
-            )}
-          </div>
-        </div>
-        <button 
-          onClick={onClose}
-          className="ml-3 text-gray-400 hover:text-gray-600 text-lg font-bold leading-none"
-        >
-          ×
-        </button>
-      </div>
-    </div>
-  );
-};
-
-
 const OrderHistory = () => {
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -524,11 +469,6 @@ const OrderHistory = () => {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [notification, setNotification] = useState<{ 
-  message: string; 
-  type: "success" | "error"; 
-  duration?: number 
-} | null>(null);
   const [commentedProducts, setCommentedProducts] = useState<Set<number>>(new Set());
 
   const cancelReasonsSuggestions = [
@@ -543,8 +483,12 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng đăng nhập để xem lịch sử đơn hàng!',
+          confirmButtonText: 'Đăng nhập',
+        }).then(() => navigate("/login"));
         return;
       }
 
@@ -555,17 +499,23 @@ const OrderHistory = () => {
       
       if (!Array.isArray(rawOrders)) {
         console.error("API did not return an array:", rawOrders);
-        setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Dữ liệu đơn hàng không hợp lệ!',
+        });
         setOrders([]);
-        console.log(orders)
         return;
       }
 
-      // No need to map, use the data directly as it matches the Order interface
       setOrders(rawOrders);
     } catch (error: any) {
       console.error("Error fetching orders:", error);
-      setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!", type: "error" });
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!",
+      });
       setOrders([]);
     }
   };
@@ -575,8 +525,11 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để kiểm tra bình luận!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng đăng nhập để kiểm tra bình luận!',
+        }).then(() => navigate("/login"));
         return;
       }
 
@@ -596,7 +549,11 @@ const OrderHistory = () => {
       localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductIds]));
     } catch (error) {
       console.error("Error fetching commented products:", error);
-      setNotification({ message: "Đã xảy ra lỗi khi kiểm tra bình luận!", type: "error" });
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Đã xảy ra lỗi khi kiểm tra bình luận!',
+      });
     }
   };
 
@@ -607,19 +564,29 @@ const OrderHistory = () => {
       const token = localStorage.getItem("token");
 
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để thêm bình luận!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng đăng nhập để thêm bình luận!',
+        }).then(() => navigate("/login"));
         return false;
       }
 
       if (!token) {
-        setNotification({ message: "Token xác thực không tồn tại. Vui lòng đăng nhập lại!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Token xác thực không tồn tại. Vui lòng đăng nhập lại!',
+        }).then(() => navigate("/login"));
         return false;
       }
 
       if (!content.trim() || rating < 1 || rating > 5) {
-        setNotification({ message: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!", type: "error" });
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!',
+        });
         return false;
       }
 
@@ -649,7 +616,13 @@ const OrderHistory = () => {
           localStorage.setItem(likedCommentsKey, JSON.stringify([...newSet]));
           return newSet;
         });
-        setNotification({ message: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!", type: "success" });
+        Swal.fire({
+          icon: 'success',
+          title: 'Thành công',
+          text: 'Bình luận của bạn đã được ghi lại và đang chờ duyệt!',
+          timer: 3000,
+          showConfirmButton: false,
+        });
         await fetchCommentedProducts();
         return true;
       }
@@ -660,9 +633,15 @@ const OrderHistory = () => {
       if (error.response) {
         if (error.response.status === 401) {
           errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigate("/login");
+          Swal.fire({
+            icon: 'error',
+            title: 'Lỗi',
+            text: errorMessage,
+          }).then(() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            navigate("/login");
+          });
         } else if (error.response.data?.message) {
           errorMessage = error.response.data.message;
         } else {
@@ -673,7 +652,11 @@ const OrderHistory = () => {
       } else {
         errorMessage = `Lỗi: ${error.message}`;
       }
-      setNotification({ message: errorMessage, type: "error" });
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: errorMessage,
+      });
       return false;
     }
   };
@@ -682,11 +665,12 @@ const OrderHistory = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        toast.error("Vui lòng đăng nhập để tra cứu đơn hàng!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        navigate("/login");
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng đăng nhập để tra cứu đơn hàng!',
+          confirmButtonText: 'Đăng nhập',
+        }).then(() => navigate("/login"));
         return;
       }
 
@@ -700,7 +684,7 @@ const OrderHistory = () => {
           Authorization: `Bearer ${token}`,
         },
         params: {
-          query: query,
+          query,
         },
       });
 
@@ -715,17 +699,20 @@ const OrderHistory = () => {
     } catch (error: any) {
       console.error("Error searching orders:", error);
       if (error.response?.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", {
-          position: "top-right",
-          autoClose: 3000,
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!',
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
         });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
       } else {
-        toast.error(error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!", {
-          position: "top-right",
-          autoClose: 3000,
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!",
         });
         setOrders([]);
       }
@@ -748,256 +735,275 @@ const OrderHistory = () => {
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
-  console.log(orders)
+
   const filteredOrders = filterStatus === "all"
     ? orders
     : orders.filter(order => mapStatus(order.trangThaiDonHang) === filterStatus);
 
-
-const handleCancelClick = (orderId: string) => {
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-  const token = localStorage.getItem("token");
-  
-  console.log("Debug cancel click:", {
-    orderId,
-    userData,
-    hasToken: !!token
-  });
-  
-  if (!userData?.maNguoiDung || !token) {
-    setNotification({ 
-      message: "Vui lòng đăng nhập để hủy đơn hàng!", 
-      type: "error" 
-    });
-    navigate("/login");
-    return;
-  }
-
-  // Kiểm tra xem đơn hàng có tồn tại trong danh sách không
-  const order = orders.find(o => o.maDonHang.toString() === orderId);
-  if (!order) {
-    setNotification({ 
-      message: "Đơn hàng không tồn tại!", 
-      type: "error" 
-    });
-    return;
-  }
-
-  // Kiểm tra trạng thái đơn hàng có thể hủy không
-  const orderStatus = mapStatus(order.trangThaiDonHang);
-  if (orderStatus !== "pending" && orderStatus !== "processing") {
-    setNotification({ 
-      message: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!", 
-      type: "error" 
-    });
-    return;
-  }
-
-  // Mở modal hủy đơn hàng
-  setCancelOrderId(orderId);
-  setCancelReason('');
-  setShowCancelModal(true);
-};
-
-// Cập nhật hàm handleCancel trong component OrderHistory
-const handleCancel = async () => {
-  if (!cancelReason.trim()) {
-    setNotification({ message: "Vui lòng nhập lý do hủy!", type: "error" });
-    return;
-  }
-  if (cancelOrderId === null) return;
-
-  try {
+  const handleCancelClick = (orderId: string) => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const maNguoiDung = userData?.maNguoiDung;
     const token = localStorage.getItem("token");
     
-    if (!maNguoiDung || !token) {
-      setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
-      navigate("/login");
-      return;
-    }
-
-    const orderIdNumber = parseInt(cancelOrderId);
-    if (isNaN(orderIdNumber)) {
-      setNotification({ message: "Mã đơn hàng không hợp lệ!", type: "error" });
-      return;
-    }
-
-    // Kiểm tra quyền sở hữu đơn hàng trước khi gửi request
-    const order = orders.find(o => o.maDonHang === orderIdNumber);
-    if (!order) {
-      setNotification({ message: "Đơn hàng không tồn tại!", type: "error" });
-      setShowCancelModal(false);
-      return;
-    }
-
-    console.log("Canceling order:", {
-      orderId: orderIdNumber,
-      reason: cancelReason.trim(),
-      userId: maNguoiDung
+    console.log("Debug cancel click:", {
+      orderId,
+      userData,
+      hasToken: !!token
     });
-
-    // Tạo request object theo đúng interface
-    const cancelRequest: CancelOrderRequest = {
-      lyDoHuy: cancelReason.trim()
-    };
-
-    console.log("Cancel request payload:", cancelRequest);
-
-    // Gọi API hủy đơn hàng với headers đầy đủ
-    const response = await axios.put<CancelOrderResponse>(
-      `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
-      cancelRequest,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
-        timeout: 10000 // 10 seconds timeout
-      }
-    );
-
-    console.log("Cancel response:", response.data);
-
-    // Đóng modal trước khi xử lý response
-    setShowCancelModal(false);
-    setCancelReason('');
-    setCancelOrderId(null);
-
-    // Xử lý response
-    if (response.data.isAccountLocked) {
-      // Hiển thị thông báo chi tiết khi tài khoản bị khóa
-      const lockMessage = response.data.lockoutMessage || 
-        "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
-      
-      setNotification({ 
-        message: lockMessage, 
-        type: "error" 
-      });
-      
-      // Thêm thông báo bổ sung về việc đăng xuất
-      setTimeout(() => {
-        setNotification({ 
-          message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
-          type: "error" 
-        });
-      }, 3000);
-      
-      // Clear localStorage và chuyển hướng về login sau 6 giây
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      if (maNguoiDung) {
-        localStorage.removeItem(`likedComments_${maNguoiDung}`);
-      }
-      
-      // Chuyển hướng về trang login sau 6 giây để người dùng có thể đọc thông báo
-      setTimeout(() => {
-        navigate("/login");
-      }, 6000);
-    } else {
-      // Hiển thị thông báo hủy thành công
-      let successMessage = response.data.message || "Hủy đơn hàng thành công!";
-      
-      // Nếu có thông tin về số lần hủy còn lại, hiển thị cảnh báo
-      if (response.data.remainingCancellations !== undefined) {
-        if (response.data.remainingCancellations === 1) {
-          successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 1 lần hủy đơn hàng. Nếu hủy thêm 1 lần nữa, tài khoản sẽ bị khóa trong 3 ngày.";
-        } else if (response.data.remainingCancellations === 2) {
-          successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 2 lần hủy đơn hàng. Hãy cẩn thận khi đặt hàng để tránh bị khóa tài khoản.";
-        }
-      }
-      
-      setNotification({ 
-        message: successMessage, 
-        type: "success" 
-      });
-      
-      // Refresh danh sách đơn hàng
-      await fetchOrdersByUserId();
+    
+    if (!userData?.maNguoiDung || !token) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Vui lòng đăng nhập để hủy đơn hàng!',
+      }).then(() => navigate("/login"));
+      return;
     }
 
-  } catch (error: any) {
-    console.error("Error canceling order:", error);
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const maNguoiDung = userData?.maNguoiDung;
-    
-    // Đóng modal khi có lỗi
-    setShowCancelModal(false);
-    setCancelReason('');
-    setCancelOrderId(null);
-    
-    if (error.response?.status === 401) {
-      setNotification({ 
-        message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", 
-        type: "error" 
+    // Kiểm tra xem đơn hàng có tồn tại trong danh sách không
+    const order = orders.find(o => o.maDonHang.toString() === orderId);
+    if (!order) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Đơn hàng không tồn tại!',
       });
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      if (maNguoiDung) {
-        localStorage.removeItem(`likedComments_${maNguoiDung}`);
-      }
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-    } else if (error.response?.status === 403) {
-      setNotification({ 
-        message: "Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.", 
-        type: "error" 
-      });
-    } else if (error.response?.status === 400) {
-      // Xử lý các lỗi BadRequest từ server
-      if (error.response?.data?.isAccountLocked) {
-        const lockMessage = error.response.data.lockoutMessage || 
-          "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
-        
-        setNotification({ 
-          message: lockMessage, 
-          type: "error" 
-        });
-        
-        // Thông báo bổ sung
-        setTimeout(() => {
-          setNotification({ 
-            message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
-            type: "error" 
-          });
-        }, 3000);
-        
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        if (maNguoiDung) {
-          localStorage.removeItem(`likedComments_${maNguoiDung}`);
-        }
-        
-        setTimeout(() => {
-          navigate("/login");
-        }, 6000);
-      } else {
-        setNotification({ 
-          message: error.response.data.message || "Không thể hủy đơn hàng này.", 
-          type: "error" 
-        });
-      }
-    } else if (error.response?.status === 404) {
-      setNotification({ 
-        message: "Đơn hàng không tồn tại hoặc không thuộc về bạn.", 
-        type: "error" 
-      });
-    } else if (error.code === 'ECONNABORTED') {
-      setNotification({ 
-        message: "Yêu cầu hủy đơn hàng bị timeout. Vui lòng thử lại.", 
-        type: "error" 
-      });
-    } else {
-      setNotification({ 
-        message: error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.", 
-        type: "error" 
-      });
+      return;
     }
-  }
+
+    // Kiểm tra trạng thái đơn hàng có thể hủy không
+    const orderStatus = mapStatus(order.trangThaiDonHang);
+    if (orderStatus !== "pending" && orderStatus !== "processing") {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!',
+      });
+      return;
+    }
+
+    // Mở modal hủy đơn hàng
+    setCancelOrderId(orderId);
+    setCancelReason('');
+    setShowCancelModal(true);
 };
+
+  const handleCancel = async () => {
+    if (!cancelReason.trim()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Vui lòng nhập lý do hủy!',
+      });
+      return;
+    }
+    if (cancelOrderId === null) return;
+
+    try {
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const maNguoiDung = userData?.maNguoiDung;
+      const token = localStorage.getItem("token");
+      
+      if (!maNguoiDung || !token) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Vui lòng đăng nhập để hủy đơn hàng!',
+        }).then(() => navigate("/login"));
+        return;
+      }
+
+      const orderIdNumber = parseInt(cancelOrderId);
+      if (isNaN(orderIdNumber)) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Mã đơn hàng không hợp lệ!',
+        });
+        return;
+      }
+
+      // Kiểm tra quyền sở hữu đơn hàng trước khi gửi request
+      const order = orders.find(o => o.maDonHang === orderIdNumber);
+      if (!order) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Đơn hàng không tồn tại!',
+        });
+        setShowCancelModal(false);
+        return;
+      }
+
+      console.log("Canceling order:", {
+        orderId: orderIdNumber,
+        reason: cancelReason.trim(),
+        userId: maNguoiDung
+      });
+
+      // Tạo request object theo đúng interface
+      const cancelRequest: CancelOrderRequest = {
+        lyDoHuy: cancelReason.trim()
+      };
+
+      console.log("Cancel request payload:", cancelRequest);
+
+      // Gọi API hủy đơn hàng với headers đầy đủ
+      const response = await axios.put<CancelOrderResponse>(
+        `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
+        cancelRequest,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          },
+          timeout: 10000 // 10 seconds timeout
+        }
+      );
+
+      console.log("Cancel response:", response.data);
+
+      // Đóng modal trước khi xử lý response
+      setShowCancelModal(false);
+      setCancelReason('');
+      setCancelOrderId(null);
+
+      // Xử lý response
+      if (response.data.isAccountLocked) {
+        // Hiển thị thông báo chi tiết khi tài khoản bị khóa
+        const lockMessage = response.data.lockoutMessage || 
+          "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Tài khoản bị khóa',
+          text: lockMessage,
+          footer: '<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>',
+        }).then(() => {
+          Swal.fire({
+            icon: 'info',
+            title: 'Đăng xuất',
+            text: 'Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.',
+            timer: 3000,
+            showConfirmButton: false,
+          }).then(() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            if (maNguoiDung) {
+              localStorage.removeItem(`likedComments_${maNguoiDung}`);
+            }
+            navigate("/login");
+          });
+        });
+      } else {
+        // Hiển thị thông báo hủy thành công
+        let successMessage = response.data.message || "Hủy đơn hàng thành công!";
+        
+        // Nếu có thông tin về số lần hủy còn lại, hiển thị cảnh báo
+        if (response.data.remainingCancellations !== undefined) {
+          if (response.data.remainingCancellations === 1) {
+            successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 1 lần hủy đơn hàng. Nếu hủy thêm 1 lần nữa, tài khoản sẽ bị khóa trong 3 ngày.";
+          } else if (response.data.remainingCancellations === 2) {
+            successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 2 lần hủy đơn hàng. Hãy cẩn thận khi đặt hàng để tránh bị khóa tài khoản.";
+          }
+        }
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Thành công',
+          text: successMessage,
+          timer: 5000,
+          showConfirmButton: false,
+        });
+        
+        // Refresh danh sách đơn hàng
+        await fetchOrdersByUserId();
+      }
+
+    } catch (error: any) {
+      console.error("Error canceling order:", error);
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const maNguoiDung = userData?.maNguoiDung;
+      
+      // Đóng modal khi có lỗi
+      setShowCancelModal(false);
+      setCancelReason('');
+      setCancelOrderId(null);
+      
+      if (error.response?.status === 401) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!',
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          if (maNguoiDung) {
+            localStorage.removeItem(`likedComments_${maNguoiDung}`);
+          }
+          navigate("/login");
+        });
+      } else if (error.response?.status === 403) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.',
+        });
+      } else if (error.response?.status === 400) {
+        // Xử lý các lỗi BadRequest từ server
+        if (error.response?.data?.isAccountLocked) {
+          const lockMessage = error.response.data.lockoutMessage || 
+            "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
+          
+          Swal.fire({
+            icon: 'error',
+            title: 'Tài khoản bị khóa',
+            text: lockMessage,
+            footer: '<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>',
+          }).then(() => {
+            Swal.fire({
+              icon: 'info',
+              title: 'Đăng xuất',
+              text: 'Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.',
+              timer: 3000,
+              showConfirmButton: false,
+            }).then(() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              if (maNguoiDung) {
+                localStorage.removeItem(`likedComments_${maNguoiDung}`);
+              }
+              navigate("/login");
+            });
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Lỗi',
+            text: error.response.data.message || "Không thể hủy đơn hàng này.",
+          });
+        }
+      } else if (error.response?.status === 404) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Đơn hàng không tồn tại hoặc không thuộc về bạn.',
+        });
+      } else if (error.code === 'ECONNABORTED') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: 'Yêu cầu hủy đơn hàng bị timeout. Vui lòng thử lại.',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.",
+        });
+      }
+    }
+  };
 
   const handleReasonSuggestionClick = (reason: string) => {
     setCancelReason(reason);
@@ -1012,7 +1018,6 @@ const handleCancel = async () => {
             <p className="mt-2 text-muted-foreground">Xem và quản lý các đơn hàng của bạn</p>
           </div>
           <div className="colorful-card p-6 rounded-lg shadow-lg">
-            
             <Tabs defaultValue="all-orders" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="all-orders">
