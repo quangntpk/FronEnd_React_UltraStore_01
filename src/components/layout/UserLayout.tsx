@@ -7,6 +7,8 @@ import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
 import { useAuth } from "../auth/AuthContext";
 import SupportChat from "@/components/default/SupportChat";
+import Translate from "@/components/default/Translate";
+
 import {
   Menu,
   ShoppingCart,
@@ -387,6 +389,7 @@ const UserLayout = () => {
           </div>
         </div>
         <SupportChat />
+        <Translate />
       </footer>
     </>
   );
