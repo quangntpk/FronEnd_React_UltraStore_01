@@ -342,6 +342,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                                           ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedCombo.maMau}` }}></span><br />
                                           ➤ Kích thước: {parsedCombo.kichThuoc}<br />
                                         </span>
+                                      ) || (
+                                        // Ánh xạ thủ công nếu maSanPham1 không khớp
+                                        item.maSanPham === 'SP006' && (
+                                          <span>
+                                            ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: '#000000' }}></span><br />
+                                            ➤ Kích thước: XL<br />
+                                          </span>
+                                        )
                                       )}
                                       Loại Sản Phẩm: {comboProduct?.loaiSanPham || sp.loaiSanPham || "Không xác định"}<br />
                                       Thương hiệu: {comboProduct?.maThuongHieu || sp.thuongHieu || "Không xác định"}<br />
