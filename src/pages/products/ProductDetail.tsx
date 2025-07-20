@@ -17,12 +17,13 @@ import Comments from "./Comments";
 import Testing from "@/components/default/Testing";
 import SelectSize from "@/components/default/SelectSize";
 import SanPhamLienQuan from "@/pages/products/ProductShowcase"
-
+import MoTaSanPham from './MoTaSanPham';
 // ---------- Types ---------- //
 interface ProductDetail {
   kichThuoc: string;
   soLuong: number;
   gia: number;
+  hinhAnh: string;
 }
 
 interface Product {
@@ -158,14 +159,14 @@ const ProductDetail = () => {
         if (data.length === 0) throw new Error("No products found");
 
         setProducts(data);
-
+        console.log(data);
         // Pick exact variant or first item
         const product = data.find((p) => p.id === id) || data[0];
         setSelectedProduct(product);
         setSelectedColor(product.mauSac);
         setSelectedSize(product.details[0]?.kichThuoc || "");
         setMainImage(
-          product.hinhAnhs[0] ? `data:image/jpeg;base64,${product.hinhAnhs[0]}` : ""
+          product.details[0]?.hinhAnh ? `data:image/jpeg;base64,${product.details[0].hinhAnh}` : ""
         );
         setStock(product.details[0]?.soLuong || 0);
 
@@ -202,7 +203,7 @@ const ProductDetail = () => {
     setSelectedColor(color);
     setSelectedSize(product.details[0]?.kichThuoc || "");
     setMainImage(
-      product.hinhAnhs[0] ? `data:image/jpeg;base64,${product.hinhAnhs[0]}` : ""
+      product.details[0]?.hinhAnh ? `data:image/jpeg;base64,${product.details[0].hinhAnh}` : ""
     );
     setStock(product.details[0]?.soLuong || 0);
     setQuantity(1);
@@ -212,6 +213,9 @@ const ProductDetail = () => {
     if (!selectedProduct) return;
     setSelectedSize(size);
     const detail = selectedProduct.details.find((d) => d.kichThuoc === size);
+    setMainImage(
+      detail?.hinhAnh ? `data:image/jpeg;base64,${detail.hinhAnh}` : ""
+    );
     setStock(detail?.soLuong || 0);
   };
 
@@ -260,8 +264,7 @@ const ProductDetail = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            Authorization: `Bearer ${localStorage.getItem("token")}` },
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Failed to add favorite");
@@ -306,8 +309,7 @@ const ProductDetail = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            Authorization: `Bearer ${localStorage.getItem("token")}` },
           body: JSON.stringify(cartData),
         }
       );
@@ -364,6 +366,10 @@ const ProductDetail = () => {
   if (error || !selectedProduct)
     return <div className="container mx-auto py-8">{error || "Product not found."}</div>;
 
+  // Get the price for the selected size
+  const selectedDetail = selectedProduct.details.find((d) => d.kichThuoc === selectedSize);
+  const price = selectedDetail ? selectedDetail.gia : selectedProduct.details[0]?.gia || 0;
+
   return (
     <div className="container mx-auto py-8">
       {/* Back link */}
@@ -412,7 +418,7 @@ const ProductDetail = () => {
           <div>
             <h1 className="text-3xl font-bold">{selectedProduct.tenSanPham}</h1>
             <p className="text-2xl font-bold text-crocus-600 mt-2">
-              {(selectedProduct.details[0].gia / 1000).toFixed(3)} VND
+              {(price / 1000).toFixed(3)} VND
             </p>
           </div>
 
@@ -584,8 +590,10 @@ const ProductDetail = () => {
       </div>
 
       <Testing />
+      <MoTaSanPham product={selectedProduct} />
       {/* Comments Section */}
       <Comments productId={id} />
+
       <SanPhamLienQuan productId={id}/>
     </div>
   );

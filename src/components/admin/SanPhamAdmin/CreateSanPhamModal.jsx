@@ -480,6 +480,20 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                         />
                         <span className="text-gray-700">Nữ</span>
                       </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="gioiTinh"
+                          value="3"
+                          checked={gioiTinh === "3"}
+                          onChange={(e) => {
+                            setGioiTinh(e.target.value);
+                            setErrors({ ...errors, gioiTinh: "" });
+                          }}
+                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span className="text-gray-700">Unisex</span>
+                      </label>
                     </div>
                     {errors.gioiTinh && (
                       <p className="text-red-500 text-sm mt-1">
@@ -793,7 +807,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                   className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
                   value={moTa}
                   onChange={(e) => setMoTa(e.target.value)}
-                  placeholder="Nhập mô tả chi tiết về sản phẩm..."
+                  placeholder="Nhập mô tả ngắn gọn về sản phẩm..."
                 />
                 <Button
                   onClick={() => setIsMoTaModalOpen(true)}

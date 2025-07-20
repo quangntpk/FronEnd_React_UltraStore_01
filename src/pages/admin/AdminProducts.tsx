@@ -167,8 +167,8 @@ const Products = () => {
 
       // Tạo HTML content
       const currentDate = new Date();
-      const fromDate = "01/01/2030";
-      const toDate = "31/01/2030";
+      const fromDate = "01/01/2025";
+      const toDate = "31/01/2025";
       
       // Tính toán tổng cộng
       let totalNhap = 0;
@@ -289,9 +289,9 @@ const Products = () => {
         <body>
           <div class="header">
             <div class="header-left">
-              <strong>CÔNG TY PHẦN MỀM QUẢN LÝ DOANH NGHIỆP (FAST)</strong><br>
-              Tầng 3, Tòa nhà CTTB - Khu VOV, Mễ Trì, Nam Từ Liêm, Hà Nội<br>
-              www.fast.com.vn
+              <strong>Cửa Hàng Bán Quần Áo Thời Trang UltraStore</strong><br>
+              Buôn Ma Thuật , Đắk Lắk<br>
+              www.ultrastore......
             </div>
             <div class="header-right">
               <strong>Mẫu số S11-DN</strong><br>
@@ -303,7 +303,6 @@ const Products = () => {
 
           <h1 class="title">BẢNG TỔNG HỢP SẢN PHẨM</h1>
           <div class="subtitle">
-            <strong>Tài khoản: 152 - Vật liệu chính</strong><br>
             Từ ngày ${fromDate} đến ngày ${toDate}
           </div>
 
@@ -347,7 +346,7 @@ const Products = () => {
           </table>
 
           <div style="text-align: right; margin-top: 20px;">
-            Ngày.......tháng.......năm...............
+            Buôn Ma Thuật , Ngày.......tháng.......năm...............
           </div>
 
           <div class="signature">
@@ -356,11 +355,11 @@ const Products = () => {
               <em>(Ký, họ tên)</em>
             </div>
             <div class="signature-block">
-              <strong>KẾ TOÁN TRƯỞNG</strong><br>
-              <em>(Ký, họ tên)</em>
+              <strong hidden>NGƯỜI KIỂM KÊ</strong><br>
+              <em hidden>(Ký, họ tên)</em>
             </div>
             <div class="signature-block">
-              <strong>NGƯỜI ĐẠI DIỆN THEO PHÁP LUẬT</strong><br>
+              <strong>CHỦ CỬA HÀNG</strong><br>
               <em>(Ký, họ tên, đóng dấu)</em>
             </div>
           </div>

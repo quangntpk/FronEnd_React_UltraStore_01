@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ const quillModules = {
   ],
 };
 
-const MoTaModal = ({ isOpen, onClose }) => {
+const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
   const [formData, setFormData] = useState({
     MoTa: {
       Header: {},
@@ -41,6 +41,28 @@ const MoTaModal = ({ isOpen, onClose }) => {
   const [sliderImages, setSliderImages] = useState([]);
   const fileInputRef = useRef(null);
   const sliderFileInputRef = useRef(null);
+
+  // Initialize formData, mainImage, and sliderImages with moTaChiTiet
+  useEffect(() => {
+    if (moTaChiTiet) {
+      const { header, picture, title } = moTaChiTiet.moTa || {};
+      setFormData({
+        MoTa: {
+          Header: header || {},
+          Picture: picture && Array.isArray(picture) ? picture : [{}],
+          Title: title && Array.isArray(title) ? title.map(t => ({
+            name: t.name || '',
+            Subtitle: t.subtitle && Array.isArray(t.subtitle) ? t.subtitle.map(s => ({
+              name: s.name || '',
+              Description: s.description || {}
+            })) : [{ Description: {} }]
+          })) : [{ Subtitle: [{ Description: {} }] }]
+        }
+      });
+      setMainImage(picture?.[0]?.url || null);
+      setSliderImages(picture && Array.isArray(picture) ? picture.slice(1).map(p => p.url).filter(url => url) : []);
+    }
+  }, [moTaChiTiet]);
 
   const handleDragOver = (e, isSlider = false) => {
     e.preventDefault();
@@ -260,9 +282,11 @@ const MoTaModal = ({ isOpen, onClose }) => {
   };
 
   const handleSave = async () => {
-    const dataToSend = [{ ...formData, MaSanPham: null, IdMoTa: null }];
-    console.log(dataToSend)
-    console.log('Dữ liệu gửi tới API:', dataToSend);
+    const dataToSend = [{
+      ...formData,
+      MaSanPham: moTaChiTiet?.maSanPham || null,
+      IdMoTa: moTaChiTiet?.idMoTa || null
+    }];
     try {
       const response = await fetch("http://localhost:5261/api/SanPham/MoTaSanPhamCreate", {
         method: "POST",
@@ -517,14 +541,6 @@ const MoTaModal = ({ isOpen, onClose }) => {
           </div>
           <div className="space-y-3">
             <PreviewDes formData={formData} />
-            {/* <Button
-              onClick={() => setShowJson(!showJson)}
-              variant="outline"
-              className="w-full border-gray-300 text-gray-700 hover:bg-gray-100 py-3 rounded-lg flex items-center justify-center gap-2"
-            >
-              {showJson ? <EyeOff size={16} /> : <Eye size={16} />}
-              {showJson ? 'Ẩn' : 'Xem'} JSON
-            </Button> */}
           </div>
           {showJson && (
             <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
