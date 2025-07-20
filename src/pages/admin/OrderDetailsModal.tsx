@@ -14,9 +14,9 @@ interface OrderDetailProduct {
   gia: number;
   thanhTien: number;
   hinhAnh?: string;
-  // Thêm các thuộc tính mới
-  mauSac?: string;
-  kichThuoc?: string;
+  maSanPham?: string;
+  mauSac?: string;      
+  kichThuoc?: string;   
   combo?: {
     tenCombo: string;
     giaCombo: number;
@@ -25,9 +25,10 @@ interface OrderDetailProduct {
       soLuong: number;
       gia: number;
       thanhTien: number;
+      maSanPham: string;
       hinhAnh?: string;
-      mauSac?: string;
-      kichThuoc?: string;
+      mauSac?: string;   
+      kichThuoc?: string; 
     }>;
   };
 }
@@ -74,6 +75,33 @@ interface ApiOrderResponse {
   shippingFee?: number;
   discountAmount?: number;
   hoTenKhachHang?: string;
+  chiTietSanPhams?: Array<{
+    maChiTietDh: number;
+    laCombo: boolean;
+    tenSanPham: string;
+    soLuong: number;
+    gia: number;
+    thanhTien: number;
+    maCombo?: number;
+    maSanPham?: string;
+    hinhAnh?: string;
+    mauSac?: string;    // Thêm vào interface API
+    kichThuoc?: string; // Thêm vào interface API
+    combo?: {
+      tenCombo: string;
+      giaCombo: number;
+      sanPhamsTrongCombo: Array<{
+        tenSanPham: string;
+        soLuong: number;
+        gia: number;
+        thanhTien: number;
+        maSanPham: string;
+        hinhAnh?: string;
+        mauSac?: string;    // Thêm vào interface API
+        kichThuoc?: string; // Thêm vào interface API
+      }>;
+    };
+  }>;
   [key: string]: any;
 }
 
@@ -89,13 +117,23 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
 
   // Hàm parse thông tin từ ID sản phẩm
   const parseProductInfo = (productId: string) => {
+    console.log('Parsing product ID:', productId);
+    
+    if (!productId) {
+      console.log('Product ID is empty');
+      return { mauSac: '', kichThuoc: '' };
+    }
+      
     // Ví dụ: A00001_ff0000_S hoặc A00001_ff0000_XL
     const parts = productId.split('_');
+    console.log('Product ID parts:', parts);
+
     if (parts.length >= 3) {
       const colorCode = parts[1];
       const size = parts[2];
-      
-      // Chuyển đổi mã màu hex thành tên màu (có thể cần mapping phức tạp hơn)
+      console.log('Color code:', colorCode, 'Size:', size);
+        
+      // Chuyển đổi mã màu hex thành tên màu
       const getColorName = (hex: string) => {
         const colorMap: { [key: string]: string } = {
           'ff0000': 'Đỏ',
@@ -104,10 +142,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
           'ffffff': 'Trắng',
           '000000': 'Đen',
           'ff00ff': 'Hồng',
-          '0C06F5': 'Xanh navy',
-          // Thêm các màu khác
+          '0c06f5': 'Xanh navy',
+          // Thêm các màu khác khi cần
         };
-        return colorMap[hex.toLowerCase()] || `#${hex}`;
+        const colorName = colorMap[hex.toLowerCase()] || `#${hex}`;
+        console.log('Color name:', colorName);
+        return colorName;
       };
 
       // Chuyển đổi size code thành tên size
@@ -123,14 +163,19 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
           'XLA': 'XL',
           'XXLA': 'XXL',
         };
-        return sizeMap[sizeCode] || sizeCode;
+        const sizeName = sizeMap[sizeCode] || sizeCode;
+        console.log('Size name:', sizeName);
+        return sizeName;
       };
 
-      return {
+      const result = {
         mauSac: getColorName(colorCode),
         kichThuoc: getSizeName(size)
       };
+      console.log('Parse result:', result);
+      return result;
     }
+    console.log('Product ID format not recognized');
     return { mauSac: '', kichThuoc: '' };
   };
 
@@ -142,7 +187,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
       
       const token = localStorage.getItem('token');
       
-      // Gọi API lấy chi tiết đơn hàng theo ID
+      // Gọi API lấy tất cả đơn hàng từ admin endpoint
       const response = await axios.get(`http://localhost:5261/api/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -153,34 +198,49 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
       if (!foundOrder) {
         throw new Error('Không tìm thấy đơn hàng');
       }
-      
-      // Lấy thông tin chi tiết từ API orders/{userId}
-      const detailResponse = await axios.get(`http://localhost:5261/api/orders/${foundOrder.maNguoiDung}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const detailOrders = detailResponse.data as OrderDetail[];
-      const detailOrder = detailOrders.find((order: OrderDetail) => order.maDonHang === orderId);
-      
-      if (detailOrder) {
-        // Parse thông tin màu sắc và kích thước cho từng sản phẩm
-        const updatedSanPhams = detailOrder.sanPhams.map(product => {
-          const productInfo = parseProductInfo(product.tenSanPham);
+      console.log('Found order:', foundOrder);
+      console.log('Chi tiết sản phẩm:', foundOrder.chiTietSanPhams);
+
+      // Xử lý dữ liệu sản phẩm với parse màu sắc và kích thước
+      if (foundOrder.chiTietSanPhams) {
+        const sanPhams = foundOrder.chiTietSanPhams.map(product => {
+          // Parse màu sắc và kích thước từ mã sản phẩm nếu API chưa trả về
+          const parsedInfo = product.maSanPham ? parseProductInfo(product.maSanPham) : { mauSac: '', kichThuoc: '' };
+          
           return {
-            ...product,
-            mauSac: productInfo.mauSac,
-            kichThuoc: productInfo.kichThuoc
+            maChiTietDh: product.maChiTietDh,
+            laCombo: product.laCombo,
+            tenSanPham: product.tenSanPham,
+            soLuong: product.soLuong,
+            gia: product.gia,
+            thanhTien: product.thanhTien,
+            maSanPham: product.maSanPham,
+            hinhAnh: product.hinhAnh,
+            // Ưu tiên dữ liệu từ API, nếu không có thì parse từ mã sản phẩm
+            mauSac: product.mauSac || parsedInfo.mauSac,
+            kichThuoc: product.kichThuoc || parsedInfo.kichThuoc,
+            combo: product.combo ? {
+              tenCombo: product.combo.tenCombo,
+              giaCombo: product.combo.giaCombo,
+              sanPhamsTrongCombo: product.combo.sanPhamsTrongCombo.map(item => {
+                const itemParsedInfo = item.maSanPham ? parseProductInfo(item.maSanPham) : { mauSac: '', kichThuoc: '' };
+                
+                return {
+                  tenSanPham: item.tenSanPham,
+                  soLuong: item.soLuong,
+                  gia: item.gia,
+                  thanhTien: item.thanhTien,
+                  maSanPham: item.maSanPham,
+                  hinhAnh: item.hinhAnh,
+                  // Ưu tiên dữ liệu từ API, nếu không có thì parse từ mã sản phẩm
+                  mauSac: item.mauSac || itemParsedInfo.mauSac,
+                  kichThuoc: item.kichThuoc || itemParsedInfo.kichThuoc
+                };
+              })
+            } : undefined
           };
         });
 
-        setOrderDetail({
-          ...detailOrder,
-          sanPhams: updatedSanPhams,
-          shippingFee: foundOrder.shippingFee || 0,
-          discountAmount: foundOrder.discountAmount || 0
-        });
-      } else {
-        // Fallback nếu không tìm thấy chi tiết
         setOrderDetail({
           maDonHang: foundOrder.maDonHang,
           tenNguoiNhan: foundOrder.tenNguoiNhan,
@@ -193,11 +253,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
           finalAmount: foundOrder.finalAmount || 0,
           shippingFee: foundOrder.shippingFee || 0,
           discountAmount: foundOrder.discountAmount || 0,
-          sanPhams: [],
+          sanPhams: sanPhams,
           thongTinNguoiDung: {
             tenNguoiNhan: foundOrder.tenNguoiNhan,
-            diaChi: '',
-            sdt: '',
+            diaChi: '', // Cần thêm vào API nếu cần
+            sdt: '', // Cần thêm vào API nếu cần
             tenNguoiDat: foundOrder.hoTenKhachHang || ''
           },
           thongTinDonHang: {
@@ -361,21 +421,28 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                       <div className="flex-1">
                         <h4 className="font-medium">{product.tenSanPham}</h4>
                         
-                        {/* Thông tin màu sắc và kích thước */}
-                        <div className="flex gap-4 mt-2">
-                          {product.mauSac && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Màu:</span>
-                              <Badge variant="outline" className="text-xs">{product.mauSac}</Badge>
-                            </div>
-                          )}
-                          {product.kichThuoc && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">Size:</span>
-                              <Badge variant="outline" className="text-xs">{product.kichThuoc}</Badge>
-                            </div>
-                          )}
-                        </div>
+                        {/* Hiển thị mã sản phẩm để debug */}
+                        {product.maSanPham && (
+                          <p className="text-xs text-gray-500 mt-1">Mã SP: {product.maSanPham}</p>
+                        )}
+                        
+                        {/* Thông tin màu sắc và kích thước chỉ hiển thị cho sản phẩm đơn lẻ */}
+                        {!product.laCombo && (
+                          <div className="flex gap-4 mt-2">
+                            {product.mauSac && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Màu:</span>
+                                <Badge variant="outline" className="text-xs">{product.mauSac}</Badge>
+                              </div>
+                            )}
+                            {product.kichThuoc && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Size:</span>
+                                <Badge variant="outline" className="text-xs">{product.kichThuoc}</Badge>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         <p className="text-sm text-gray-600 mt-2">
                           Số lượng: {product.soLuong} × {product.gia?.toLocaleString('vi-VN')}đ
@@ -389,19 +456,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
                             <h5 className="font-medium text-blue-700">Sản phẩm trong combo:</h5>
                             <div className="space-y-2 mt-2">
                               {product.combo.sanPhamsTrongCombo.map((item, itemIndex) => (
-                                <div key={itemIndex} className="flex items-center space-x-2 text-sm">
+                                <div key={itemIndex} className="flex items-center space-x-3 text-sm bg-blue-50 p-2 rounded">
                                   {item.hinhAnh && (
                                     <img 
                                       src={item.hinhAnh} 
                                       alt={item.tenSanPham}
-                                      className="w-8 h-8 object-cover rounded"
+                                      className="w-12 h-12 object-cover rounded"
                                     />
                                   )}
-                                  <span>{item.tenSanPham}</span>
-                                  {item.mauSac && <Badge variant="outline" className="text-xs">{item.mauSac}</Badge>}
-                                  {item.kichThuoc && <Badge variant="outline" className="text-xs">{item.kichThuoc}</Badge>}
-                                  <span className="text-gray-500">x{item.soLuong}</span>
-                                  <span className="text-gray-500">{item.gia?.toLocaleString('vi-VN')}đ</span>
+                                  <div className="flex-1">
+                                    <div className="font-medium">{item.tenSanPham}</div>
+                                    <div className="text-xs text-gray-500 mb-1">Mã SP: {item.maSanPham}</div>
+                                    <div className="flex gap-2 mt-1">
+                                      {item.mauSac && <Badge variant="outline" className="text-xs">{item.mauSac}</Badge>}
+                                      {item.kichThuoc && <Badge variant="outline" className="text-xs">Size: {item.kichThuoc}</Badge>}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      SL: {item.soLuong} × {item.gia?.toLocaleString('vi-VN')}đ = {item.thanhTien?.toLocaleString('vi-VN')}đ
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -417,7 +490,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
             </div>
           </div>
 
-          {/* Tính toán chi phí - PHẦN ĐÃ SỬA */}
+          {/* Tính toán chi phí */}
           <div className="bg-blue-50 p-4 rounded-lg">
             <h3 className="font-semibold mb-3">Chi tiết thanh toán</h3>
             <div className="space-y-2">

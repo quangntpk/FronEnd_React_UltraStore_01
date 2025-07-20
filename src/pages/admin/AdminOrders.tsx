@@ -23,11 +23,64 @@ interface Order {
   hoTenNguoiDuyet?: string; 
   hoTenKhachHang?: string; 
   hoTenNhanVien?: string;
+  tongTien?: number;
+  diaChi?: string;
+  soDienThoai?: string;
+}
+
+interface OrderCount {
+  unconfirmed: number;
+  processing: number;
+  delivering: number;
+  completed: number;
+  canceled: number;
+}
+
+interface CancelledOrdersResponse {
+  data: CancelledOrderData[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalRecords: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  summary: {
+    totalCancelledOrders: number;
+    totalCancelledAmount: number;
+    totalFinalAmount: number;
+  };
+}
+
+interface CancelledOrderData {
+  maDonHang: number;
+  tenNguoiNhan: string;
+  ngayDat: string;
+  trangThaiDonHang: number;
+  trangThaiThanhToan: number;
+  hinhThucThanhToan: string;
+  lyDoHuy?: string;
+  tenSanPhamHoacCombo?: string;
+  maNguoiDung?: string;
+  hoTenKhachHang?: string;
+  hoTenNhanVien?: string;
+  maNhanVien?: string;
+  tongTien?: number;
+  diaChi?: string;
+  soDienThoai?: string;
 }
 
 const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [orderCounts, setOrderCounts] = useState<OrderCount>({
+    unconfirmed: 0,
+    processing: 0,
+    delivering: 0,
+    completed: 0,
+    canceled: 0
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -36,27 +89,95 @@ const AdminOrders: React.FC = () => {
   const [cancelOrderId, setCancelOrderId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<string>('completed');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const ordersPerPage = 10;
 
   // Danh sách các lý do hủy gợi ý
   const cancelReasonsSuggestions = [
     "Khách hàng không muốn mua nữa",
-    "Hết hàng",
+    "Hết hàng", 
+    "Khách hủy đơn",
     "Sai thông tin đơn hàng",
     "Khác"
   ];
+
+  // Hàm tính toán số lượng đơn hàng theo trạng thái
+  const calculateOrderCounts = (orderList: Order[]): OrderCount => {
+    return {
+      unconfirmed: orderList.filter(order => order.trangThaiDonHang === 0).length,
+      processing: orderList.filter(order => order.trangThaiDonHang === 1).length,
+      delivering: orderList.filter(order => order.trangThaiDonHang === 2).length,
+      completed: orderList.filter(order => order.trangThaiDonHang === 3).length,
+      canceled: orderList.filter(order => order.trangThaiDonHang === 5).length // Fix: Đổi từ 4 thành 5
+    };
+  };
 
   // Hàm lấy danh sách đơn hàng từ API
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get<Order[]>('http://localhost:5261/api/orders', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setOrders(response.data);
       
-      // Áp dụng filter ngay lập tức với dữ liệu mới
-      filterOrdersByTab(response.data, activeTab);
+      // Nếu tab hiện tại là canceled, sử dụng API riêng cho đơn hàng đã hủy
+      if (activeTab === 'canceled') {
+        const response = await axios.get<CancelledOrdersResponse>(
+          `http://localhost:5261/api/orders/cancelled?page=${currentPage}&pageSize=${ordersPerPage}`, 
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+        
+        console.log('Fetched cancelled orders:', response.data);
+        
+        // Xử lý response từ API cancelled orders - sử dụng lowercase keys
+        if (response.data && response.data.data) {
+          const cancelledOrders = response.data.data.map((order: CancelledOrderData) => ({
+            maDonHang: order.maDonHang,
+            tenNguoiNhan: order.tenNguoiNhan,
+            ngayDat: order.ngayDat,
+            trangThaiDonHang: order.trangThaiDonHang,
+            trangThaiThanhToan: order.trangThaiThanhToan,
+            hinhThucThanhToan: order.hinhThucThanhToan,
+            lyDoHuy: order.lyDoHuy,
+            tenSanPhamHoacCombo: order.tenSanPhamHoacCombo,
+            maNguoiDung: order.maNguoiDung,
+            hoTenKhachHang: order.hoTenKhachHang,
+            hoTenNhanVien: order.hoTenNhanVien,
+            maNhanVien: order.maNhanVien,
+            tongTien: order.tongTien,
+            diaChi: order.diaChi,
+            soDienThoai: order.soDienThoai
+          }));
+          
+          setFilteredOrders(cancelledOrders);
+          
+          // Set pagination info
+          setTotalPages(response.data.pagination.totalPages);
+          
+          // Cập nhật order counts với thông tin từ API
+          setOrderCounts(prev => ({
+            ...prev,
+            canceled: response.data.pagination.totalRecords
+          }));
+          
+          console.log('Set cancelled orders:', cancelledOrders);
+        }
+      } else {
+        // API gốc cho các tab khác
+        const response = await axios.get<Order[]>('http://localhost:5261/api/orders', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        console.log('Fetched orders:', response.data);
+        setOrders(response.data);
+        
+        // Cập nhật số lượng đơn hàng
+        const counts = calculateOrderCounts(response.data);
+        setOrderCounts(counts);
+        console.log('Order counts:', counts);
+        
+        // Filter orders theo tab hiện tại
+        filterOrdersByTab(response.data, activeTab);
+      }
       
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -66,6 +187,8 @@ const AdminOrders: React.FC = () => {
 
   const filterOrdersByTab = (orderList: Order[], tab: string) => {
     let filtered = orderList;
+    console.log('Filtering for tab:', tab);
+    
     if (tab === 'unconfirmed') {
       filtered = orderList.filter(order => order.trangThaiDonHang === 0);
     } else if (tab === 'processing') {
@@ -75,34 +198,26 @@ const AdminOrders: React.FC = () => {
     } else if (tab === 'completed') {
       filtered = orderList.filter(order => order.trangThaiDonHang === 3);
     } else if (tab === 'canceled') {
-      filtered = orderList.filter(order => order.trangThaiDonHang === 4);
+      filtered = orderList.filter(order => order.trangThaiDonHang === 5); // Fix: Đổi từ 4 thành 5
     }
+    
+    console.log('Filtered orders for', tab, ':', filtered);
     applySearch(filtered);
   };
 
-  // Gọi API khi component được mount
+  // Gọi API khi component được mount hoặc khi tab/page thay đổi
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [activeTab, currentPage]);
 
   // Hàm lọc đơn hàng theo tab
   const handleTabChange = (value: string) => {
+    console.log('Tab changed to:', value);
     setActiveTab(value);
-    
     setCurrentPage(1); 
-    let filtered = orders;
-    if (value === 'unconfirmed') {
-      filtered = orders.filter(order => order.trangThaiDonHang === 0);
-    } else if (value === 'processing') {
-      filtered = orders.filter(order => order.trangThaiDonHang === 1);
-    } else if (value === 'delivering') {
-      filtered = orders.filter(order => order.trangThaiDonHang === 2);
-    } else if (value === 'completed') {
-      filtered = orders.filter(order => order.trangThaiDonHang === 3);
-    } else if (value === 'canceled') {
-      filtered = orders.filter(order => order.trangThaiDonHang === 4);
-    }
-    applySearch(filtered);
+    
+    // Reset search khi chuyển tab
+    setSearchTerm('');
   };
 
   // Hàm chuyển đổi trạng thái đơn hàng thành chuỗi để tìm kiếm
@@ -112,7 +227,7 @@ const AdminOrders: React.FC = () => {
       case 1: return 'Đang xử lý';
       case 2: return 'Đang giao hàng';
       case 3: return 'Hoàn thành';
-      case 4: return 'Đã hủy';
+      case 5: return 'Đã hủy'; // Fix: Đổi từ case 4 thành case 5
       default: return 'Không xác định';
     }
   };
@@ -124,41 +239,49 @@ const AdminOrders: React.FC = () => {
 
   // Hàm áp dụng tìm kiếm trên tất cả các trường
   const applySearch = (orderList: Order[]) => {
+    if (!searchTerm.trim()) {
+      setFilteredOrders(orderList);
+      return;
+    }
+    
     const filtered = orderList.filter(order => {
       const searchLower = searchTerm.toLowerCase();
       return (
         order.maDonHang.toString().toLowerCase().includes(searchLower) ||
-        (order.tenNguoiNhan?.toLowerCase().includes(searchLower) || '') ||
-        (order.tenSanPhamHoacCombo?.toLowerCase().includes(searchLower) || '') ||
-        (order.ngayDat?.toLowerCase().includes(searchLower) || '') ||
-        (order.hinhThucThanhToan?.toLowerCase().includes(searchLower) || '') ||
-        (order.lyDoHuy?.toLowerCase().includes(searchLower) || '') ||
+        (order.tenNguoiNhan?.toLowerCase().includes(searchLower) || false) ||
+        (order.tenSanPhamHoacCombo?.toLowerCase().includes(searchLower) || false) ||
+        (order.ngayDat?.toLowerCase().includes(searchLower) || false) ||
+        (order.hinhThucThanhToan?.toLowerCase().includes(searchLower) || false) ||
+        (order.lyDoHuy?.toLowerCase().includes(searchLower) || false) ||
         (order.hoTenNguoiDuyet || '').toLowerCase().includes(searchLower) ||
         (order.hoTenKhachHang || '').toLowerCase().includes(searchLower) ||
         getStatusLabel(order.trangThaiDonHang).toLowerCase().includes(searchLower) ||
         getPaymentStatusLabel(order.trangThaiThanhToan, order.trangThaiDonHang).toLowerCase().includes(searchLower)
       );
     });
+    console.log('Search applied, filtered orders:', filtered);
     setFilteredOrders(filtered);
   };
 
   // Tìm kiếm "ghi tới đâu tìm tới đó"
   useEffect(() => {
     const debounce = setTimeout(() => {
-      handleTabChange(activeTab);
+      if (activeTab === 'canceled') {
+        applySearch(filteredOrders); // Apply search directly to current filtered orders for cancelled
+      } else {
+        filterOrdersByTab(orders, activeTab); 
+      }
     }, 300);
     return () => clearTimeout(debounce);
-  }, [searchTerm, orders]);
+  }, [searchTerm]);
 
   // Hàm duyệt đơn hàng
   const handleApprove = async (id: number) => {
     try {
       const token = localStorage.getItem('token');
       
-      // **SỬA: Ưu tiên lấy userId từ localStorage trước**
-      let userId = localStorage.getItem('userId'); // AD00012
+      let userId = localStorage.getItem('userId');
       
-      // Nếu không có userId trong localStorage, thử lấy từ user object
       if (!userId) {
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -171,7 +294,6 @@ const AdminOrders: React.FC = () => {
         }
       }
       
-      // Cuối cùng mới thử decode từ token nếu cần
       if (!userId && token) {
         try {
           const tokenPayload = JSON.parse(atob(token.split('.')[1]));
@@ -186,11 +308,11 @@ const AdminOrders: React.FC = () => {
         return;
       }
 
-      console.log('Sending userId:', userId); // Debug log
+      console.log('Sending userId:', userId);
 
       const response = await axios.put(
         `http://localhost:5261/api/orders/approve/${id}`,
-        { userId: userId }, // Gửi userId trong body
+        { userId: userId },
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -239,7 +361,7 @@ const AdminOrders: React.FC = () => {
       const token = localStorage.getItem('token');
       const response = await axios.put(
         `http://localhost:5261/api/orders/cancel/${cancelOrderId}`,
-        cancelReason,
+        JSON.stringify(cancelReason),
         {
           headers: {
             'Content-Type': 'application/json',
@@ -247,14 +369,18 @@ const AdminOrders: React.FC = () => {
           },
         }
       );
+      
       toast.success("Hủy đơn hàng thành công!");
+      
+      // Đóng modal trước
       setShowCancelModal(false);
       setCancelReason('');
       setCancelOrderId(null);
       
-      // **SỬA: Fetch lại orders và đợi để state được cập nhật**
+      // Fetch lại orders từ API
       await fetchOrders();
-      // **SỬA: Chuyển sang tab "Đã hủy" để xem đơn hàng vừa hủy**
+      
+      // Chuyển sang tab canceled
       setActiveTab('canceled');
       
     } catch (error) {
@@ -266,7 +392,7 @@ const AdminOrders: React.FC = () => {
 
   // Hàm mở modal chi tiết đơn hàng
   const openDetailsModal = (order: Order) => {
-    console.log('Opening details for order:', order.maDonHang); // Debug log
+    console.log('Opening details for order:', order.maDonHang);
     setSelectedOrder(order);
     setShowDetailsModal(true);
   };
@@ -276,17 +402,36 @@ const AdminOrders: React.FC = () => {
     setCancelReason(reason);
   };
 
-  // Logic phân trang
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
-  const startIndex = (currentPage - 1) * ordersPerPage;
-  const endIndex = startIndex + ordersPerPage;
-  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-
+  // Logic phân trang cho cancelled orders
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
+
+  // Calculate pagination for non-cancelled orders
+  const calculatePagination = () => {
+    if (activeTab === 'canceled') {
+      return {
+        totalPages: totalPages,
+        paginatedOrders: filteredOrders,
+        currentPage: currentPage
+      };
+    } else {
+      const total = Math.ceil(filteredOrders.length / ordersPerPage);
+      const startIndex = (currentPage - 1) * ordersPerPage;
+      const endIndex = startIndex + ordersPerPage;
+      const paginated = filteredOrders.slice(startIndex, endIndex);
+      
+      return {
+        totalPages: total,
+        paginatedOrders: paginated,
+        currentPage: currentPage
+      };
+    }
+  };
+
+  const { totalPages: calculatedTotalPages, paginatedOrders } = calculatePagination();
 
   // Lấy vai trò từ token
   const userId = getUserIdFromToken() || localStorage.getItem('userId');
@@ -311,13 +456,23 @@ const AdminOrders: React.FC = () => {
         />
       </div>
 
-      <Tabs defaultValue="completed" onValueChange={handleTabChange}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="mb-4">
-          <TabsTrigger value="unconfirmed">Chưa xác nhận</TabsTrigger>
-          <TabsTrigger value="processing">Đang xử lý</TabsTrigger>
-          <TabsTrigger value="delivering">Đang giao</TabsTrigger>
-          <TabsTrigger value="completed">Hoàn thành</TabsTrigger>
-          <TabsTrigger value="canceled">Đã hủy</TabsTrigger>
+          <TabsTrigger value="unconfirmed">
+            Chưa xác nhận ({orderCounts.unconfirmed})
+          </TabsTrigger>
+          <TabsTrigger value="processing">
+            Đang xử lý ({orderCounts.processing})
+          </TabsTrigger>
+          <TabsTrigger value="delivering">
+            Đang giao ({orderCounts.delivering})
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            Hoàn thành ({orderCounts.completed})
+          </TabsTrigger>
+          <TabsTrigger value="canceled">
+            Đã hủy ({orderCounts.canceled})
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -329,7 +484,7 @@ const AdminOrders: React.FC = () => {
               <TableHead>Tên khách hàng</TableHead>
               <TableHead>Tên sản phẩm/Combo</TableHead>
               <TableHead>Ngày đặt</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead className="w-36">Trạng thái</TableHead>
               <TableHead>Thanh toán</TableHead>
               <TableHead>Hình thức thanh toán</TableHead>
               <TableHead>Nhân viên xử lý</TableHead>
@@ -350,7 +505,19 @@ const AdminOrders: React.FC = () => {
                       : 'Không có ngày'}
                   </TableCell>
                   <TableCell>
-                    {getStatusLabel(order.trangThaiDonHang)}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      order.trangThaiDonHang === 5 
+                        ? 'bg-red-100 text-red-800' 
+                        : order.trangThaiDonHang === 3 
+                        ? 'bg-green-100 text-green-800'
+                        : order.trangThaiDonHang === 2 
+                        ? 'bg-blue-100 text-blue-800'
+                        : order.trangThaiDonHang === 1 
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {getStatusLabel(order.trangThaiDonHang)}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {getPaymentStatusLabel(order.trangThaiThanhToan, order.trangThaiDonHang)}
@@ -370,7 +537,6 @@ const AdminOrders: React.FC = () => {
                           size="sm"
                           onClick={() => handleApprove(order.maDonHang)}
                           disabled={
-                            // Nếu là nhân viên và đơn hàng đã có nhân viên xử lý khác
                             isStaff && order.maNhanVien && order.maNhanVien !== userId
                           }
                         >
@@ -393,7 +559,10 @@ const AdminOrders: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={activeTab === 'canceled' ? 10 : 9} className="text-center py-4">
-                  Không tìm thấy đơn hàng nào phù hợp.
+                  {activeTab === 'canceled' 
+                    ? "Không có đơn hàng nào bị hủy." 
+                    : "Không tìm thấy đơn hàng nào phù hợp."
+                  }
                 </TableCell>
               </TableRow>
             )}
@@ -401,7 +570,7 @@ const AdminOrders: React.FC = () => {
         </Table>
       </div>
 
-      {totalPages > 1 && (
+      {calculatedTotalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4">
           <Button
             variant="outline"
@@ -411,7 +580,7 @@ const AdminOrders: React.FC = () => {
           >
             Trước
           </Button>
-          {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+          {Array.from({ length: calculatedTotalPages }, (_, index) => index + 1).map(page => (
             <Button
               key={page}
               variant={currentPage === page ? "default" : "outline"}
@@ -425,7 +594,7 @@ const AdminOrders: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === calculatedTotalPages}
           >
             Sau
           </Button>
