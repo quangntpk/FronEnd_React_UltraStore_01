@@ -78,7 +78,7 @@ const ProductListing = () => {
         }
 
         const productData = await productResponse.json();
-
+        console.log(productData)
         // Lấy danh sách bình luận
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Không thể tải bình luận");
