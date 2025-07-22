@@ -677,7 +677,7 @@ const VoucherUser = () => {
                     <Gift className="w-16 h-16 text-purple-300 mx-auto mb-4" />
                     <p className="text-gray-600">
                       {isLoggedIn
-                        ? "Quay để nhận voucher nhé!"
+                        ? "Quay để nhận mã giảm giá nhé!"
                         : "Vui lòng đăng nhập để quay!"}
                     </p>
                   </div>

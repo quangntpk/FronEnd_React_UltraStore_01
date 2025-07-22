@@ -7,6 +7,8 @@ import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
 import { useAuth } from "../auth/AuthContext";
 import SupportChat from "@/components/default/SupportChat";
+import Translate from "@/components/default/Translate";
+
 import {
   Menu,
   ShoppingCart,
@@ -55,8 +57,8 @@ const UserLayout = () => {
     { title: "Trang chủ", path: "/", icon: <LayoutGrid className="h-5 w-5" /> },
     { title: "Sản phẩm", path: "/products", icon: <ShoppingBag className="h-5 w-5" /> },
     { title: "Combo", path: "/combos", icon: <Package className="h-5 w-5" /> },
-    { title: "Khuyến mãi", path: "/voucher", icon: <Ticket className="h-5 w-5" /> },
-    { title: "Bài viết", path: "/blogs", icon: <MessageSquare className="h-5 w-5" /> },
+    { title: "Giảm giá", path: "/voucher", icon: <Ticket className="h-5 w-5" /> },
+    { title: "Tin tức", path: "/blogs", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Liên hệ", path: "/contact", icon: <Mail className="h-5 w-5" /> },
   ];
 
@@ -387,6 +389,7 @@ const UserLayout = () => {
           </div>
         </div>
         <SupportChat />
+        <Translate />
       </footer>
     </>
   );
