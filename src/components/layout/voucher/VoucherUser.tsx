@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { openDB, DBSchema, IDBPDatabase } from "idb";
-import { Phone, Mail, MapPin, Gift, Clock, Sparkles, Star, User } from "lucide-react";
+import { Gift, Clock, Sparkles, Star } from "lucide-react";
 
 // Định nghĩa kiểu dữ liệu cho Voucher
 interface Voucher {
   maVoucher: number;
   tenVoucher: string;
   giaTri: number;
+  giaTriToiDa?: number;
+  loaiVoucher: number; // 0: Giảm giá theo phần trăm, 1: Giảm giá theo số tiền, 2: Miễn phí vận chuyển
   ngayBatDau: string;
   ngayKetThuc: string;
   hinhAnh?: string;
@@ -17,7 +19,7 @@ interface Voucher {
   soLuong?: number;
   trangThai?: number;
   tyLe?: number;
-  coupons?: { id: number; maNhap: string; trangThai: number }[];
+  coupons?: { id: number; maNhap: string; trangThai: number; maNguoiDung?: string | null }[];
 }
 
 // Định nghĩa cấu trúc cơ sở dữ liệu IndexedDB
@@ -32,7 +34,7 @@ interface MyDB extends DBSchema {
   };
 }
 
-const APP_TITLE = import.meta.env.VITE_TITLE;
+const APP_TITLE = import.meta.env.VITE_TITLE || "Vòng Quay May Mắn";
 
 const SEGMENT_COLORS = [
   '#9b87f5', '#b794f6', '#d6bcfa', '#e9d5ff',
@@ -43,6 +45,7 @@ const SEGMENT_COLORS = [
 const VoucherUser = () => {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [selectedCoupon, setSelectedCoupon] = useState<{ id: number; maNhap: string; trangThai: number; maNguoiDung?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -91,10 +94,12 @@ const VoucherUser = () => {
         .filter((voucher) => {
           const startDate = new Date(voucher.ngayBatDau);
           const endDate = new Date(voucher.ngayKetThuc);
+          const hasValidCoupon = voucher.coupons?.some(coupon => coupon.trangThai === 0);
           return (
             voucher.trangThai === 0 &&
             startDate <= currentDate &&
-            endDate >= currentDate
+            endDate >= currentDate &&
+            hasValidCoupon
           );
         })
         .map((voucher) => ({
@@ -158,6 +163,10 @@ const VoucherUser = () => {
           }
           if (storedData.selectedVoucher) {
             setSelectedVoucher(storedData.selectedVoucher);
+            const validCoupon = storedData.selectedVoucher.coupons?.find(coupon => coupon.trangThai === 0);
+            if (validCoupon) {
+              setSelectedCoupon(validCoupon);
+            }
           }
           if (storedData.spinCount) {
             setSpinCount(storedData.spinCount);
@@ -183,6 +192,7 @@ const VoucherUser = () => {
       if (!updatedUserData) {
         setIsLoggedIn(false);
         setSelectedVoucher(null);
+        setSelectedCoupon(null);
         setLastSpinTime(null);
         setUserId(null);
         setSpinCount(0);
@@ -246,6 +256,18 @@ const VoucherUser = () => {
     return `${hours} giờ ${minutes} phút ${seconds} giây`;
   };
 
+  // Định dạng giá trị voucher dựa trên loại voucher
+  const formatVoucherValue = (voucher: Voucher) => {
+    if (voucher.loaiVoucher === 0) {
+      return `Giảm ${voucher.giaTri}% đơn hàng`;
+    } else if (voucher.loaiVoucher === 1) {
+      return `Giảm ${formatCondition(voucher.giaTri)} đơn hàng`;
+    } else if (voucher.loaiVoucher === 2) {
+      return "Miễn phí vận chuyển";
+    }
+    return "";
+  };
+
   // Tính toán voucher chiến thắng dựa trên tỷ lệ
   const calculateWinningVoucher = (): Voucher => {
     const totalRate = vouchers.reduce((sum, v) => sum + (v.tyLe || 0), 0);
@@ -286,6 +308,7 @@ const VoucherUser = () => {
 
     setIsSpinning(true);
     setSelectedVoucher(null);
+    setSelectedCoupon(null);
     setShowWinnerPopup(false);
 
     const winningVoucher = calculateWinningVoucher();
@@ -300,6 +323,10 @@ const VoucherUser = () => {
 
     setTimeout(async () => {
       setSelectedVoucher(winningVoucher);
+      const validCoupon = winningVoucher.coupons?.find(coupon => coupon.trangThai === 0);
+      if (validCoupon) {
+        setSelectedCoupon(validCoupon);
+      }
       const currentTime = Date.now();
       const newSpinCount = spinCount + 1;
 
@@ -341,6 +368,91 @@ const VoucherUser = () => {
     }, 3000);
   };
 
+  // Xử lý lưu mã coupon
+  const handleSaveCoupon = async (couponId: number, maNhap: string) => {
+    if (!userId) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng đăng nhập để lưu mã giảm giá!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast({
+          title: "Lỗi",
+          description: "Không tìm thấy token, vui lòng đăng nhập lại!",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5261/api/Voucher/Coupon/${couponId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          maNguoiDung: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Không thể lưu mã giảm giá: ${errorData}`);
+      }
+
+      setSelectedCoupon((prev) =>
+        prev && prev.id === couponId
+          ? { ...prev, trangThai: 2, maNguoiDung: userId }
+          : prev
+      );
+
+      setSelectedVoucher((prev) => {
+        if (!prev || !prev.coupons) return prev;
+        return {
+          ...prev,
+          coupons: prev.coupons.map((coupon) =>
+            coupon.id === couponId
+              ? { ...coupon, trangThai: 2, maNguoiDung: userId }
+              : coupon
+          ),
+        };
+      });
+
+      setVouchers((prevVouchers) =>
+        prevVouchers.map((voucher) =>
+          voucher.maVoucher === selectedVoucher?.maVoucher
+            ? {
+                ...voucher,
+                coupons: voucher.coupons?.map((coupon) =>
+                  coupon.id === couponId
+                    ? { ...coupon, trangThai: 2, maNguoiDung: userId }
+                    : coupon
+                ),
+              }
+            : voucher
+        )
+      );
+
+      toast({
+        title: "Thành công",
+        description: `Đã lưu mã ${maNhap} thành công!`,
+      });
+    } catch (err: any) {
+      console.error("Lỗi khi lưu mã coupon:", err);
+      toast({
+        title: "Lỗi",
+        description: err.message || "Không thể lưu mã giảm giá, vui lòng thử lại!",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Xử lý đăng nhập giả lập
   const handleLogin = () => {
     const mockUser = { maNguoiDung: "user_" + Math.random().toString(36).substring(2, 15) };
@@ -359,38 +471,12 @@ const VoucherUser = () => {
     }
     setIsLoggedIn(false);
     setSelectedVoucher(null);
+    setSelectedCoupon(null);
     setLastSpinTime(null);
     setTimeLeft(0);
     setSpinCount(0);
     setShowWinnerPopup(false);
     setUserId(null);
-  };
-
-  // Xử lý sử dụng voucher
-  const handleUseVoucher = () => {
-    if (selectedVoucher) {
-      toast({
-        title: "Sử dụng voucher",
-        description: `Bạn đã chọn sử dụng voucher: ${selectedVoucher.tenVoucher}`,
-      });
-    }
-  };
-
-  // Xử lý sao chép mã
-  const handleCopyCode = async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      toast({
-        title: "Đã sao chép!",
-        description: `Mã ${code} đã được sao chép `,
-      });
-    } catch (err) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể sao chép mã",
-        variant: "destructive",
-      });
-    }
   };
 
   // Đóng popup
@@ -432,6 +518,12 @@ const VoucherUser = () => {
     const textX = WHEEL_RADIUS + textRadius * Math.cos(textAngleRad);
     const textY = WHEEL_RADIUS + textRadius * Math.sin(textAngleRad);
 
+    const displayText = voucher.loaiVoucher === 0
+      ? `${voucher.giaTri}%`
+      : voucher.loaiVoucher === 1
+      ? formatCondition(voucher.giaTri)
+      : "Miễn phí vận chuyển";
+
     return (
       <g key={voucher.maVoucher}>
         <path
@@ -450,7 +542,7 @@ const VoucherUser = () => {
           alignmentBaseline="middle"
           transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}
         >
-          {voucher.giaTri}%
+          {displayText}
         </text>
       </g>
     );
@@ -468,10 +560,8 @@ const VoucherUser = () => {
 
   // Định dạng điều kiện
   const formatCondition = (condition: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(condition);
+    const formattedNumber = new Intl.NumberFormat('vi-VN').format(condition);
+    return `${formattedNumber} VND`;
   };
 
   // Trạng thái tải
@@ -516,18 +606,16 @@ const VoucherUser = () => {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <div className="flex items-center justify-center mb-4">
-                <Sparkles className="w-8 h-8 text-purple-500 mr-2" />
-                <h2 className="text-4xl font-bold text-purple-600">
-                  {APP_TITLE || "Vòng Quay May Mắn"}
+                <Sparkles className="text-4xl font-bold mb-4" />
+                <h2 className="text-4xl font-bold mb-4">
+                  {APP_TITLE}
                 </h2>
-                <Sparkles className="w-8 h-8 text-purple-500 ml-2" />
+                <Sparkles className="text-4xl font-bold mb-4"/>
               </div>
               <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-                Quay để nhận ngay mã giảm giá hấp dẫn dành cho bạn!
+                Quay để nhận ngay mã giảm giá hoặc miễn phí vận chuyển hấp dẫn dành cho bạn!
               </p>
             </div>
-
-          
 
             <div className="flex flex-col lg:flex-row items-center justify-center gap-12">
               {/* Wheel */}
@@ -599,7 +687,7 @@ const VoucherUser = () => {
                   </Button>
                 </div>
 
-                {selectedVoucher && !showWinnerPopup && (
+                {selectedVoucher && !showWinnerPopup && selectedCoupon && (
                   <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-xl">
                     <div className="text-center mb-4">
                       <div className="flex items-center justify-center mb-2">
@@ -615,7 +703,7 @@ const VoucherUser = () => {
                         <img
                           src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
                           alt={selectedVoucher.tenVoucher}
-                          className="w-full h-42 object-cover rounded-lg"
+                          className="w-full h-48 object-cover rounded-lg"
                         />
                       </div>
                     )}
@@ -626,7 +714,7 @@ const VoucherUser = () => {
                           {selectedVoucher.tenVoucher}
                         </p>
                         <p className="text-2xl font-bold text-purple-600">
-                          Giảm {selectedVoucher.giaTri}% đơn hàng
+                          {formatVoucherValue(selectedVoucher)}
                         </p>
                       </div>
 
@@ -641,33 +729,30 @@ const VoucherUser = () => {
                         {selectedVoucher.dieuKien && (
                           <p>Áp dụng cho đơn hàng từ {formatCondition(selectedVoucher.dieuKien)}</p>
                         )}
+                        {selectedVoucher.giaTriToiDa && (
+                          <p>Giảm tối đa: {formatCondition(selectedVoucher.giaTriToiDa)}</p>
+                        )}
                       </div>
 
-                      {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 && (
+                      {selectedCoupon && (
                         <div className="space-y-2">
-                          <p className="font-medium text-gray-700 text-center">Mã giảm giá:</p>
-                          {selectedVoucher.coupons
-                            .filter(coupon => coupon.trangThai === 0)
-                            .slice(0, 2)
-                            .map((coupon, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <div className="flex-1 bg-gray-100 border border-purple-200 rounded-lg p-2 text-center">
-                                  <span className="font-mono font-bold text-purple-600">
-                                    {coupon.maNhap}
-                                  </span>
-                                </div>
-                                <Button
-                                  onClick={() => handleCopyCode(coupon.maNhap)}
-                                  className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 text-sm"
-                                >
-                                  Sao chép
-                                </Button>
-                              </div>
-                            ))}
+                          <p className="font-medium text-gray-700 text-center">Mã</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-100 border border-purple-200 rounded-lg p-2 text-center">
+                              <span className="font-mono font-bold text-purple-600">
+                                {selectedCoupon.maNhap}
+                              </span>
+                            </div>
+                            <Button
+                              onClick={() => handleSaveCoupon(selectedCoupon.id, selectedCoupon.maNhap)}
+                              className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 text-sm"
+                              disabled={selectedCoupon.trangThai === 2}
+                            >
+                              {selectedCoupon.trangThai === 2 ? "Đã lưu" : "Lưu"}
+                            </Button>
+                          </div>
                         </div>
                       )}
-
-                 
                     </div>
                   </div>
                 )}
@@ -695,7 +780,7 @@ const VoucherUser = () => {
       </div>
 
       {/* Winner Popup */}
-      {showWinnerPopup && selectedVoucher && (
+      {showWinnerPopup && selectedVoucher && selectedCoupon && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div 
             className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center relative"
@@ -736,7 +821,7 @@ const VoucherUser = () => {
                   {selectedVoucher.tenVoucher}
                 </h4>
                 <p className="text-2xl font-bold text-purple-600">
-                  Giảm {selectedVoucher.giaTri}%
+                  {formatVoucherValue(selectedVoucher)}
                 </p>
               </div>
 
@@ -751,33 +836,30 @@ const VoucherUser = () => {
                 {selectedVoucher.dieuKien && (
                   <p>Áp dụng cho đơn hàng từ {formatCondition(selectedVoucher.dieuKien)}</p>
                 )}
+                {selectedVoucher.giaTriToiDa && (
+                  <p>Giảm tối đa: {formatCondition(selectedVoucher.giaTriToiDa)}</p>
+                )}
               </div>
 
-              {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 && (
+              {selectedCoupon && (
                 <div className="space-y-2">
                   <p className="font-medium text-gray-700">Mã giảm giá:</p>
-                  {selectedVoucher.coupons
-                    .filter(coupon => coupon.trangThai === 0)
-                    .slice(0, 2)
-                    .map((coupon, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-100 border border-purple-200 rounded-lg p-2 text-center">
-                          <span className="font-mono font-bold text-purple-600">
-                            {coupon.maNhap}
-                          </span>
-                        </div>
-                        <Button
-                          onClick={() => handleCopyCode(coupon.maNhap)}
-                          className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 text-sm"
-                        >
-                          Sao chép
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-100 border border-purple-200 rounded-lg p-2 text-center">
+                      <span className="font-mono font-bold text-purple-600">
+                        {selectedCoupon.maNhap}
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => handleSaveCoupon(selectedCoupon.id, selectedCoupon.maNhap)}
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 text-sm"
+                      disabled={selectedCoupon.trangThai === 2}
+                    >
+                      {selectedCoupon.trangThai === 2 ? "Đã lưu" : "Lưu"}
+                    </Button>
+                  </div>
                 </div>
               )}
-
-        
             </div>
           </div>
         </div>
