@@ -17,6 +17,7 @@ import ComboDetail from "./pages/combos/ComboDetail";
 import BlogsList from "./pages/blogs/BlogsList";
 import BlogDetail from "./pages/blogs/BlogDetail";
 import FavoritesList from "./pages/favorites/FavoritesList";
+import PersonalpromotionsList from "./pages/personalpromotions/personalpromotionsList"
 import Contact from "./pages/contact/Contact";
 import About from "./pages/about/About";
 import Login from "./pages/auth/Login";
@@ -148,6 +149,7 @@ const App = () => (
                 <Route path="blogs/:slug" element={<BlogDetailComponent />} />
                 <Route path="voucher/*" element={<VoucherUser />} />
                 <Route path="favorites" element={<FavoritesList />} />
+                 <Route path="personalpromotions" element={<PersonalpromotionsList />} />
                 <Route path="contact" element={<Contact />} />
                 <Route path="about" element={<About />} />
                 <Route path="auth/login" element={<Login />} />
