@@ -885,7 +885,7 @@ const CartPage = () => {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error("Mã giảm giá không hợp hoặc đã hết hạn. ");
+      toast.error("Mã giảm giá không hợp lệ, không đủ điều kiện hoặc đã hết hạn. ");
       console.error("Error applying promo:", error);
     }
   };
@@ -991,8 +991,22 @@ const CartPage = () => {
       const selectedProvince = provinces.find(
         (p) => p.code.toString() === checkoutForm.province
       );
+      const selectedDistrict1 = districts.find(
+        (d) => d.code.toString() === checkoutForm.district
+      );
+      const selectedWard1 = wards.find(
+        (w) => w.code.toString() === checkoutForm.ward
+      );
       if (!selectedProvince) {
         toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
+        return;
+      }
+      if(!selectedDistrict1) {
+        toast.error("Vui lòng chọn quận/huyện hợp lệ");
+        return;
+      }
+      if(!selectedWard1) {
+        toast.error("Vui lòng chọn phường/xã hợp lệ");
         return;
       }
       const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
@@ -1078,7 +1092,7 @@ const CartPage = () => {
                 navigate("/user/orders", { state: { orderId: result.orderId } }),
             },
           });
-          
+
           setCartItems([]);
           setComboItems([]);
           setPromoCode("");
@@ -1292,19 +1306,6 @@ const CartPage = () => {
                           </span>
                         </div>
                       </div>
-
-                      <div className="flex items-center mb-4">
-                        <Input
-                          placeholder="Mã giảm giá (nếu có)"
-                          value={promoCode}
-                          onChange={(e) => setPromoCode(e.target.value)}
-                          className="mr-2"
-                        />
-                        <Button size="sm" onClick={handleApplyPromo}>
-                          Áp Dụng
-                        </Button>
-                      </div>
-
                       <Button
                         className="w-full"
                         onClick={() => setShowCheckout(true)}
@@ -1578,6 +1579,19 @@ const CartPage = () => {
                           </span>
                         </div>
                       </div>
+
+                      <div className="flex items-center mb-4">
+                        <Input
+                          placeholder="Mã giảm giá (nếu có)"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          className="mr-2"
+                        />
+                        <Button size="sm" onClick={handleApplyPromo}>
+                          Áp Dụng
+                        </Button>
+                      </div>
+
                     </div>
                   </div>
                 </div>
