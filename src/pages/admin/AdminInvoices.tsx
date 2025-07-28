@@ -570,7 +570,7 @@ const Vouchers = () => {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Danh Sách Voucher</CardTitle>
+          <CardTitle>Danh sách voucher</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 mb-6">
@@ -794,101 +794,102 @@ const Vouchers = () => {
 
       {/* Modal chi tiết voucher */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent className="max-w-5xl">
-          <DialogHeader>
-            <DialogTitle>Chi Tiết Voucher</DialogTitle>
-          </DialogHeader>
-          {selectedVoucher && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Mã Voucher</label>
-                  <Input value={selectedVoucher.maVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
-                  <Input value={selectedVoucher.tenVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Giá Trị</label>
-                  <Input
-                    value={selectedVoucher.loaiVoucher === 0 ? `${selectedVoucher.giaTri ?? 0}%` :
-                           selectedVoucher.loaiVoucher === 1 ? `${selectedVoucher.giaTri != null ? selectedVoucher.giaTri.toLocaleString('vi-VN') : '0'} VND` :
-                           "Miễn phí vận chuyển"}
-                    disabled
-                    className="mt-1 bg-gray-50"
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
-                  <Input value={selectedVoucher.ngayBatDau ? formatDateTime(selectedVoucher.ngayBatDau) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
-                  <Input value={selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Điều Kiện Trên</label>
-                  <Input value={selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
-                  <Input value={getVoucherTypeLabel(selectedVoucher.loaiVoucher)} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa</label>
-                  <Input value={selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Trạng Thái</label>
-                  <Input value={selectedVoucher.trangThai === 0 ? "Đang Dùng" : "Tạm Ngưng"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
-                  {selectedVoucher.hinhAnh ? (
-                    <img
-                      src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
-                      alt={selectedVoucher.tenVoucher}
-                      className="w-24 h-24 object-cover rounded mt-1 border"
-                    />
-                  ) : (
-                    <Input value="Chưa có hình ảnh" disabled className="mt-1 bg-gray-50" />
-                  )}
-                </div>
-              </div>
-              <div className="md:col-span-3 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Mô Tả</label>
-                  <Input value={selectedVoucher.moTa || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Mã Coupon</label>
-                  {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
-                    <ul className="list-disc pl-5 mt-1 space-y-1 max-h-26 overflow-y-auto border rounded p-2 bg-gray-50">
-                      {selectedVoucher.coupons.map((coupon) => (
-                        <li key={coupon.id} className={coupon.trangThai === 1 ? "line-through text-gray-500" : "text-gray-800"}>
-                          {coupon.maNhap}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <Input value="Không có mã" disabled className="mt-1 bg-gray-50" />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>Chi Tiết Voucher</DialogTitle>
+    </DialogHeader>
+    {selectedVoucher && (
+      <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Mã Voucher</label>
+            <Input value={selectedVoucher.maVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
+            <Input value={selectedVoucher.tenVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Giá Trị</label>
+            <Input
+              value={selectedVoucher.loaiVoucher === 0 ? `${selectedVoucher.giaTri ?? 0}%` :
+                     selectedVoucher.loaiVoucher === 1 ? `${selectedVoucher.giaTri != null ? selectedVoucher.giaTri.toLocaleString('vi-VN') : '0'} VND` :
+                     "Miễn phí vận chuyển"}
+              disabled
+              className="mt-1 bg-gray-50"
+            />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
+            <Input value={selectedVoucher.ngayBatDau ? formatDateTime(selectedVoucher.ngayBatDau) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
+            <Input value={selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Điều Kiện Trên</label>
+            <Input value={selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
+            <Input value={getVoucherTypeLabel(selectedVoucher.loaiVoucher)} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa</label>
+            <Input value={selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Trạng Thái</label>
+            <Input value={selectedVoucher.trangThai === 0 ? "Đang Dùng" : "Tạm Ngưng"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
+            {selectedVoucher.hinhAnh ? (
+              <img
+                src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
+                alt={selectedVoucher.tenVoucher}
+                className="w-24 h-24 object-cover rounded mt-1 border"
+              />
+            ) : (
+              <Input value="Chưa có hình ảnh" disabled className="mt-1 bg-gray-50" />
+            )}
+          </div>
+        </div>
+        <div className="md:col-span-3 space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Mô Tả</label>
+            <Input value={selectedVoucher.moTa || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Mã Coupon</label>
+            {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
+              <ul className="list-disc pl-5 mt-1 space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
+                {selectedVoucher.coupons.map((coupon) => (
+                  <li key={coupon.id} className={coupon.trangThai === 1 ? "line-through text-gray-500" : "text-gray-800"}>
+                    {coupon.maNhap}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Input value="Không có mã" disabled className="mt-1 bg-gray-50" />
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    <DialogFooter className="mt-4">
+      <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
+        Đóng
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
 
       {/* Modal thêm voucher */}
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>

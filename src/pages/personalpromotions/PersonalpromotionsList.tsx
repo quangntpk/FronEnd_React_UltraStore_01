@@ -110,16 +110,30 @@ const handleCopyCode = (code: string) => {
     });
 };
 
-// CSS Animation for fadeIn
-const fadeIn = `
-  @keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+// CSS Animation for centerUp và thanh cuộn tùy chỉnh
+const centerUp = `
+  @keyframes centerUp {
+    0% { transform: scale(0.7) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(-20px); opacity: 1; }
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #555;
   }
 `;
 
 const styleSheet = document.createElement('style');
-styleSheet.innerText = fadeIn;
+styleSheet.innerText = centerUp;
 document.head.appendChild(styleSheet);
 
 const PersonalPromotionsList = () => {
@@ -190,9 +204,9 @@ const PersonalPromotionsList = () => {
     setOpenDetailModal(true);
   };
 
-  // Lọc voucher chỉ hiển thị những voucher có coupon với maNguoiDung khớp với userId
+  // Lọc voucher chỉ hiển thị những voucher có coupon với maNguoiDung khớp với userId và trangThai === 2
   const filteredVouchers = vouchers.filter(voucher =>
-    voucher.coupons.some(coupon => coupon.maNguoiDung === userId)
+    voucher.coupons.some(coupon => coupon.maNguoiDung === userId && coupon.trangThai === 2)
   );
 
   if (loading) {
@@ -424,132 +438,112 @@ const PersonalPromotionsList = () => {
 
         {/* Modal chi tiết voucher */}
         <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-          <DialogContent className="max-w-2xl rounded-2xl bg-white shadow-xl p-6" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-            <DialogHeader className="pb-4">
-              <DialogTitle className="text-2xl font-bold text-crocus-600">Chi Tiết Voucher</DialogTitle>
+          <DialogContent className="max-w-md w-full rounded-lg bg-white shadow-lg p-4" style={{ animation: 'centerUp 0.3s ease-out' }}>
+            <DialogHeader className="pb-2">
+              <DialogTitle className="text-xl font-bold text-crocus-600">Chi Tiết Voucher</DialogTitle>
             </DialogHeader>
-            
             {selectedVoucher && (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
+                {/* Voucher Header */}
+                <div className="bg-crocus-50 rounded-lg p-3 text-center">
+                  <div className="flex items-center justify-center mb-1">
+                    <Gift className="h-5 w-5 text-crocus-500 mr-2" />
+                    <h2 className="text-base font-semibold text-gray-800 line-clamp-1">{selectedVoucher.tenVoucher}</h2>
+                  </div>
+                  <p className="text-sm font-medium text-crocus-600">{formatVoucherValue(selectedVoucher)}</p>
+                </div>
+
                 {/* Voucher Image */}
                 {selectedVoucher.hinhAnh && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Hình Ảnh</label>
-                    <div className="relative overflow-hidden rounded-lg shadow-md">
-                      <img
-                        src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
-                        alt={selectedVoucher.tenVoucher}
-                        className="w-full h-32 object-cover transform hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                    </div>
+                  <div className="relative overflow-hidden rounded-md shadow-sm">
+                    <img
+                      src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
+                      alt={selectedVoucher.tenVoucher}
+                      className="w-full h-24 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
                   </div>
                 )}
 
-                {/* Voucher Header */}
-                <div className="bg-crocus-500/10 rounded-lg p-4 text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    <Gift className="h-6 w-6 text-crocus-500 mr-2" />
-                    <h2 className="text-lg font-bold text-gray-800">{selectedVoucher.tenVoucher}</h2>
-                  </div>
-                  <p className="text-base font-semibold text-crocus-600">{formatVoucherValue(selectedVoucher)}</p>
-                  <p className="text-xs text-gray-600 mt-1">{getVoucherTypeLabel(selectedVoucher.loaiVoucher)}</p>
-                </div>
-
                 {/* Voucher Details */}
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex-1 min-w-[150px] bg-crocus-50 rounded-lg p-3">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Ngày Kết Thúc</label>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-crocus-500 mr-2" />
-                      <span className="text-sm text-gray-800">
-                        {selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"}
-                      </span>
-                    </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-50 rounded-md p-2">
+                    <label className="block text-xs font-medium text-gray-600">Ngày Kết Thúc</label>
+                    <p className="text-sm text-gray-800">
+                      {selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"}
+                    </p>
                   </div>
-                  <div className="flex-1 min-w-[150px] bg-crocus-50 rounded-lg p-3">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Điều Kiện Đơn Hàng</label>
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-crocus-500 mr-2" />
-                      <span className="text-sm text-gray-800">
-                        {selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Không giới hạn"}
-                      </span>
-                    </div>
+                  <div className="bg-gray-50 rounded-md p-2">
+                    <label className="block text-xs font-medium text-gray-600">Loại Voucher</label>
+                    <p className="text-sm text-gray-800">
+                      {getVoucherTypeLabel(selectedVoucher.loaiVoucher)}
+                    </p>
                   </div>
-                  <div className="flex-1 min-w-[150px] bg-crocus-50 rounded-lg p-3">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Giá Trị Tối Đa</label>
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-crocus-500 mr-2" />
-                      <span className="text-sm text-gray-800">
-                        {selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Không giới hạn"}
-                      </span>
-                    </div>
+                  <div className="bg-gray-50 rounded-md p-2">
+                    <label className="block text-xs font-medium text-gray-600">Điều Kiện</label>
+                    <p className="text-sm text-gray-800">
+                      {selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Không giới hạn"}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-md p-2">
+                    <label className="block text-xs font-medium text-gray-600">Giá Trị Tối Đa</label>
+                    <p className="text-sm text-gray-800">
+                      {selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Không giới hạn"}
+                    </p>
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Mô Tả</label>
-                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 max-h-[120px] overflow-y-auto">
-                    <p className="text-sm text-gray-800">
-                      {selectedVoucher.moTa || "Chưa có mô tả chi tiết"}
-                    </p>
-                  </div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Mô Tả</label>
+                  <p className="text-sm text-gray-800 bg-gray-50 rounded-md p-2 max-h-20 overflow-y-auto">
+                    {selectedVoucher.moTa || "Chưa có mô tả chi tiết"}
+                  </p>
                 </div>
 
                 {/* Coupon Codes */}
-                <div className="bg-crocus-50 rounded-lg p-4">
-                  <label className="block text-sm font-bold text-crocus-700 mb-2">Mã voucher dành cho bạn</label>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Mã Coupon</label>
                   {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
-                    <div className="flex flex-wrap gap-3">
-                      {selectedVoucher.coupons
-                        .filter((coupon) => coupon.maNguoiDung === userId)
-                        .map((coupon) => (
-                          <div 
-                            key={coupon.id}
-                            className={`bg-white rounded-lg p-3 border border-crocus-200 shadow-sm flex items-center gap-2 flex-1 min-w-[200px] ${
-                              coupon.trangThai === 1 ? "opacity-60" : ""
-                            }`}
-                          >
-                            <span className={`font-mono font-semibold text-crocus-600 flex-1 text-center text-base ${
-                              coupon.trangThai === 1 ? "line-through text-gray-400" : ""
-                            }`}>
-                              {coupon.maNhap}
-                            </span>
-                            {coupon.trangThai === 1 ? (
-                              <Badge className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs">
-                                Đã sử dụng
-                              </Badge>
-                            ) : (
+                    <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedVoucher.coupons
+                          .filter((coupon) => coupon.maNguoiDung === userId && coupon.trangThai === 2)
+                          .map((coupon) => (
+                            <div
+                              key={coupon.id}
+                              className="flex items-center gap-2 p-2 bg-white rounded-md border border-gray-200 shadow-sm"
+                            >
+                              <span
+                                className="font-mono text-sm text-crocus-600 flex-1 text-center"
+                              >
+                                {coupon.maNhap}
+                              </span>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleCopyCode(coupon.maNhap)}
-                                className="bg-crocus-500 hover:bg-crocus-600 text-white border-none rounded-lg px-3 py-1 text-xs"
+                                className="bg-crocus-500 hover:bg-crocus-600 text-white border-none rounded-md px-2 py-0.5 text-xs"
                               >
-                                <Copy className="h-4 w-4 mr-1" />
+                                <Copy className="h-3 w-3 mr-1" />
                                 Sao chép
                               </Button>
-                            )}
-                          </div>
-                        ))}
-                      {selectedVoucher.coupons.filter((coupon) => coupon.maNguoiDung === userId).length === 0 && (
-                        <div className="w-full text-center py-2">
-                          <p className="text-sm text-gray-600">Không có mã voucher phù hợp</p>
-                        </div>
-                      )}
+                            </div>
+                          ))}
+                        {selectedVoucher.coupons.filter((coupon) => coupon.maNguoiDung === userId && coupon.trangThai === 2).length === 0 && (
+                          <p className="text-sm text-gray-600 text-center col-span-2">Không có mã coupon khả dụng</p>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-2">
-                      <p className="text-sm text-gray-600">Không có mã voucher</p>
-                    </div>
+                    <p className="text-sm text-gray-600 text-center">Không có mã coupon</p>
                   )}
                 </div>
 
                 {/* Close Button */}
-                <Button 
+                <Button
                   onClick={() => setOpenDetailModal(false)}
-                  className="w-full bg-crocus-500 hover:bg-crocus-600 text-white rounded-lg py-2 font-semibold transition-all duration-300 transform hover:scale-105 shadow-md"
+                  className="w-full bg-crocus-500 hover:bg-crocus-600 text-white rounded-md py-2 text-sm font-medium transition-all duration-300 shadow-sm"
                 >
                   Đóng
                 </Button>

@@ -482,7 +482,7 @@ const AdminTrademark = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight text-gray-800">
-          Quản Lý Thương Hiệu
+          Quản lý thương hiệu
         </h1>
         {activeTab === "active" && (
           <Button
@@ -498,10 +498,10 @@ const AdminTrademark = () => {
       <Tabs defaultValue="active" className="w-full" onValueChange={(value) => setActiveTab(value as "active" | "inactive")}>
         <TabsList className="grid w-full md:w-auto grid-cols-2 gap-1">
           <TabsTrigger value="active" className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4" /> Danh Sách Thương Hiệu
+            <Settings2 className="h-4 w-4" /> Danh sách thương hiệu
           </TabsTrigger>
           <TabsTrigger value="inactive" className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4" /> Khôi Phục Thương Hiệu
+            <Settings2 className="h-4 w-4" /> Khôi phục thương hiệu
           </TabsTrigger>
         </TabsList>
 
@@ -527,7 +527,7 @@ const AdminTrademark = () => {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle>Danh Sách Thương Hiệu</CardTitle>
+                  <CardTitle>Danh sách thương hiệu</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>

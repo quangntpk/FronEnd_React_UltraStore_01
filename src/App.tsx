@@ -17,7 +17,7 @@ import ComboDetail from "./pages/combos/ComboDetail";
 import BlogsList from "./pages/blogs/BlogsList";
 import BlogDetail from "./pages/blogs/BlogDetail";
 import FavoritesList from "./pages/favorites/FavoritesList";
-import PersonalpromotionsList from "./pages/personalpromotions/personalpromotionsList"
+import PersonalpromotionsList from "./pages/personalpromotions/PersonalpromotionsList"
 import Contact from "./pages/contact/Contact";
 import About from "./pages/about/About";
 import Login from "./pages/auth/Login";
@@ -139,6 +139,7 @@ const App = () => (
           <AppShell>
             <GoogleCallbackHandler />
             <Routes>
+              <Route path="buy" element={<AdminBuy />} />
               <Route path="/" element={<UserLayout />}>
                 <Route index element={<Index />} />
                 <Route path="products" element={<ProductList />} />
@@ -192,7 +193,7 @@ const App = () => (
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="settings" element={<AdminSettings />} />
-                <Route path="buy" element={<AdminBuy />} />
+                
 
                 <Route path="orders" element={<StaffOrders />} />
 

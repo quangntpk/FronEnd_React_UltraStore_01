@@ -145,7 +145,6 @@ const HeroSection = () => {
                         }}
                       />
                       <div className="absolute inset-0 flex flex-col justify-end p-4">
-                        <h3 className="text-xl text-white font-semibold">{s.name}</h3>
                       </div>
                     </div>
                   </CarouselItem>

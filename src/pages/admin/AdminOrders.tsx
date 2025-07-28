@@ -443,8 +443,8 @@ const AdminOrders: React.FC = () => {
     <div className="p-6 bg-white rounded-lg shadow">
       <Toaster position="top-right" />
 
-      <h1 className="text-2xl font-semibold mb-4">Đơn hàng</h1>
-
+      <h1 className="text-3xl font-bold tracking-tight">Đơn hàng</h1>
+<br></br>
       <div className="relative w-full sm:w-[300px] mb-4">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input

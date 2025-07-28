@@ -518,7 +518,7 @@ const AdminBlog = () => {
       [{ 'script': 'sub' }, { 'script': 'super' }],
       [{ 'indent': '-1' }, { 'indent': '+1' }],
       [{ 'direction': 'rtl' }],
-      [{ 'size': ['small', false, 'large', 'huge'] }],
+      [{ 'size': ['small', 'normal', 'large', 'huge'] }], // Explicit font sizes
       [{ 'color': [] }, { 'background': [] }],
       [{ 'font': [] }],
       [{ 'align': [] }],

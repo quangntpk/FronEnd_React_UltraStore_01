@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import Swal from 'sweetalert2'; // Import SweetAlert2
+import Swal from 'sweetalert2';
 
 // Interface for API Responses
 interface CancelOrderResponse {
@@ -119,19 +119,31 @@ interface Comment {
   danhGia: number;
   trangThai: number;
   ngayBinhLuan: string;
+  maDonHang: string; // Added to match backend API
 }
 
 interface OrderItemProps {
   order: Order;
   onCancel: (orderId: string) => void;
   onAddComment: (orderId: string, productId: number, content: string, rating: number) => Promise<boolean>;
-  commentedProducts: Set<number>;
+  commentedProducts: Set<string>;
+  canComment: boolean;
+  timeUntilNextComment: number;
+  formatTimeRemaining: (seconds: number) => string;
 }
 
-const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
+const OrderItem = ({
+  order,
+  onCancel,
+  onAddComment,
+  commentedProducts,
+  canComment,
+  timeUntilNextComment,
+  formatTimeRemaining,
+}: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [commentStates, setCommentStates] = useState<{ [key: number]: CommentState }>({});
-  const [isCommenting, setIsCommenting] = useState<{ [key: number]: boolean }>({});
+  const [commentStates, setCommentStates] = useState<{ [key: string]: CommentState }>({});
+  const [isCommenting, setIsCommenting] = useState<{ [key: string]: boolean }>({});
   const statusInfo = orderStatuses[mapStatus(order.trangThaiDonHang)] || orderStatuses.pending;
   const StatusIcon = statusInfo.icon;
 
@@ -142,18 +154,18 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
   );
   const shippingFee = Math.max(0, (order.finalAmount || 0) - totalItemCost);
 
-  const handleCommentChange = (productId: number, field: keyof CommentState, value: string | number) => {
+  const handleCommentChange = (commentKey: string, field: keyof CommentState, value: string | number) => {
     setCommentStates((prev) => ({
       ...prev,
-      [productId]: {
-        ...prev[productId] || { productId, content: "", rating: 0 },
+      [commentKey]: {
+        ...prev[commentKey] || { productId: parseInt(commentKey.split('-')[1]), content: "", rating: 0 },
         [field]: value,
       },
     }));
   };
 
-  const handleAddComment = async (productId: number) => {
-    const comment = commentStates[productId];
+  const handleAddComment = async (commentKey: string) => {
+    const comment = commentStates[commentKey];
     if (!comment || !comment.content || comment.rating < 1 || comment.rating > 5) {
       Swal.fire({
         icon: 'error',
@@ -163,15 +175,16 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
       return;
     }
 
-    setIsCommenting((prev) => ({ ...prev, [productId]: true }));
+    setIsCommenting((prev) => ({ ...prev, [commentKey]: true }));
+    const productId = parseInt(commentKey.split('-')[1]);
     const success = await onAddComment(order.maDonHang.toString(), productId, comment.content, comment.rating);
     if (success) {
       setCommentStates((prev) => ({
         ...prev,
-        [productId]: { productId, content: "", rating: 0 },
+        [commentKey]: { productId, content: "", rating: 0 },
       }));
     }
-    setIsCommenting((prev) => ({ ...prev, [productId]: false }));
+    setIsCommenting((prev) => ({ ...prev, [commentKey]: false }));
   };
 
   return (
@@ -182,7 +195,18 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
             <span className="font-medium text-gray-800">Mã đơn hàng: {order.maDonHang || "N/A"}</span>
             <span className="text-sm text-gray-500">Người nhận: {order.tenNguoiNhan || "N/A"}</span>
             <span className="text-sm text-gray-500">
-              Ngày đặt: {order.ngayDat ? new Date(order.ngayDat).toLocaleDateString('vi-VN') : "N/A"}
+              Ngày đặt: {order.ngayDat
+                ? (() => {
+                    const parts = order.ngayDat.split('/');
+                    if (parts.length === 3) {
+                      // dd/MM/yyyy -> yyyy-MM-dd
+                      const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                      const d = new Date(iso);
+                      return !isNaN(d.getTime()) ? d.toLocaleDateString('vi-VN') : order.ngayDat;
+                    }
+                    return order.ngayDat;
+                  })()
+                : "N/A"}
             </span>
             <span className="text-sm text-gray-500">SĐT: {order.thongTinNguoiDung?.sdt || "N/A"}</span>
             <span className="text-sm text-gray-500">Phương thức thanh toán: {order.hinhThucThanhToan || "N/A"}</span>
@@ -224,167 +248,169 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
         <div className="p-4 border-t">
           {/* Product List */}
           <div className="space-y-4 mb-6">
-            {(order.sanPhams || []).map((item) => (
-              <div key={item.maChiTietDh} className="flex flex-col gap-4">
-                {/* Product Item */}
-                <a
-                  href={`http://localhost:8080/${item.laCombo ? 'combo' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
-                  className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
-                >
-                  {/* Product Image */}
-                  <div className="col-span-12 sm:col-span-2">
-                    <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                      <img
-                        src={item.hinhAnh ? `${item.hinhAnh}` : "https://via.placeholder.com/150"}
-                        alt={item.laCombo ? 'Combo Preview' : 'Product Preview'}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
+            {(order.sanPhams || []).map((item) => {
+              const productId = item.laCombo ? item.maCombo! : parseInt(item.maSanPham!);
+              const commentKey = `${order.maDonHang}-${productId}`;
+              const hasCommented = commentedProducts.has(commentKey);
 
-                  {/* Product Info */}
-                  <div className="col-span-12 sm:col-span-7">
-                    <div className="font-medium text-gray-800 mb-2">
-                      {item.laCombo ? item.combo?.tenCombo : item.tenSanPham || 'N/A'}
+              return (
+                <div key={item.maChiTietDh} className="flex flex-col gap-4">
+                  {/* Product Item */}
+                  <a
+                    href={`http://localhost:8080/${item.laCombo ? 'combo' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
+                    className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
+                  >
+                    {/* Product Image */}
+                    <div className="col-span-12 sm:col-span-2">
+                      <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                        <img
+                          src={item.hinhAnh || "https://via.placeholder.com/150"}
+                          alt={item.laCombo ? 'Combo Preview' : 'Product Preview'}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     </div>
-                    
-                    <div className="text-sm text-gray-600 space-y-2">
-                      <div className="flex items-center">
-                        <span className="font-medium">Số lượng:</span>
-                        <span className="ml-2">{item.soLuong || 0} x {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.gia || 0)}</span>
+
+                    {/* Product Info */}
+                    <div className="col-span-12 sm:col-span-7">
+                      <div className="font-medium text-gray-800 mb-2">
+                        {item.laCombo ? item.combo?.tenCombo : item.tenSanPham || 'N/A'}
                       </div>
                       
-                      {/* Color and Size for regular products */}
-                      {!item.laCombo && (item.mauSac || item.kichThuoc) && (
-                        <div className="flex items-center space-x-4">
-                          {item.mauSac && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs text-gray-600">Màu:</span>
-                              <div className="flex items-center space-x-1">
-                                {item.mauSacHex && (
-                                  <div 
-                                    className="w-4 h-4 rounded-full border border-gray-300"
-                                    style={{ backgroundColor: item.mauSacHex }}
-                                    title={item.mauSac}
-                                  />
-                                )}
-                                <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded">
-                                  {item.mauSac}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {item.kichThuoc && (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs text-gray-600">Size:</span>
-                              <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                {item.kichThuoc}
-                              </span>
-                            </div>
-                          )}
+                      <div className="text-sm text-gray-600 space-y-2">
+                        <div className="flex items-center">
+                          <span className="font-medium">Số lượng:</span>
+                          <span className="ml-2">{item.soLuong || 0} x {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.gia || 0)}</span>
                         </div>
-                      )}
-                      
-                      {/* Combo products details */}
-                      {item.laCombo && item.combo?.sanPhamsTrongCombo && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="text-xs font-medium text-gray-700 mb-2">Sản phẩm trong combo:</div>
-                          <div className="space-y-2">
-                            {item.combo.sanPhamsTrongCombo.map((comboProduct, index) => (
-                              <div key={index} className="flex items-center justify-between text-xs text-gray-600 bg-white p-2 rounded">
-                                <div className="flex items-center space-x-2">
-                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                  <span className="font-medium">{comboProduct.tenSanPham}</span>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  {comboProduct.mauSac && (
-                                    <span className="bg-gray-100 px-2 py-1 rounded text-xs">
-                                      {comboProduct.mauSac}
-                                    </span>
+                        
+                        {/* Color and Size for regular products */}
+                        {!item.laCombo && (item.mauSac || item.kichThuoc) && (
+                          <div className="flex items-center space-x-4">
+                            {item.mauSac && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-600">Màu:</span>
+                                <div className="flex items-center space-x-1">
+                                  {item.mauSacHex && (
+                                    <div 
+                                      className="w-4 h-4 rounded-full border border-gray-300"
+                                      style={{ backgroundColor: item.mauSacHex }}
+                                      title={item.mauSac}
+                                    />
                                   )}
-                                  {comboProduct.kichThuoc && (
-                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                      {comboProduct.kichThuoc}
-                                    </span>
-                                  )}
-                                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                    x{comboProduct.soLuong}
+                                  <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded">
+                                    {item.mauSac}
                                   </span>
                                 </div>
                               </div>
-                            ))}
+                            )}
+                            
+                            {item.kichThuoc && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-600">Size:</span>
+                                <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  {item.kichThuoc}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        </div>
+                        )}
+                        
+                        {/* Combo products details */}
+                        {item.laCombo && item.combo?.sanPhamsTrongCombo && (
+                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                            <div className="text-xs font-medium text-gray-700 mb-2">Sản phẩm trong combo:</div>
+                            <div className="space-y-2">
+                              {item.combo.sanPhamsTrongCombo.map((comboProduct, index) => (
+                                <div key={index} className="flex items-center justify-between text-xs text-gray-600 bg-white p-2 rounded">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                    <span className="font-medium">{comboProduct.tenSanPham}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                    {comboProduct.mauSac && (
+                                      <span className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                        {comboProduct.mauSac}
+                                      </span>
+                                    )}
+                                    {comboProduct.kichThuoc && (
+                                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                        {comboProduct.kichThuoc}
+                                      </span>
+                                    )}
+                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                      x{comboProduct.soLuong}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Product Price */}
+                    <div className="col-span-12 sm:col-span-3 text-right">
+                      <div className="font-medium text-lg text-gray-800">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.thanhTien || 0)}
+                      </div>
+                    </div>
+                  </a>
+
+                  {/* Comment Section for completed orders */}
+                  {mapStatus(order.trangThaiDonHang) === "completed" && !hasCommented && (
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg ml-4">
+                      <h3 className="text-lg font-medium mb-4 text-blue-800">
+                        Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
+                      </h3>
+                      {!canComment && (
+                        <p className="text-red-600 text-sm mb-4">
+                          Bạn phải đợi {formatTimeRemaining(timeUntilNextComment)} trước khi có thể bình luận lại.
+                        </p>
                       )}
+                      <div className="flex items-center mb-4">
+                        <span className="mr-2 text-sm font-medium">Đánh giá:</span>
+                        {Array.from({ length: 5 }).map((_, index) => (
+                          <Star
+                            key={index}
+                            className={cn(
+                              "w-6 h-6 cursor-pointer transition-colors",
+                              index < (commentStates[commentKey]?.rating || 0)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300 hover:text-yellow-200",
+                              !canComment && "cursor-not-allowed opacity-50"
+                            )}
+                            onClick={() => canComment && handleCommentChange(commentKey, "rating", index + 1)}
+                          />
+                        ))}
+                      </div>
+                      <Textarea
+                        value={commentStates[commentKey]?.content || ""}
+                        onChange={(e) => canComment && handleCommentChange(commentKey, "content", e.target.value)}
+                        placeholder="Nhập bình luận của bạn..."
+                        className="w-full mb-4"
+                        rows={4}
+                        disabled={isCommenting[commentKey] || !canComment}
+                      />
+                      <Button
+                        onClick={() => handleAddComment(commentKey)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={isCommenting[commentKey] || !canComment}
+                      >
+                        {isCommenting[commentKey] ? "Đang gửi..." : "Gửi Bình Luận"}
+                      </Button>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Product Price */}
-                  <div className="col-span-12 sm:col-span-3 text-right">
-                    <div className="font-medium text-lg text-gray-800">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.thanhTien || 0)}
+                  {/* Already commented message */}
+                  {mapStatus(order.trangThaiDonHang) === "completed" && hasCommented && (
+                    <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
+                      <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này trong đơn hàng này.</p>
                     </div>
-                  </div>
-                </a>
-
-                {/* Comment Section for completed orders */}
-                {mapStatus(order.trangThaiDonHang) === "completed" && 
-                 !commentedProducts.has(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)) && (
-                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg ml-4">
-                    <h3 className="text-lg font-medium mb-4 text-blue-800">
-                      Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
-                    </h3>
-                    <div className="flex items-center mb-4">
-                      <span className="mr-2 text-sm font-medium">Đánh giá:</span>
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <Star
-                          key={index}
-                          className={cn(
-                            "w-6 h-6 cursor-pointer transition-colors",
-                            index < (commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.rating || 0)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300 hover:text-yellow-200"
-                          )}
-                          onClick={() => handleCommentChange(
-                            item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
-                            "rating", 
-                            index + 1
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <Textarea
-                      value={commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.content || ""}
-                      onChange={(e) => handleCommentChange(
-                        item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
-                        "content", 
-                        e.target.value
-                      )}
-                      placeholder="Nhập bình luận của bạn..."
-                      className="w-full mb-4"
-                      rows={4}
-                      disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
-                    />
-                    <Button
-                      onClick={() => handleAddComment(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!))}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
-                    >
-                      {isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)] ? "Đang gửi..." : "Gửi Bình Luận"}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Already commented message */}
-                {mapStatus(order.trangThaiDonHang) === "completed" && 
-                 commentedProducts.has(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)) && (
-                  <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
-                    <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này.</p>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Order Summary */}
@@ -469,7 +495,9 @@ const OrderHistory = () => {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [commentedProducts, setCommentedProducts] = useState<Set<number>>(new Set());
+  const [commentedProducts, setCommentedProducts] = useState<Set<string>>(new Set());
+  const [canComment, setCanComment] = useState(true);
+  const [timeUntilNextComment, setTimeUntilNextComment] = useState(0);
 
   const cancelReasonsSuggestions = [
     "Không muốn mua nữa",
@@ -477,6 +505,42 @@ const OrderHistory = () => {
     "Sai thông tin đơn hàng",
     "Khác"
   ];
+
+  // Format time remaining for display
+  const formatTimeRemaining = (seconds: number) => {
+    const minutes = Math.ceil(seconds / 60);
+    return `${minutes} phút`;
+  };
+
+  const checkCommentAvailability = () => {
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const maNguoiDung = userData?.maNguoiDung;
+    if (!maNguoiDung) return;
+
+    const lastCommentTime = localStorage.getItem(`lastCommentTime_${maNguoiDung}`);
+    if (lastCommentTime) {
+      const lastTime = parseInt(lastCommentTime);
+      const currentTime = Date.now();
+      const secondsSinceLastComment = (currentTime - lastTime) / 1000;
+      const cooldownSeconds = 3600; // 1 hour
+      if (secondsSinceLastComment < cooldownSeconds) {
+        setCanComment(false);
+        setTimeUntilNextComment(cooldownSeconds - secondsSinceLastComment);
+      } else {
+        setCanComment(true);
+        setTimeUntilNextComment(0);
+      }
+    } else {
+      setCanComment(true);
+      setTimeUntilNextComment(0);
+    }
+  };
+
+  useEffect(() => {
+    checkCommentAvailability();
+    const interval = setInterval(checkCommentAvailability, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchOrdersByUserId = async () => {
     try {
@@ -534,7 +598,7 @@ const OrderHistory = () => {
       }
 
       const likedCommentsKey = `likedComments_${maNguoiDung}`;
-      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as number[];
+      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as string[];
       setCommentedProducts(new Set(storedCommentedProducts));
 
       const response = await axios.get<Comment[]>("http://localhost:5261/api/Comment/list", {
@@ -542,11 +606,13 @@ const OrderHistory = () => {
       });
       const comments = response.data || [];
       const userComments = comments.filter((comment) => comment.maNguoiDung === parseInt(maNguoiDung));
-      const apiCommentedProductIds = new Set(userComments.map((comment) => parseInt(comment.maSanPham)));
+      const apiCommentedProductKeys = new Set(
+        userComments.map((comment) => `${comment.maDonHang}-${comment.maSanPham}`)
+      );
 
-      const mergedCommentedProductIds = new Set([...apiCommentedProductIds, ...storedCommentedProducts]);
-      setCommentedProducts(mergedCommentedProductIds);
-      localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductIds]));
+      const mergedCommentedProductKeys = new Set([...apiCommentedProductKeys, ...storedCommentedProducts]);
+      setCommentedProducts(mergedCommentedProductKeys);
+      localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductKeys]));
     } catch (error) {
       console.error("Error fetching commented products:", error);
       Swal.fire({
@@ -590,6 +656,15 @@ const OrderHistory = () => {
         return false;
       }
 
+      if (!canComment) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: `Bạn phải đợi ${formatTimeRemaining(timeUntilNextComment)} trước khi có thể bình luận lại.`,
+        });
+        return false;
+      }
+
       const commentData = {
         maSanPham: productId.toString(),
         maNguoiDung: maNguoiDung,
@@ -611,9 +686,10 @@ const OrderHistory = () => {
       if (response.status === 201) {
         setCommentedProducts((prev) => {
           const newSet = new Set(prev);
-          newSet.add(productId);
+          newSet.add(`${orderId}-${productId}`);
           const likedCommentsKey = `likedComments_${maNguoiDung}`;
           localStorage.setItem(likedCommentsKey, JSON.stringify([...newSet]));
+          localStorage.setItem(`lastCommentTime_${maNguoiDung}`, Date.now().toString());
           return newSet;
         });
         Swal.fire({
@@ -624,6 +700,7 @@ const OrderHistory = () => {
           showConfirmButton: false,
         });
         await fetchCommentedProducts();
+        checkCommentAvailability();
         return true;
       }
       return false;
@@ -759,7 +836,6 @@ const OrderHistory = () => {
       return;
     }
 
-    // Kiểm tra xem đơn hàng có tồn tại trong danh sách không
     const order = orders.find(o => o.maDonHang.toString() === orderId);
     if (!order) {
       Swal.fire({
@@ -770,7 +846,6 @@ const OrderHistory = () => {
       return;
     }
 
-    // Kiểm tra trạng thái đơn hàng có thể hủy không
     const orderStatus = mapStatus(order.trangThaiDonHang);
     if (orderStatus !== "pending" && orderStatus !== "processing") {
       Swal.fire({
@@ -781,7 +856,6 @@ const OrderHistory = () => {
       return;
     }
 
-    // Mở modal hủy đơn hàng
     setCancelOrderId(orderId);
     setCancelReason('');
     setShowCancelModal(true);
@@ -822,7 +896,6 @@ const OrderHistory = () => {
         return;
       }
 
-      // Kiểm tra quyền sở hữu đơn hàng trước khi gửi request
       const order = orders.find(o => o.maDonHang === orderIdNumber);
       if (!order) {
         Swal.fire({
@@ -840,14 +913,12 @@ const OrderHistory = () => {
         userId: maNguoiDung
       });
 
-      // Tạo request object theo đúng interface
       const cancelRequest: CancelOrderRequest = {
         lyDoHuy: cancelReason.trim()
       };
 
       console.log("Cancel request payload:", cancelRequest);
 
-      // Gọi API hủy đơn hàng với headers đầy đủ
       const response = await axios.put<CancelOrderResponse>(
         `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
         cancelRequest,
@@ -857,20 +928,17 @@ const OrderHistory = () => {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
           },
-          timeout: 10000 // 10 seconds timeout
+          timeout: 10000
         }
       );
 
       console.log("Cancel response:", response.data);
 
-      // Đóng modal trước khi xử lý response
       setShowCancelModal(false);
       setCancelReason('');
       setCancelOrderId(null);
 
-      // Xử lý response
       if (response.data.isAccountLocked) {
-        // Hiển thị thông báo chi tiết khi tài khoản bị khóa
         const lockMessage = response.data.lockoutMessage || 
           "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
         
@@ -891,15 +959,14 @@ const OrderHistory = () => {
             localStorage.removeItem("user");
             if (maNguoiDung) {
               localStorage.removeItem(`likedComments_${maNguoiDung}`);
+              localStorage.removeItem(`lastCommentTime_${maNguoiDung}`);
             }
             navigate("/login");
           });
         });
       } else {
-        // Hiển thị thông báo hủy thành công
         let successMessage = response.data.message || "Hủy đơn hàng thành công!";
         
-        // Nếu có thông tin về số lần hủy còn lại, hiển thị cảnh báo
         if (response.data.remainingCancellations !== undefined) {
           if (response.data.remainingCancellations === 1) {
             successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 1 lần hủy đơn hàng. Nếu hủy thêm 1 lần nữa, tài khoản sẽ bị khóa trong 3 ngày.";
@@ -916,7 +983,6 @@ const OrderHistory = () => {
           showConfirmButton: false,
         });
         
-        // Refresh danh sách đơn hàng
         await fetchOrdersByUserId();
       }
 
@@ -925,7 +991,6 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       
-      // Đóng modal khi có lỗi
       setShowCancelModal(false);
       setCancelReason('');
       setCancelOrderId(null);
@@ -940,6 +1005,7 @@ const OrderHistory = () => {
           localStorage.removeItem("user");
           if (maNguoiDung) {
             localStorage.removeItem(`likedComments_${maNguoiDung}`);
+            localStorage.removeItem(`lastCommentTime_${maNguoiDung}`);
           }
           navigate("/login");
         });
@@ -950,7 +1016,6 @@ const OrderHistory = () => {
           text: 'Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.',
         });
       } else if (error.response?.status === 400) {
-        // Xử lý các lỗi BadRequest từ server
         if (error.response?.data?.isAccountLocked) {
           const lockMessage = error.response.data.lockoutMessage || 
             "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
@@ -972,6 +1037,7 @@ const OrderHistory = () => {
               localStorage.removeItem("user");
               if (maNguoiDung) {
                 localStorage.removeItem(`likedComments_${maNguoiDung}`);
+                localStorage.removeItem(`lastCommentTime_${maNguoiDung}`);
               }
               navigate("/login");
             });
@@ -1058,6 +1124,9 @@ const OrderHistory = () => {
                         onCancel={handleCancelClick}
                         onAddComment={handleAddComment}
                         commentedProducts={commentedProducts}
+                        canComment={canComment}
+                        timeUntilNextComment={timeUntilNextComment}
+                        formatTimeRemaining={formatTimeRemaining}
                       />
                     ))}
                   </div>
@@ -1091,6 +1160,9 @@ const OrderHistory = () => {
                         onCancel={handleCancelClick}
                         onAddComment={handleAddComment}
                         commentedProducts={commentedProducts}
+                        canComment={canComment}
+                        timeUntilNextComment={timeUntilNextComment}
+                        formatTimeRemaining={formatTimeRemaining}
                       />
                     ))}
                   </div>
