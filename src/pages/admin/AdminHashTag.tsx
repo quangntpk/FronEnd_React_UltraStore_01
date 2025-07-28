@@ -482,7 +482,7 @@ const AdminHashTag = () => {
         <div className="space-y-6 p-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight text-gray-800">
-                    Quản Lý Hashtag
+                    Quản lý hashtag
                 </h1>
                 {activeTab === "active" && (
                     <Button
@@ -498,10 +498,10 @@ const AdminHashTag = () => {
             <Tabs defaultValue="active" className="w-full" onValueChange={(value) => setActiveTab(value as "active" | "inactive")}>
                 <TabsList className="grid w-full md:w-auto grid-cols-2 gap-1">
                     <TabsTrigger value="active" className="flex items-center gap-2">
-                        <Settings2 className="h-4 w-4" /> Danh Sách Hashtag
+                        <Settings2 className="h-4 w-4" /> Danh sách hashtag
                     </TabsTrigger>
                     <TabsTrigger value="inactive" className="flex items-center gap-2">
-                        <Settings2 className="h-4 w-4" /> Khôi Phục Hashtag
+                        <Settings2 className="h-4 w-4" /> Khôi phục hashtag
                     </TabsTrigger>
                 </TabsList>
 
@@ -527,7 +527,7 @@ const AdminHashTag = () => {
                         <>
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Danh Sách Hashtag</CardTitle>
+                                    <CardTitle>Danh sách hashtag</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <Table>

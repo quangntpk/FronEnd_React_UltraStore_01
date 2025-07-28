@@ -370,7 +370,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
             <h3 className="font-semibold mb-3">Thông tin đơn hàng</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p><strong>Mã đơn hàng:</strong> {orderDetail.maDonHang}</p>
+                <p><strong>Mã đ hàng:</strong> {orderDetail.maDonHang}</p>
                 <p><strong>Ngày đặt:</strong> {orderDetail.ngayDat}</p>
                 <p><strong>Trạng thái:</strong> 
                   <Badge className={`ml-2 ${getStatusColor(orderDetail.trangThaiDonHang)}`}>

@@ -39,6 +39,12 @@ import {
   Eye,
   Trash2
 } from "lucide-react";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 import toast, { Toaster } from "react-hot-toast";
 
 interface Comment {
@@ -53,10 +59,11 @@ interface Comment {
   trangThai: number;
   ngayBinhLuan?: string;
   hinhAnh?: string;
+  maBlog?: number;
 }
 
 const formatDateTime = (dateString?: string): string => {
-  if (!dateString) return "Ngày không hợp lệ";
+  if (!dateString || isNaN(new Date(dateString).getTime())) return "Ngày không hợp lệ";
   const date = new Date(dateString);
   const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -71,13 +78,14 @@ const Comments = () => {
   const [commentToDelete, setCommentToDelete] = useState<Comment | null>(null);
   const [openDetailModal, setOpenDetailModal] = useState<boolean>(false);
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [currentPage, setCurrentPage] = useState<{ product: number; blog: number }>({ product: 1, blog: 1 });
+  const [activeTab, setActiveTab] = useState<string>("productComments");
   const commentsPerPage: number = 10;
 
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5261/api/Comment/list"); // Cập nhật URL đúng
+      const response = await fetch("http://localhost:5261/api/Comment/list");
       if (!response.ok) {
         throw new Error(`Không thể lấy dữ liệu bình luận: ${response.status} ${response.statusText}`);
       }
@@ -151,24 +159,44 @@ const Comments = () => {
     fetchComments();
   }, []);
 
-  const filteredComments = comments
-    .filter(item => {
-      const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
-      return (
-        (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-        (item.maBinhLuan.toString().includes(searchTerm.toLowerCase()) || '') ||
-        (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
-        (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-        (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-        (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
-      );
-    })
-    .sort((a, b) => new Date(b.ngayBinhLuan || "").getTime() - new Date(a.ngayBinhLuan || "").getTime());
+  useEffect(() => {
+    setCurrentPage({ product: 1, blog: 1 });
+  }, [activeTab]);
 
-  const indexOfLastComment: number = currentPage * commentsPerPage;
-  const indexOfFirstComment: number = indexOfLastComment - commentsPerPage;
-  const currentComments: Comment[] = filteredComments.slice(indexOfFirstComment, indexOfLastComment);
-  const totalPages: number = Math.ceil(filteredComments.length / commentsPerPage);
+  const filteredComments = (type: 'product' | 'blog') => {
+    return comments
+      .filter(item => {
+        const isProductComment = type === 'product' && item.maSanPham !== undefined && item.maSanPham !== null;
+        const isBlogComment = type === 'blog' && item.maBlog !== undefined && item.maBlog !== null;
+        if (!isProductComment && !isBlogComment) return false;
+
+        const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
+        return (
+          (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+          (item.maBinhLuan.toString().includes(searchTerm.toLowerCase()) || '') ||
+          (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
+          (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+          (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+          (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+          (item.maBlog?.toString().includes(searchTerm.toLowerCase()) || '')
+        );
+      })
+      .sort((a, b) => new Date(b.ngayBinhLuan || "").getTime() - new Date(a.ngayBinhLuan || "").getTime());
+  };
+
+  const productComments = filteredComments('product');
+  const blogComments = filteredComments('blog');
+
+  const indexOfLastComment = (type: 'product' | 'blog') => currentPage[type] * commentsPerPage;
+  const indexOfFirstComment = (type: 'product' | 'blog') => indexOfLastComment(type) - commentsPerPage;
+  const currentComments = (type: 'product' | 'blog') => {
+    const comments = type === 'product' ? productComments : blogComments;
+    return comments.slice(indexOfFirstComment(type), indexOfLastComment(type));
+  };
+  const totalPages = (type: 'product' | 'blog') => {
+    const comments = type === 'product' ? productComments : blogComments;
+    return Math.ceil(comments.length / commentsPerPage);
+  };
 
   const handleDeleteClick = (comment: Comment) => {
     setCommentToDelete(comment);
@@ -179,6 +207,106 @@ const Comments = () => {
     setSelectedComment(comment);
     setOpenDetailModal(true);
   };
+
+  const renderCommentTable = (comments: Comment[], type: 'product' | 'blog') => (
+    <div className="rounded-md border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>Hình Ảnh</TableHead>
+            <TableHead>Họ Tên</TableHead>
+            <TableHead>Nội Dung</TableHead>
+            {type === 'product' ? <TableHead>Tên Sản Phẩm</TableHead> : <TableHead>Mã Blog</TableHead>}
+            {type === 'product' && <TableHead>Đánh Giá</TableHead>}
+            <TableHead>Trạng Thái</TableHead>
+            <TableHead>Ngày Bình Luận</TableHead>
+            <TableHead className="w-[60px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={type === 'product' ? 9 : 8} className="text-center py-6 text-muted-foreground">
+                Đang tải...
+              </TableCell>
+            </TableRow>
+          ) : comments.length > 0 ? (
+            comments.map((item) => (
+              <TableRow key={item.maBinhLuan} className="hover:bg-muted/50">
+                <TableCell>{item.maBinhLuan}</TableCell>
+                <TableCell>
+                  <img
+                    src={item.hinhAnh || "https://via.placeholder.com/50"}
+                    alt={item.hoTen || "Avatar"}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                </TableCell>
+                <TableCell>{item.hoTen}</TableCell>
+                <TableCell>{item.noiDungBinhLuan}</TableCell>
+                <TableCell>{type === 'product' ? item.tenSanPham ?? "Chưa cập nhật" : item.maBlog ?? "Chưa cập nhật"}</TableCell>
+                {type === 'product' && (
+                  <TableCell>{`${item.danhGia || 0} / 5`}</TableCell>
+                )}
+                <TableCell>
+                  <span
+                    className={
+                      item.trangThai === 1
+                        ? 'bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100'
+                        : item.trangThai === 0
+                          ? 'bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100'
+                          : ''
+                    }
+                  >
+                    {item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : ""}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {item.ngayBinhLuan ? formatDateTime(item.ngayBinhLuan) : 'Ngày không hợp lệ'}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {item.trangThai === 0 ? (
+                        <DropdownMenuItem onClick={() => handleApproveComment(item)} className="flex items-center">
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                          Duyệt
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleUnapproveComment(item)} className="flex items-center">
+                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                          Hủy Duyệt
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => handleDetailClick(item)} className="flex items-center">
+                        <Eye className="mr-2 h-4 w-4 text-blue-500" />
+                        Chi Tiết
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="flex items-center">
+                        <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                        Xóa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={type === 'product' ? 9 : 8} className="text-center py-6 text-muted-foreground">
+                Không tìm thấy bình luận nào phù hợp với tìm kiếm của bạn.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -214,121 +342,66 @@ const Comments = () => {
             </div>
           </div>
 
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Hình Ảnh</TableHead>
-                  {/* <TableHead>Tên Sản Phẩm</TableHead> */}
-                  <TableHead>Họ Tên</TableHead>
-                  <TableHead>Nội Dung</TableHead>
-                  <TableHead>Trạng Thái</TableHead>
-                  <TableHead>Ngày Bình Luận</TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                      Đang tải...
-                    </TableCell>
-                  </TableRow>
-                ) : currentComments.length > 0 ? (
-                  currentComments.map((item) => (
-                    <TableRow key={item.maBinhLuan} className="hover:bg-muted/50">
-                      <TableCell>{item.maBinhLuan}</TableCell>
-                      <TableCell>
-                        <img
-                          src={item.hinhAnh || "https://via.placeholder.com/50"}
-                          alt={item.hoTen || "Avatar"}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      </TableCell>
-                      {/* <TableCell>{item.tenSanPham}</TableCell> */}
-                      <TableCell>{item.hoTen}</TableCell>
-                      <TableCell>{item.noiDungBinhLuan}</TableCell>
-                      <TableCell>
-                        <span
-                          className={
-                            item.trangThai === 1
-                              ? 'bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100'
-                              : item.trangThai === 0
-                                ? 'bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100'
-                                : ''
-                          }
-                        >
-                          {item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : ""}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {item.ngayBinhLuan ? formatDateTime(item.ngayBinhLuan) : 'Ngày không hợp lệ'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {item.trangThai === 0 ? (
-                              <DropdownMenuItem onClick={() => handleApproveComment(item)} className="flex items-center">
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                                Duyệt
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => handleUnapproveComment(item)} className="flex items-center">
-                                <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                                Hủy Duyệt
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleDetailClick(item)} className="flex items-center">
-                              <Eye className="mr-2 h-4 w-4 text-blue-500" />
-                              Chi Tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteClick(item)} className="flex items-center">
-                              <Trash2 className="mr-2 h-4 w-4 text-red-500" />
-                              Xóa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                      Không tìm thấy bình luận nào phù hợp với tìm kiếm của bạn.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs defaultValue="productComments" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full md:w-auto grid-cols-2 gap-1">
+              <TabsTrigger value="productComments" className="flex items-center gap-2">
+                Bình Luận Sản Phẩm
+              </TabsTrigger>
+              <TabsTrigger value="blogComments" className="flex items-center gap-2">
+                Bình Luận Blog
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="flex justify-between items-center mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              Trang Trước
-            </Button>
-            <span>
-              Trang {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Trang Sau
-            </Button>
-          </div>
+            <TabsContent value="productComments">
+              {renderCommentTable(currentComments('product'), 'product')}
+              <div className="flex justify-between items-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage({ ...currentPage, product: Math.max(1, currentPage.product - 1) })}
+                  disabled={currentPage.product === 1}
+                >
+                  Trang Trước
+                </Button>
+                <span>
+                  Trang {currentPage.product} / {totalPages('product')}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage({ ...currentPage, product: Math.min(totalPages('product'), currentPage.product + 1) })}
+                  disabled={currentPage.product === totalPages('product')}
+                >
+                  Trang Sau
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="blogComments">
+              {renderCommentTable(currentComments('blog'), 'blog')}
+              <div className="flex justify-between items-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage({ ...currentPage, blog: Math.max(1, currentPage.blog - 1) })}
+                  disabled={currentPage.blog === 1}
+                >
+                  Trang Trước
+                </Button>
+                <span>
+                  Trang {currentPage.blog} / {totalPages('blog')}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage({ ...currentPage, blog: Math.min(totalPages('blog'), currentPage.blog + 1) })}
+                  disabled={currentPage.blog === totalPages('blog')}
+                >
+                  Trang Sau
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -373,14 +446,27 @@ const Comments = () => {
                 <label className="block text-sm font-medium">ID Bình Luận</label>
                 <Input value={selectedComment.maBinhLuan || "Chưa cập nhật"} disabled />
               </div>
-              <div>
-                <label className="block text-sm font-medium">Mã Sản Phẩm</label>
-                <Input value={selectedComment.maSanPham || "Chưa cập nhật"} disabled />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Tên Sản Phẩm</label>
-                <Input value={selectedComment.tenSanPham || "Chưa cập nhật"} disabled />
-              </div>
+              {selectedComment.maSanPham !== undefined && selectedComment.maSanPham !== null ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium">Mã Sản Phẩm</label>
+                    <Input value={selectedComment.maSanPham || "Chưa cập nhật"} disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Tên Sản Phẩm</label>
+                    <Input value={selectedComment.tenSanPham || "Chưa cập nhật"} disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Đánh Giá</label>
+                    <Input value={`${selectedComment.danhGia || 0} / 5`} disabled />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium">Mã Blog</label>
+                  <Input value={selectedComment.maBlog ?? "Chưa cập nhật"} disabled />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium">Mã Người Dùng</label>
                 <Input value={selectedComment.maNguoiDung || "Chưa cập nhật"} disabled />
@@ -392,10 +478,6 @@ const Comments = () => {
               <div>
                 <label className="block text-sm font-medium">Số Tim</label>
                 <Input value={selectedComment.soTimBinhLuan ?? "0"} disabled />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Đánh Giá</label>
-                <Input value={`${selectedComment.danhGia || 0} / 5`} disabled />
               </div>
               <div>
                 <label className="block text-sm font-medium">Trạng Thái</label>

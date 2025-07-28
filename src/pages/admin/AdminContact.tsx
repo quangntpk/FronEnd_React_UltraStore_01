@@ -444,7 +444,7 @@ const AdminContact = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-800">Quản Lý Liên Hệ</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-800">Quản lý liên hệ</h1>
       </div>
 
       <Tabs defaultValue="general" className="w-full">

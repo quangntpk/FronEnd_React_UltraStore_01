@@ -341,7 +341,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Quản Lý Thống Kê</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Quản lý thống kê</h1>
 
       {isLoading && <p className="text-center text-muted-foreground">Đang tải dữ liệu...</p>}
 

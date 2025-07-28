@@ -919,7 +919,7 @@ const AdminType = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight text-gray-800">
-          Quản Lý Loại Sản Phẩm
+          Quản lý loại sản phẩm
         </h1>
         <Button
           className="bg-[#9b87f5] text-white hover:bg-[#8a76e3]"

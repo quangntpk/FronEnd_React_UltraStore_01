@@ -18,7 +18,7 @@ interface SidebarItemType {
 export const adminItems: SidebarItemType[] = [
   { title: "Thống kê", icon: BarChart, path: "/admin/statistics", color: "text-blue-600" },
   { title: "Đơn hàng", icon: ShoppingCart, path: "/admin/orders", color: "text-orange-600" },
-   { title: "Mua offline", icon: Users, path: "/admin/buy", color: "text-orange-600" },
+   { title: "Mua offline", icon: Users, path: "/buy", color: "text-orange-600" },
   { title: "Sản phẩm", icon: Package, path: "/admin/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/admin/combos", color: "text-teal-600" },
   { title: "Thương hiệu", icon: Tag, path: "/admin/thuonghieu", color: "text-indigo-600" },
