@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, X, Upload, Trash2 } from "lucide-react";
+import { Plus, Minus, X, Upload, Trash2, Search } from "lucide-react";
 import Swal from "sweetalert2";
-import MoTaModal from "./MoTa"; // Import MoTaModal
+import MoTaModal from "./MoTa";
 
 const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct, productData }) => {
   const [colors, setColors] = useState([
@@ -24,8 +24,11 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
   const [errors, setErrors] = useState({});
   const [loaiSanPhamList, setLoaiSanPhamList] = useState([]);
   const [thuongHieuList, setThuongHieuList] = useState([]);
+  const [hashTagList, setHashTagList] = useState([]);
+  const [selectedHashTags, setSelectedHashTags] = useState([]);
+  const [hashTagSearch, setHashTagSearch] = useState("");
   const [isDragging, setIsDragging] = useState(false);
-  const [isMoTaModalOpen, setIsMoTaModalOpen] = useState(false); // Add state for MoTaModal
+  const [isMoTaModalOpen, setIsMoTaModalOpen] = useState(false);
   const fileInputRef = useRef(null);
   const colorImageInputRefs = useRef({});
 
@@ -66,8 +69,27 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       }
     };
 
+    const fetchHashTags = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/HashTag");
+        const data = await response.json();
+        setHashTagList(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách hashtag:", error);
+        Swal.fire({
+          title: "Lỗi!",
+          text: "Không thể lấy danh sách hashtag.",
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      }
+    };
+
     fetchLoaiSanPham();
     fetchThuongHieu();
+    fetchHashTags();
   }, []);
 
   useEffect(() => {
@@ -93,6 +115,12 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       const cleanedImages = (productInfo.hinhAnhs || []).map((img) => img);
       setImages(cleanedImages);
       initializeColors(productData);
+      // Load hashtags from listHashTag
+      const initialHashTags = productInfo.listHashTag || [];
+      setSelectedHashTags(initialHashTags.map((tag) => ({
+        ID: tag.id,
+        Name: tag.name,
+      })));
     }
   }, [productData, thuongHieuList, loaiSanPhamList]);
 
@@ -235,6 +263,17 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     setColors(newColors);
   };
 
+  const handleHashTagToggle = (hashTag) => {
+    setSelectedHashTags((prev) => {
+      const isSelected = prev.some((tag) => tag.ID === hashTag.maHashTag);
+      if (isSelected) {
+        return prev.filter((tag) => tag.ID !== hashTag.maHashTag);
+      } else {
+        return [...prev, { ID: hashTag.maHashTag, Name: hashTag.tenHashTag }];
+      }
+    });
+  };
+
   const handleSaveChanges = async () => {
     let errorList = {};
     let hasError = false;
@@ -265,26 +304,32 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       img.startsWith("data:image") ? img.replace(/^data:image\/[a-z]+;base64,/, "") : img
     );
 
-    const updatedData = colors.map((colorItem) => ({
-      ID: selectedProduct?.id || "A00001",
-      TenSanPham: tenSanPham,
-      MaThuongHieu: parseInt(maThuongHieu),
-      LoaiSanPham: parseInt(loaiSanPham),
-      MauSac: colorItem.color.slice(1),
-      MoTa: moTa || null,
-      ChatLieu: chatLieu || null,
-      GioiTinh: parseInt(gioiTinh) || null,
-      HinhAnhs: imagesToSend,
-      Details: colorItem.sizes.map((sizeItem) => ({
-        KichThuoc: sizeItem.size.padEnd(10, " ").trim(),
-        SoLuong: parseInt(sizeItem.quantity) || 0,
-        Gia: parseInt(sizeItem.price) || 0,
-        GiaNhap: parseInt(sizeItem.giaNhap) || 0,
-        HinhAnh: colorItem.image || null,
+    const updatedData = {
+      data: colors.map((colorItem) => ({
+        ID: selectedProduct?.id || "A00001",
+        TenSanPham: tenSanPham,
+        MaThuongHieu: parseInt(maThuongHieu),
+        LoaiSanPham: parseInt(loaiSanPham),
+        MauSac: colorItem.color.slice(1),
+        MoTa: moTa || null,
+        ChatLieu: chatLieu || null,
+        GioiTinh: parseInt(gioiTinh) || null,
+        HinhAnhs: imagesToSend,
+        Details: colorItem.sizes.map((sizeItem) => ({
+          KichThuoc: sizeItem.size.padEnd(10, " ").trim(),
+          SoLuong: parseInt(sizeItem.quantity) || 0,
+          Gia: parseInt(sizeItem.price) || 0,
+          GiaNhap: parseInt(sizeItem.giaNhap) || 0,
+          HinhAnh: colorItem.image || null,
+        })),
       })),
-    }));
+      hashtaglist: selectedHashTags.map((tag) => ({
+        ID: tag.ID,
+        Name: tag.Name,
+      })),
+    };
 
-    updatedData.forEach((item, index) => {
+    updatedData.data.forEach((item, index) => {
       if (colorSet.has(item.MauSac)) {
         errorList[`${index}-mauSac`] = `- Màu ${item.MauSac} đã tồn tại.`;
         hasError = true;
@@ -372,6 +417,10 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       });
     }
   };
+
+  const filteredHashTags = hashTagList.filter((tag) =>
+    tag.tenHashTag.toLowerCase().includes(hashTagSearch.toLowerCase())
+  );
 
   return (
     <>
@@ -714,7 +763,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                 </div>
               </div>
 
-              {/* Right Section: Images and Description */}
+              {/* Right Section: Images, Description, and Hashtags */}
               <div className="col-span-1 space-y-6">
                 <div>
                   <label className="block mb-2 font-medium text-gray-700">Hình Ảnh Chung</label>
@@ -781,6 +830,60 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                     onChange={(e) => setMoTa(e.target.value)}
                     placeholder="Nhập mô tả ngắn gọn về sản phẩm..."
                   />
+                </div>
+                <div>
+                  <label className="block mb-2 font-medium text-gray-700">Hashtags</label>
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      value={hashTagSearch}
+                      onChange={(e) => setHashTagSearch(e.target.value)}
+                      placeholder="Tìm kiếm hashtag..."
+                      className="pl-10 w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
+                    {filteredHashTags.length === 0 ? (
+                      <p className="text-gray-500 text-sm">Không tìm thấy hashtag</p>
+                    ) : (
+                      filteredHashTags.map((hashTag) => (
+                        <div
+                          key={hashTag.maHashTag}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md cursor-pointer"
+                          onClick={() => handleHashTagToggle(hashTag)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedHashTags.some((tag) => tag.ID === hashTag.maHashTag)}
+                            readOnly
+                            className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                          />
+                          <span>{hashTag.tenHashTag}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {selectedHashTags.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700">Hashtags đã chọn:</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedHashTags.map((tag) => (
+                          <div
+                            key={tag.ID}
+                            className="flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full"
+                          >
+                            <span>{tag.Name}</span>
+                            <button
+                              onClick={() => handleHashTagToggle({ maHashTag: tag.ID, tenHashTag: tag.Name })}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={() => setIsMoTaModalOpen(true)}

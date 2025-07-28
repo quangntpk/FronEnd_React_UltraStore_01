@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, X, Upload, Trash2 } from "lucide-react";
+import { Plus, Minus, X, Upload, Trash2, Search } from "lucide-react";
 import Swal from "sweetalert2";
-import MoTaModal from "../SanPhamAdmin/MoTa.jsx"; // 
+import MoTaModal from "../SanPhamAdmin/MoTa.jsx";
 
 const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const [colors, setColors] = useState([
@@ -24,8 +24,11 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const [errors, setErrors] = useState({});
   const [loaiSanPhamList, setLoaiSanPhamList] = useState([]);
   const [thuongHieuList, setThuongHieuList] = useState([]);
+  const [hashTagList, setHashTagList] = useState([]);
+  const [selectedHashTags, setSelectedHashTags] = useState([]);
+  const [hashTagSearch, setHashTagSearch] = useState("");
   const [isDragging, setIsDragging] = useState(false);
-  const [isMoTaModalOpen, setIsMoTaModalOpen] = useState(false); // State for MoTaModal
+  const [isMoTaModalOpen, setIsMoTaModalOpen] = useState(false);
   const fileInputRef = useRef(null);
   const colorImageInputRefs = useRef({});
 
@@ -68,8 +71,28 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       }
     };
 
+    const fetchHashTags = async () => {
+      try {
+        const response = await fetch("http://localhost:5261/api/HashTag");
+        if (!response.ok) throw new Error("Failed to fetch hashtags");
+        const data = await response.json();
+        setHashTagList(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách hashtag:", error);
+        Swal.fire({
+          title: "Lỗi!",
+          text: "Không thể lấy danh sách hashtag.",
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      }
+    };
+
     fetchLoaiSanPham();
     fetchThuongHieu();
+    fetchHashTags();
   }, []);
 
   const handleDragOver = (e) => {
@@ -93,10 +116,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64String = reader.result.replace(
-            /^data:image\/[a-z]+;base64,/,
-            ""
-          );
+          const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
           setImages((prevImages) => [...prevImages, base64String]);
           setErrors((prevErrors) => ({ ...prevErrors, images: "" }));
         };
@@ -111,10 +131,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64String = reader.result.replace(
-            /^data:image\/[a-z]+;base64,/,
-            ""
-          );
+          const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
           setImages((prevImages) => [...prevImages, base64String]);
           setErrors((prevErrors) => ({ ...prevErrors, images: "" }));
         };
@@ -128,10 +145,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result.replace(
-          /^data:image\/[a-z]+;base64,/,
-          ""
-        );
+        const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
         const newColors = [...colors];
         newColors[colorIndex].image = base64String;
         setColors(newColors);
@@ -195,11 +209,21 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
   const handleQuantityChange = (colorIndex, sizeIndex, increment) => {
     const newColors = [...colors];
-    const currentQuantity =
-      parseInt(newColors[colorIndex].sizes[sizeIndex].quantity) || 0;
+    const currentQuantity = parseInt(newColors[colorIndex].sizes[sizeIndex].quantity) || 0;
     const newQuantity = Math.max(1, currentQuantity + increment);
     newColors[colorIndex].sizes[sizeIndex].quantity = newQuantity.toString();
     setColors(newColors);
+  };
+
+  const handleHashTagToggle = (hashTag) => {
+    setSelectedHashTags((prev) => {
+      const isSelected = prev.some((tag) => tag.ID === hashTag.maHashTag);
+      if (isSelected) {
+        return prev.filter((tag) => tag.ID !== hashTag.maHashTag);
+      } else {
+        return [...prev, { ID: hashTag.maHashTag, Name: hashTag.tenHashTag }];
+      }
+    });
   };
 
   const handleSaveChanges = async () => {
@@ -207,23 +231,29 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       img.startsWith("data:image") ? img.replace(/^data:image\/[a-z]+;base64,/, "") : img
     );
 
-    const newProductData = colors.map((colorItem) => ({
-      TenSanPham: tenSanPham || null,
-      MaThuongHieu: parseInt(maThuongHieu) || null,
-      LoaiSanPham: parseInt(loaiSanPham) || null,
-      MauSac: colorItem.color.slice(1) || null,
-      MoTa: moTa || null,
-      ChatLieu: chatLieu || null,
-      GioiTinh: parseInt(gioiTinh) || null,
-      HinhAnhs: imagesToSend,
-      Details: colorItem.sizes.map((sizeItem) => ({
-        KichThuoc: sizeItem.size.padEnd(10, " ").trim() || null,
-        SoLuong: parseInt(sizeItem.quantity) || 0,
-        Gia: parseInt(sizeItem.price) || 0,
-        GiaNhap: parseInt(sizeItem.giaNhap) || 0,
-        HinhAnh: colorItem.image || null,
+    const newProductData = {
+      data: colors.map((colorItem) => ({
+        TenSanPham: tenSanPham || null,
+        MaThuongHieu: parseInt(maThuongHieu) || null,
+        LoaiSanPham: parseInt(loaiSanPham) || null,
+        MoTa: moTa || null,
+        MauSac: colorItem.color.slice(1) || null,
+        ChatLieu: chatLieu || null,
+        GioiTinh: parseInt(gioiTinh) || null,
+        HinhAnhs: imagesToSend,
+        Details: colorItem.sizes.map((sizeItem) => ({
+          KichThuoc: sizeItem.size.padEnd(10, " ").trim() || null,
+          SoLuong: parseInt(sizeItem.quantity) || 0,
+          Gia: parseInt(sizeItem.price) || 0,
+          GiaNhap: parseInt(sizeItem.giaNhap) || 0,
+          HinhAnh: colorItem.image || null,
+        })),
       })),
-    }));
+      ListHashTag: selectedHashTags.map((tag) => ({
+        ID: tag.ID,
+        Name: tag.Name,
+      })),
+    };
 
     let errorList = {};
     let hasError = false;
@@ -250,7 +280,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       hasError = true;
     }
 
-    newProductData.forEach((item, index) => {
+    newProductData.data.forEach((item, index) => {
       if (colorSet.has(item.MauSac)) {
         errorList[`${index}-mauSac`] = `- Màu ${item.MauSac} đã tồn tại.`;
         hasError = true;
@@ -295,6 +325,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     }
 
     setErrors({});
+    console.log(newProductData)
     try {
       const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
         method: "POST",
@@ -306,7 +337,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
       if (response.ok) {
         const responseData = await response.json();
-        const maSanPham = responseData.maSanPham; // Assuming API returns maSanPham
+        const maSanPham = responseData.maSanPham;
         Swal.fire({
           title: "Thành công!",
           text: "Thêm sản phẩm thành công!",
@@ -315,8 +346,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
           timerProgressBar: true,
           showConfirmButton: false,
         }).then(() => {
-          // Pass maSanPham to MoTaModal if needed
-          setIsMoTaModalOpen(true); // Open MoTaModal after successful product creation
+          setIsMoTaModalOpen(true);
           window.location.reload();
           setIsAddModalOpen(false);
         });
@@ -343,6 +373,10 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       });
     }
   };
+
+  const filteredHashTags = hashTagList.filter((tag) =>
+    tag.tenHashTag.toLowerCase().includes(hashTagSearch.toLowerCase())
+  );
 
   return (
     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -735,7 +769,8 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                           </Button>
                         </div>
                       </div>
-                    )))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -802,7 +837,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                 )}
               </div>
               <div>
-                <label className="block mb-2 font-medium text-gray-700">Mô Tả</label>
+                <label className="block mb-2 font-medium text-gray-700">Mô Tả Ngắn Gọn</label>
                 <textarea
                   className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
                   value={moTa}
@@ -815,6 +850,60 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                 >
                   Nhập Mô Tả Chi Tiết
                 </Button>
+              </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">Hashtags</label>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                  <Input
+                    value={hashTagSearch}
+                    onChange={(e) => setHashTagSearch(e.target.value)}
+                    placeholder="Tìm kiếm hashtag..."
+                    className="pl-10 w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
+                  {filteredHashTags.length === 0 ? (
+                    <p className="text-gray-500 text-sm">Không tìm thấy hashtag</p>
+                  ) : (
+                    filteredHashTags.map((hashTag) => (
+                      <div
+                        key={hashTag.maHashTag}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md cursor-pointer"
+                        onClick={() => handleHashTagToggle(hashTag)}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedHashTags.some((tag) => tag.ID === hashTag.maHashTag)}
+                          readOnly
+                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                        />
+                        <span>{hashTag.tenHashTag}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {selectedHashTags.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium text-gray-700">Hashtags đã chọn:</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedHashTags.map((tag) => (
+                        <div
+                          key={tag.ID}
+                          className="flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full"
+                        >
+                          <span>{tag.Name}</span>
+                          <button
+                            onClick={() => handleHashTagToggle({ maHashTag: tag.ID, tenHashTag: tag.Name })}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               {Object.keys(errors).length > 0 && (
                 <div className="text-red-500 text-sm">
@@ -845,7 +934,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
           </div>
         </div>
       </DialogContent>
-      <MoTaModal isOpen={isMoTaModalOpen} onClose={() => setIsMoTaModalOpen(false)} />
+      <MoTaModal isOpen={isMoTaModalOpen} onClose={() => setIsMoTaModalOpen(false)} moTaChiTiet={null} />
     </Dialog>
   );
 };

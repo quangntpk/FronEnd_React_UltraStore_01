@@ -42,11 +42,12 @@ const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
   const fileInputRef = useRef(null);
   const sliderFileInputRef = useRef(null);
 
-  // Initialize formData, mainImage, and sliderImages with moTaChiTiet
+  // Initialize formData, mainImage, and sliderImages with moTaChiTiet or empty states
   useEffect(() => {
     if (moTaChiTiet) {
       const { header, picture, title } = moTaChiTiet.moTa || {};
       setFormData({
+        MaSanPham: moTaChiTiet.maSanPham || null,
         MoTa: {
           Header: header || {},
           Picture: picture && Array.isArray(picture) ? picture : [{}],
@@ -61,6 +62,17 @@ const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
       });
       setMainImage(picture?.[0]?.url || null);
       setSliderImages(picture && Array.isArray(picture) ? picture.slice(1).map(p => p.url).filter(url => url) : []);
+    } else {
+      setFormData({
+        MaSanPham: null,
+        MoTa: {
+          Header: {},
+          Picture: [{}],
+          Title: [{ Subtitle: [{ Description: {} }] }]
+        }
+      });
+      setMainImage(null);
+      setSliderImages([]);
     }
   }, [moTaChiTiet]);
 
@@ -287,6 +299,7 @@ const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
       MaSanPham: moTaChiTiet?.maSanPham || null,
       IdMoTa: moTaChiTiet?.idMoTa || null
     }];
+    console.log(dataToSend)
     try {
       const response = await fetch("http://localhost:5261/api/SanPham/MoTaSanPhamCreate", {
         method: "POST",
@@ -295,7 +308,7 @@ const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
         },
         body: JSON.stringify(dataToSend),
       });
-
+      
       if (response.ok) {
         Swal.fire({
           title: "Thành công!",

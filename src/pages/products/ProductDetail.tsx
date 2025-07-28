@@ -37,59 +37,6 @@ interface Product {
   details: ProductDetail[];
   hinhAnhs: string[];
 }
-
-// ---------- Mock Data (remove when API is ready) ---------- //
-const mockReviews = [
-  {
-    id: 1,
-    user: "Emma S.",
-    date: "March 15, 2025",
-    rating: 5,
-    comment: "Absolutely love this product! The quality is amazing.",
-  },
-  {
-    id: 2,
-    user: "Sophia T.",
-    date: "March 10, 2025",
-    rating: 4,
-    comment: "Great fit, very comfortable.",
-  },
-  {
-    id: 3,
-    user: "Olivia R.",
-    date: "March 5, 2025",
-    rating: 5,
-    comment: "Perfect for my needs, highly recommend!",
-  },
-];
-
-const mockRelatedProducts = [
-  {
-    id: "A00002",
-    name: "Áo thun S Đen",
-    price: 29.99,
-    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-    rating: 4.8,
-    isFavorite: true,
-  },
-  {
-    id: "A00003",
-    name: "Áo thun M Trắng",
-    price: 39.99,
-    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
-    rating: 4.2,
-    isFavorite: false,
-  },
-  {
-    id: "A00004",
-    name: "Áo thun L Đen",
-    price: 129.99,
-    image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
-    rating: 4.9,
-    isFavorite: false,
-  },
-];
-
 // ---------- Helpers ---------- //
 const showNotification = (message: string, type: "success" | "error") => {
   Swal.fire({
@@ -166,7 +113,7 @@ const ProductDetail = () => {
         setSelectedColor(product.mauSac);
         setSelectedSize(product.details[0]?.kichThuoc || "");
         setMainImage(
-          product.details[0]?.hinhAnh ? `data:image/jpeg;base64,${product.details[0].hinhAnh}` : ""
+          product.hinhAnhs[0] ? `data:image/jpeg;base64,${product.hinhAnhs[0]}` : ""
         );
         setStock(product.details[0]?.soLuong || 0);
 
@@ -242,7 +189,7 @@ const ProductDetail = () => {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        if (!res.ok) throw new Error("Failed to remove favorite");
+        if (!v) throw new Error("Failed to remove favorite");
         setIsLiked(false);
         setLikedId(null);
         showNotification("Đã xóa sản phẩm khỏi danh sách yêu thích!", "success");
@@ -391,24 +338,45 @@ const ProductDetail = () => {
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            {selectedProduct.hinhAnhs.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() =>
-                  setMainImage(`data:image/jpeg;base64,${img}`)
-                }
-                className={`aspect-square rounded-md overflow-hidden ${mainImage === `data:image/jpeg;base64,${img}`
-                    ? "ring-2 ring-crocus-500"
-                    : "opacity-70"
-                  }`}
-              >
-                <img
-                  src={`data:image/jpeg;base64,${img}`}
-                  alt={`thumb-${idx}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+            <button
+                  key={products[0].tenSanPham.substring(0,6)}
+                  onClick={() => setMainImage(
+                    products[0].hinhAnhs[0] ? `data:image/jpeg;base64,${products[0].hinhAnhs[0]}` : ""
+                  )}
+                  className={`aspect-square rounded-md overflow-hidden 
+                      ? "ring-2 ring-crocus-500"
+                      : "opacity-70"
+                    }`}
+                >
+                  <img
+                    src={products[0].hinhAnhs[0] ? `data:image/jpeg;base64,${products[0].hinhAnhs[0]}` : ""}
+                    alt={`${products[0].tenSanPham.substring(0,6)}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+            {products
+              .filter(product => product.details[0]?.hinhAnh) 
+              .map((product, idx) => ({
+                image: `data:image/jpeg;base64,${product.details[0].hinhAnh}`,
+                productId: product.id
+              }))
+              .filter(item => item.image !== 'data:image/jpeg;base64,') 
+              .map((item, idx) => (
+                <button
+                  key={`${item.productId}-${idx}`}
+                  onClick={() => setMainImage(item.image)}
+                  className={`aspect-square rounded-md overflow-hidden ${mainImage === item.image
+                      ? "ring-2 ring-crocus-500"
+                      : "opacity-70"
+                    }`}
+                >
+                  <img
+                    src={item.image}
+                    alt={`thumb-${item.productId}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
           </div>
         </div>
 
@@ -562,15 +530,6 @@ const ProductDetail = () => {
                 />
                 <span>{isLiked ? "Đã Yêu Thích" : "Yêu Thích"}</span>
               </button>
-
-              {/* Print Button */}
-              <button
-                onClick={handlePrint}
-                className="flex-1 bg-white border-2 border-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-all duration-300 hover:border-green-300 hover:bg-green-50 hover:text-green-600 flex items-center justify-center gap-2"
-              >
-                <Printer className="h-5 w-5" />
-                <span>In Sản Phẩm</span>
-              </button>
             </div>
           </div>
 
@@ -580,7 +539,7 @@ const ProductDetail = () => {
               <img
                 alt="Barcode"
                 src={`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
-                  selectedProduct.id
+                  `${selectedProduct.id.split("_")[0]}_${selectedProduct.mauSac}_${selectedSize}`
                 )}&translate-esc=on`}
                 className="mx-auto"
               />

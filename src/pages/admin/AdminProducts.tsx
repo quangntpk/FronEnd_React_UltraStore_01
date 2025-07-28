@@ -17,7 +17,72 @@ import CreateSanPhamModal from "@/components/admin/SanPhamAdmin/CreateSanPhamMod
 import DetailSanPhamModal from "@/components/admin/SanPhamAdmin/DetailSanPhamModal";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
-import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin/ProductPrintUtils"
+import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin/ProductPrintUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import ProductReportGenerator from "@/components/admin/SanPhamAdmin/ProductReportGenerator"
+const DateRangeModal = ({ isOpen, onClose, onSubmit, selectedProductIds }) => {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const handleSubmit = () => {
+    if (!startDate || !endDate) {
+      Swal.fire({
+        title: "Lỗi",
+        text: "Vui lòng chọn cả ngày bắt đầu và ngày kết thúc",
+        icon: "error",
+      });
+      return;
+    }
+
+    const dateObject = {
+      batDau: startDate, // Directly use the string in YYYY-MM-DD format
+      ketThuc: endDate,  // Directly use the string in YYYY-MM-DD format
+      id: Array.from(selectedProductIds)
+    };
+
+    onSubmit(dateObject);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Chọn khoảng thời gian báo cáo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Ngày bắt đầu</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="endDate">Ngày kết thúc</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Hủy
+          </Button>
+          <Button onClick={handleSubmit}>
+            Tạo báo cáo
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -27,6 +92,7 @@ const Products = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDateRangeModalOpen, setIsDateRangeModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productEdit, setProductEdit] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -65,6 +131,7 @@ const Products = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log(data)
         setProductEdit(data || null);
       } else {
         console.error("Lỗi khi lấy chi tiết sản phẩm:", response.status);
@@ -141,10 +208,10 @@ const Products = () => {
     setSelectMode(!selectMode);
     setSelectedProducts(new Set()); // Reset selection khi đổi chế độ
   };
-  // Xuất HTML 
-  // Thêm hàm này vào trong component Products
-  const exportToHTML = async () => {
-    if (selectedProducts.size === 0) {
+
+  // Xử lý báo cáo vật tư với khoảng thời gian
+  const handleGenerateReport = async (dateRange) => {
+    if (dateRange.id.length === 0) {
       Swal.fire({
         title: "Thông báo",
         text: "Vui lòng chọn ít nhất một sản phẩm để xuất báo cáo.",
@@ -154,242 +221,40 @@ const Products = () => {
     }
 
     try {
-      // Fetch data từ API
-      const selectedProductsData = [];
-      for (const productId of selectedProducts) {
-        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
-        if (!response.ok) {
-          throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
-        }
-        const data = await response.json();
-        selectedProductsData.push(...data);
-      }
-
-      // Tạo HTML content
-      const currentDate = new Date();
-      const fromDate = "01/01/2025";
-      const toDate = "31/01/2025";
-      
-      // Tính toán tổng cộng
-      let totalNhap = 0;
-      let totalGiaTriNhap = 0;
-      let totalXuat = 0;
-      let totalGiaTriXuat = 0;
-      let totalTonCuoi = 0;
-      let totalGiaTriTonCuoi = 0;
-
-      // Tạo các dòng dữ liệu
-      const tableRows = selectedProductsData.map((product, index) => {
-        const [baseId, color, size] = product.maSanPham.split("_");
-        const nhap = product.soLuong || 0;
-        const giaTriNhap = nhap * (product.giaNhap || 0);
-        const xuat = product.soLuongDaBan || 0;
-        const giaTriXuat = xuat * (product.gia || 0);
-        const tonCuoi = nhap - xuat;
-        const giaTriTonCuoi = tonCuoi * (product.giaNhap || 0);
-
-        // Cộng vào tổng
-        totalNhap += nhap;
-        totalGiaTriNhap += giaTriNhap;
-        totalXuat += xuat;
-        totalGiaTriXuat += giaTriXuat;
-        totalTonCuoi += tonCuoi;
-        totalGiaTriTonCuoi += giaTriTonCuoi;
-
-        return `
-          <tr>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${index + 1}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${baseId || 'N/A'}</td>
-            <td style="text-align: left; border: 1px solid #000; padding: 4px;">${product.tenSanPham || 'Không có tên'}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${product.thuongHieu || 'N/A'}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${product.chatLieu || 'N/A'}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${product.loaiSanPham || 'N/A'}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">#${color || 'N/A'}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">${size || 'N/A'}</td>
-            <td style="text-align: center; border: 1px solid #000; padding: 4px;">Chiếc</td>
-            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${nhap.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
-            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${giaTriNhap.toLocaleString('vi-VN')}</td>
-            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${xuat.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
-            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${giaTriXuat.toLocaleString('vi-VN')}</td>
-            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${tonCuoi.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
-            <td style="text-align: right; border: 1px solid #000; padding: 4px;">${giaTriTonCuoi.toLocaleString('vi-VN')}</td>
-          </tr>
-        `;
-      }).join('');
-
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html lang="vi">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Báo cáo vật tư</title>
-          <style>
-            body {
-              font-family: 'Times New Roman', serif;
-              margin: 20px;
-              font-size: 12px;
-              line-height: 1.2;
-            }
-            .header {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 20px;
-            }
-            .header-left {
-              text-align: left;
-            }
-            .header-right {
-              text-align: right;
-            }
-            .title {
-              text-align: center;
-              font-size: 16px;
-              font-weight: bold;
-              margin: 20px 0;
-            }
-            .subtitle {
-              text-align: center;
-              font-size: 12px;
-              margin-bottom: 20px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 20px;
-            }
-            th, td {
-              border: 1px solid #000;
-              padding: 4px;
-              text-align: center;
-            }
-            th {
-              background-color: #f0f0f0;
-              font-weight: bold;
-            }
-            .total-row {
-              font-weight: bold;
-              background-color: #f5f5f5;
-            }
-            .signature {
-              display: flex;
-              justify-content: space-between;
-              margin-top: 30px;
-            }
-            .signature-block {
-              text-align: center;
-              width: 30%;
-            }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="header-left">
-              <strong>Cửa Hàng Bán Quần Áo Thời Trang UltraStore</strong><br>
-              Buôn Ma Thuật , Đắk Lắk<br>
-              www.ultrastore......
-            </div>
-            <div class="header-right">
-              <strong>Mẫu số S11-DN</strong><br>
-              (Ban hành theo Thông tư số<br>
-              200/2014/TT-BTC ngày 22/12/2014<br>
-              của Bộ Tài Chính)
-            </div>
-          </div>
-
-          <h1 class="title">BẢNG TỔNG HỢP SẢN PHẨM</h1>
-          <div class="subtitle">
-            Từ ngày ${fromDate} đến ngày ${toDate}
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th rowspan="2" style="width: 5%;">Stt</th>
-                <th rowspan="2" style="width: 8%;">Mã vật tư</th>
-                <th rowspan="2" style="width: 15%;">Tên vật tư</th>
-                <th rowspan="2" style="width: 8%;">Thương hiệu</th>
-                <th rowspan="2" style="width: 8%;">Chất liệu</th>
-                <th rowspan="2" style="width: 8%;">Loại sản phẩm</th>
-                <th rowspan="2" style="width: 8%;">Màu sắc</th>
-                <th rowspan="2" style="width: 8%;">Kích thước</th>
-                <th rowspan="2" style="width: 5%;">Đvt</th>
-                <th colspan="2" style="width: 12%;">Nhập</th>
-                <th colspan="2" style="width: 12%;">Xuất</th>
-                <th colspan="2" style="width: 12%;">Tồn cuối</th>
-              </tr>
-              <tr>
-                <th>Số lượng</th>
-                <th>Giá trị</th>
-                <th>Số lượng</th>
-                <th>Giá trị</th>
-                <th>Số lượng</th>
-                <th>Giá trị</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableRows}
-              <tr class="total-row">
-                <td colspan="9" style="text-align: center; font-weight: bold;">Tổng cộng</td>
-                <td style="text-align: right; font-weight: bold;">${totalNhap.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
-                <td style="text-align: right; font-weight: bold;">${totalGiaTriNhap.toLocaleString('vi-VN')}</td>
-                <td style="text-align: right; font-weight: bold;">${totalXuat.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
-                <td style="text-align: right; font-weight: bold;">${totalGiaTriXuat.toLocaleString('vi-VN')}</td>
-                <td style="text-align: right; font-weight: bold;">${totalTonCuoi.toLocaleString('vi-VN', {minimumFractionDigits: 2})}</td>
-                <td style="text-align: right; font-weight: bold;">${totalGiaTriTonCuoi.toLocaleString('vi-VN')}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div style="text-align: right; margin-top: 20px;">
-            Buôn Ma Thuật , Ngày.......tháng.......năm...............
-          </div>
-
-          <div class="signature">
-            <div class="signature-block">
-              <strong>NGƯỜI GHI SỔ</strong><br>
-              <em>(Ký, họ tên)</em>
-            </div>
-            <div class="signature-block">
-              <strong hidden>NGƯỜI KIỂM KÊ</strong><br>
-              <em hidden>(Ký, họ tên)</em>
-            </div>
-            <div class="signature-block">
-              <strong>CHỦ CỬA HÀNG</strong><br>
-              <em>(Ký, họ tên, đóng dấu)</em>
-            </div>
-          </div>
-
-          <div class="no-print" style="text-align: center; margin-top: 30px;">
-            <button onclick="window.print()" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-              In báo cáo
-            </button>
-            <button onclick="window.close()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;">
-              Đóng
-            </button>
-          </div>
-        </body>
-        </html>
-      `;
-
-      // Mở cửa sổ mới với báo cáo
-      const newWindow = window.open('', '_blank');
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-
-      Swal.fire({
-        title: "Thành công!",
-        text: "Đã tạo báo cáo vật tư thành công!",
-        icon: "success",
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
+      const response = await fetch("http://localhost:5261/api/SanPham/ReportByDate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batDau: dateRange.batDau,
+          ketThuc: dateRange.ketThuc,
+          id: dateRange.id
+        }),
       });
 
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `BaoCaoVatTu_${dateRange.batDau}_to_${dateRange.ketThuc}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        Swal.fire({
+          title: "Thành công!",
+          text: "Đã tạo báo cáo vật tư thành công!",
+          icon: "success",
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error("Lỗi khi tạo báo cáo từ server");
+      }
     } catch (error) {
       Swal.fire({
         title: "Lỗi",
@@ -398,6 +263,7 @@ const Products = () => {
       });
     }
   };
+
   // Xuất Excel
   const exportToExcel = async () => {
     if (selectedProducts.size === 0) {
@@ -622,12 +488,11 @@ const Products = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={exportToHTML}>
+                  <DropdownMenuItem onClick={() => setIsDateRangeModalOpen(true)}>
                     <FaFilePdf className="mr-2 h-4 w-4" />
                     Báo cáo vật tư
                   </DropdownMenuItem>
-                  <DropdownMenuItem  onClick={exportToExcel}
-                      disabled={selectedProducts.size === 0}>
+                  <DropdownMenuItem onClick={exportToExcel} disabled={selectedProducts.size === 0}>
                     <FaFileExcel className="mr-2 h-4 w-4" />
                     Xuất Excel 
                   </DropdownMenuItem>
@@ -961,6 +826,11 @@ const Products = () => {
         productId={selectedProductId}
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
+      />
+      <ProductReportGenerator
+        isOpen={isDateRangeModalOpen}
+        onClose={() => setIsDateRangeModalOpen(false)}
+        selectedProductIds={selectedProducts}
       />
     </div>
   );
