@@ -814,7 +814,7 @@ const ProductListing = () => {
                             Chi tiết
                           </Link>
                         </Button>
-                        <Button
+                        {/* <Button
                           size="sm"
                           className="flex-1 bg-crocus-500 hover:bg-crocus-600"
                           onClick={() => handleBuyNow(product)}
@@ -822,7 +822,7 @@ const ProductListing = () => {
                         >
                           <ShoppingCart className="h-4 w-4 mr-2" />
                           Mua ngay
-                        </Button>
+                        </Button> */}
                       </div>
                     </CardContent>
                   </Card>

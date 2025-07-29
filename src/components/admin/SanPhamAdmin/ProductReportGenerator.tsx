@@ -50,11 +50,11 @@ const ProductReportGenerator = ({ isOpen, onClose, selectedProductIds }: Product
           <td>${color || "N/A"}</td>
           <td>${size || "N/A"}</td>
           <td>${item.dvt || "N/A"}</td>
-          <td style="text-align: right;">${item.slNhap.toLocaleString('vi-VN', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">${item.slNhap.toLocaleString('vi-VN')}</td>
           <td style="text-align: right;">${giaTriNhap.toLocaleString('vi-VN')}</td>
-          <td style="text-align: right;">${item.slXuat.toLocaleString('vi-VN', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">${item.slXuat.toLocaleString('vi-VN')}</td>
           <td style="text-align: right;">${giaTriXuat.toLocaleString('vi-VN')}</td>
-          <td style="text-align: right;">${item.tonCuoi.toLocaleString('vi-VN', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">${item.tonCuoi.toLocaleString('vi-VN')}</td>
           <td style="text-align: right;">${giaTriTonCuoi.toLocaleString('vi-VN')}</td>
         </tr>
       `;
@@ -183,11 +183,11 @@ const ProductReportGenerator = ({ isOpen, onClose, selectedProductIds }: Product
             ${tableRows}
             <tr class="total-row">
               <td colspan="9" style="text-align: center; font-weight: bold;">Tổng cộng</td>
-              <td style="text-align: right; font-weight: bold;">${totalNhap.toLocaleString('vi-VN', { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; font-weight: bold;">${totalNhap.toLocaleString('vi-VN')}</td>
               <td style="text-align: right; font-weight: bold;">${totalGiaTriNhap.toLocaleString('vi-VN')}</td>
-              <td style="text-align: right; font-weight: bold;">${totalXuat.toLocaleString('vi-VN', { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; font-weight: bold;">${totalXuat.toLocaleString('vi-VN')}</td>
               <td style="text-align: right; font-weight: bold;">${totalGiaTriXuat.toLocaleString('vi-VN')}</td>
-              <td style="text-align: right; font-weight: bold;">${totalTonCuoi.toLocaleString('vi-VN', { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; font-weight: bold;">${totalTonCuoi.toLocaleString('vi-VN')}</td>
               <td style="text-align: right; font-weight: bold;">${totalGiaTriTonCuoi.toLocaleString('vi-VN')}</td>
             </tr>
           </tbody>

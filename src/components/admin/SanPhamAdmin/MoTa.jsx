@@ -314,7 +314,7 @@ const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
           title: "Thành công!",
           text: "Lưu mô tả thành công!",
           icon: "success",
-          timer: 2000,
+          timer: 800,
           timerProgressBar: true,
           showConfirmButton: false,
         }).then(() => {

@@ -291,14 +291,14 @@ const ProductCard = ({
             <Button asChild variant="outline" size="sm" className="flex-1">
               <Link to={`/products/${product.id}`}>Chi tiết</Link>
             </Button>
-            <Button
+            {/* <Button
               size="sm"
               className="flex-1 bg-crocus-500 hover:bg-crocus-600"
               onClick={handleBuyNow}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
               Mua ngay
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>
@@ -420,14 +420,14 @@ const ComboCard = ({
             <Button asChild variant="outline" size="sm" className="flex-1">
               <Link to={`/combos/${combo.id}`}>Chi tiết</Link>
             </Button>
-            <Button
+            {/* <Button
               size="sm"
               className="flex-1 bg-crocus-500 hover:bg-crocus-600"
               onClick={handleBuyNow}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
               Mua ngay
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>

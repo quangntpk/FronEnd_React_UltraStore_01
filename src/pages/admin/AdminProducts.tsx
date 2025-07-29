@@ -20,7 +20,8 @@ import * as XLSX from "xlsx";
 import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin/ProductPrintUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import ProductReportGenerator from "@/components/admin/SanPhamAdmin/ProductReportGenerator"
+import ProductReportGenerator from "@/components/admin/SanPhamAdmin/ProductReportGenerator";
+
 const DateRangeModal = ({ isOpen, onClose, onSubmit, selectedProductIds }) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -36,8 +37,8 @@ const DateRangeModal = ({ isOpen, onClose, onSubmit, selectedProductIds }) => {
     }
 
     const dateObject = {
-      batDau: startDate, // Directly use the string in YYYY-MM-DD format
-      ketThuc: endDate,  // Directly use the string in YYYY-MM-DD format
+      batDau: startDate,
+      ketThuc: endDate,
       id: Array.from(selectedProductIds)
     };
 
@@ -96,10 +97,10 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productEdit, setProductEdit] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
-  const [sortBy, setSortBy] = useState(""); // Sắp xếp: "" | "price-asc" | "price-desc" | "name-asc" | "name-desc"
+  const [sortBy, setSortBy] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedProducts, setSelectedProducts] = useState(new Set()); // Danh sách sản phẩm đã chọn
-  const [selectMode, setSelectMode] = useState(false); // Chế độ chọn sản phẩm
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const productsPerPage = 12;
 
   const fetchProducts = async () => {
@@ -180,7 +181,6 @@ const Products = () => {
     setCurrentPage(page);
   };
 
-  // Xử lý chọn sản phẩm
   const handleSelectProduct = (productId) => {
     const newSelected = new Set(selectedProducts);
     if (newSelected.has(productId)) {
@@ -191,25 +191,20 @@ const Products = () => {
     setSelectedProducts(newSelected);
   };
 
-  // Xử lý chọn tất cả sản phẩm
   const handleSelectAll = () => {
     if (selectedProducts.size === currentProducts.length) {
-      // Nếu đã chọn tất cả, bỏ chọn tất cả
       setSelectedProducts(new Set());
     } else {
-      // Chọn tất cả sản phẩm hiện tại
       const allCurrentIds = new Set(currentProducts.map(product => product.id));
       setSelectedProducts(allCurrentIds);
     }
   };
 
-  // Bật/tắt chế độ chọn
   const toggleSelectMode = () => {
     setSelectMode(!selectMode);
-    setSelectedProducts(new Set()); // Reset selection khi đổi chế độ
+    setSelectedProducts(new Set());
   };
 
-  // Xử lý báo cáo vật tư với khoảng thời gian
   const handleGenerateReport = async (dateRange) => {
     if (dateRange.id.length === 0) {
       Swal.fire({
@@ -264,7 +259,6 @@ const Products = () => {
     }
   };
 
-  // Xuất Excel
   const exportToExcel = async () => {
     if (selectedProducts.size === 0) {
       Swal.fire({
@@ -276,7 +270,6 @@ const Products = () => {
     }
 
     try {
-      // Fetch data từ API
       const selectedProductsData = [];
       for (const productId of selectedProducts) {
         const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
@@ -322,14 +315,10 @@ const Products = () => {
       });
       ws["!cols"] = colWidths;
 
-      // Thêm worksheet vào workbook
       XLSX.utils.book_append_sheet(wb, ws, "Danh sách sản phẩm");
-
-      // Xuất file với tên theo định dạng mẫu
       const fileName = `SanPham_${new Date().toISOString().split("T")[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
-      // Hiển thị thông báo thành công
       Swal.fire({
         title: "Thành công!",
         text: `Đã xuất ${selectedProducts.size} sản phẩm ra file Excel thành công!`,
@@ -463,7 +452,6 @@ const Products = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Sản phẩm</h1>
-          
         </div>
         <div className="flex gap-2">
           <Button
@@ -671,22 +659,28 @@ const Products = () => {
                         </DropdownMenu>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Badge variant="outline" className="bg-secondary text-white border-0">
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge className="bg-blue-500 text-white hover:bg-blue-600">
                         <Tag className="h-3 w-3 mr-1" /> {product.loaiSanPham || "N/A"}
                       </Badge>
-                      <Badge variant="outline" className="bg-secondary text-white border-0">
+                      <Badge className="bg-green-500 text-white hover:bg-green-600">
                         <Tag className="h-3 w-3 mr-1" /> {product.chatLieu || "N/A"}
                       </Badge>
                       <Badge
-                        variant={product.soLuong > 0 ? "default" : "destructive"}
-                        className="flex flex-col justify-center items-center text-center h-full px-2"
+                        className={product.trangThai === 0 ? "bg-red-500 text-white" : "bg-teal-500 text-white"}
                       >
                         {product.trangThai === 0 ? "Tạm Ngưng Bán" : "Đang Bán"}
                       </Badge>
                     </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(product.listHashTag || []).slice(0, 3).map((hashtag) => (
+                        <Badge key={hashtag.id} className="bg-purple-500 text-white hover:bg-purple-600">
+                          <Tag className="h-3 w-3 mr-1" /> #{hashtag.name}
+                        </Badge>
+                      ))}
+                    </div>
                     <div className="flex justify-between items-center mt-3">
-                      <span className="font-bold text-purple">
+                      <span className="font-bold text-purple-600">
                         {(product.donGia/1000)?.toFixed(3) || "0"} VND
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -724,17 +718,29 @@ const Products = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.name || "Không có tên"}</h3>
-                    <p className="text-sm text-white line-clamp-1">
+                    <p className="text-sm text-muted-foreground line-clamp-1">
                       Thương hiệu: {product.thuongHieu || "Không xác định"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-secondary text-white border-0">
-                      {product.loaiSanPham || "N/A"}
-                    </Badge>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className="bg-blue-500 text-white hover:bg-blue-600">
+                        <Tag className="h-3 w-3 mr-1" /> {product.loaiSanPham || "N/A"}
+                      </Badge>
+                      <Badge className="bg-green-500 text-white hover:bg-green-600">
+                        <Tag className="h-3 w-3 mr-1" /> {product.chatLieu || "N/A"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(product.listHashTag || []).slice(0, 3).map((hashtag) => (
+                        <Badge key={hashtag.id} className="bg-purple-500 text-white hover:bg-purple-600">
+                          <Tag className="h-3 w-3 mr-1" /> #{hashtag.name}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-purple">
+                    <div className="font-bold text-purple-600">
                       {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
