@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Volume2, VolumeX, MessageCircle } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, MessageCircle, Phone, ArrowUp, X, Menu } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import CryptoJS from 'crypto-js';
 import { toByteArray } from 'base64-js';
@@ -56,6 +56,7 @@ interface ApiResponse {
 
 const SupportChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showIcons, setShowIcons] = useState(false);
   const [question, setQuestion] = useState<string>('');
   const [history, setHistory] = useState<{ question: string; result: string }[]>([]);
   const [isListening, setIsListening] = useState(false);
@@ -65,6 +66,7 @@ const SupportChat: React.FC = () => {
   const websocketRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isListeningRef = useRef(isListening);
+  const iconContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const API_KEY = "ba3f1541d8c7ca7d782cf9c324aeeaca";
@@ -295,29 +297,124 @@ const SupportChat: React.FC = () => {
     setIsSpeaking(false);
   };
 
+  const toggleIcons = () => {
+    setShowIcons(!showIcons);
+  };
+
   return (
     <>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "fixed bottom-4 right-4 z-50",
-          "bg-[#E8A8FF] hover:bg-[#d98eff] text-black rounded-full p-3 shadow-lg",
-          "transition-all duration-300"
-        )}
+      <div
+        ref={iconContainerRef}
+        className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"
       >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+        {/* Toggle Button for Social Media List */}
+        <button
+          onClick={toggleIcons}
+          className="bg-[#c083fc] hover:bg-[#b36bf7] text-white rounded-full p-3 shadow-lg"
+        >
+          {showIcons ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {showIcons && (
+          <>
+            {/* Phone Button */}
+            <a
+              href="tel:+84383777823"
+              className="flex items-center gap-2 bg-[#4CAF50] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Gọi điện</span>
+              <Phone className="w-5 h-5" />
+            </a>
+
+            {/* Zalo Button */}
+            <a
+              href="https://zalo.me/383777823"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#0088FF] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Zalo</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22.5c-5.79 0-10.5-4.71-10.5-10.5S6.21 1.5 12 1.5s10.5 4.71 10.5 10.5S17.79 22.5 12 22.5zm3.75-6.75h-7.5v1.5h7.5v-1.5zm-7.5-3h7.5v1.5h-7.5v-1.5zm0-3h7.5v1.5h-7.5v-1.5zm0-3h7.5v1.5h-7.5v-1.5z" />
+              </svg>
+            </a>
+
+            {/* Facebook Button */}
+            <a
+              href="https://facebook.com/Thien2k5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#1877F2] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Facebook</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.75 18.75h-3v-7.5h1.5l.75-1.5h-2.25v-1.5c0-.621.504-1.125 1.125-1.125h1.125V6h-1.5c-1.657 0-3 1.343-3 3v1.5h-1.5v1.5h1.5v7.5h-3v-3h-1.5v3c0 1.657 1.343 3 3 3h6c1.657 0 3-1.343 3-3v-3h-1.5v1.5z" />
+              </svg>
+            </a>
+
+            {/* Telegram Button */}
+            <a
+              href="https://t.me/miyaru2k5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#0088CC] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Telegram</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm4.441 17.245s-.441.441-.882.441-.735-.294-.882-.588c-1.029-2.059-3.382-7.5-3.382-7.5l3.529-1.176 1.176-4.412s.147-.147.294 0 .147.294.147.294l-2.059 7.353 3.529 1.176s.441.294.441.588zm-7.5 1.176s-.294.294-.588.294-.588-.294-.588-.588v-4.412l-2.647-1.176-1.029 3.529s-.147.294-.441.294-.294-.147-.294-.294l1.176-4.412-2.353-1.176s-.147-.294 0-.441c.147-.147.294-.147.441 0l3.529 1.176 1.176-4.412s.147-.294.294-.147c.147.147.147.294 0 .441l-2.059 7.353v4.412z" />
+              </svg>
+            </a>
+
+            {/* Email Button */}
+            <a
+              href="mailto:nguyenhuythien9a1@gmail.com"
+              className="flex items-center gap-2 bg-[#D44638] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Email</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4.5c4.142 0 7.5 3.358 7.5 7.5s-3.358 7.5-7.5 7.5-7.5-3.358-7.5-7.5S7.858 4.5 12 4.5zm0 3v1.5l3.75 2.25-3.75 2.25v1.5l5.25-3.15z" />
+              </svg>
+            </a>
+
+            {/* Chat Button */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex items-center gap-2 bg-[#c083fc] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Chat</span>
+              <MessageCircle className="w-5 h-5" />
+            </button>
+
+            {/* Scroll to Top Button */}
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex items-center gap-2 bg-gray-500 text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Lên đầu trang</span>
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          </>
+        )}
+      </div>
 
       {isOpen && (
         <div
           className={cn(
             "fixed bottom-16 right-4 w-96",
-            "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#E8A8FF]",
+            "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#c083fc]",
             "flex flex-col h-[400px] z-50"
           )}
         >
-          <div className="p-3 bg-[#E8A8FF] text-black rounded-t-lg flex items-center gap-2">
+          <div className="p-3 bg-[#c083fc] text-white rounded-t-lg flex items-center justify-between">
             <h3 className="font-semibold">FashionHub</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-[#b36bf7]"
+              onClick={() => setIsOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-white dark:bg-gray-800">
@@ -329,7 +426,7 @@ const SupportChat: React.FC = () => {
               history.map((msg, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-end">
-                    <div className="bg-[#E8A8FF] text-black p-2 rounded-lg max-w-[70%]">
+                    <div className="bg-[#c083fc] text-white p-2 rounded-lg max-w-[70%]">
                       <p className="text-sm">{msg.question}</p>
                     </div>
                   </div>
@@ -343,7 +440,7 @@ const SupportChat: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 shrink-0 text-[#E8A8FF]"
+                      className="h-6 w-6 shrink-0 text-[#c083fc]"
                       onClick={() => (isSpeaking ? stopSpeaking() : speakText(msg.result))}
                     >
                       {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -367,13 +464,13 @@ const SupportChat: React.FC = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full text-[#E8A8FF]"
+                className="absolute right-0 top-0 h-full text-[#c083fc]"
                 onClick={toggleListening}
               >
                 {isListening ? <MicOff className="h-4 w-4 text-destructive" /> : <Mic className="h-4 w-4" />}
               </Button>
             </div>
-            <Button type="submit" className="bg-[#E8A8FF] text-black hover:bg-[#d98eff]">
+            <Button type="submit" className="bg-[#c083fc] text-white hover:bg-[#b36bf7]">
               Gửi
             </Button>
           </form>
