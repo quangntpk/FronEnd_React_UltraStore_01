@@ -162,7 +162,7 @@ const Vouchers = () => {
       } else {
         throw new Error('Không thể xóa voucher');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi xóa voucher:', error);
       toast.error(error.message || "Có lỗi xảy ra khi xóa voucher.");
     }
@@ -198,7 +198,7 @@ const Vouchers = () => {
           ngayBatDau: newVoucher.ngayBatDau,
           ngayKetThuc: newVoucher.ngayKetThuc,
           dieuKien: parseFloat(newVoucher.dieuKien),
-          giaTriToiDa: parseFloat(newVoucher.giaTriToiDa),
+          giaTriToiDa: newVoucher.loaiVoucher === '2' ? 0 : parseFloat(newVoucher.giaTriToiDa),
           loaiVoucher: parseInt(newVoucher.loaiVoucher, 10),
           hinhAnh: newVoucher.hinhAnh || null,
           trangThai: newVoucher.trangThai,
@@ -225,15 +225,19 @@ const Vouchers = () => {
         trangThai: 0,
       });
       toast.success("Thêm voucher thành công!");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi thêm voucher:', error);
       toast.error(error.message || "Có lỗi xảy ra khi thêm voucher.");
     }
   };
 
   const editVoucherSubmit = async () => {
-    if (!editVoucher) return;
+    if (!editVoucher) {
+      toast.error("Không có voucher để sửa!");
+      return;
+    }
 
+    // Validation
     const today = new Date().toISOString().split('T')[0];
     if (editVoucher.ngayBatDau < today && editVoucher.ngayBatDau !== today) {
       toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
@@ -247,40 +251,60 @@ const Vouchers = () => {
       toast.error("Giá trị tối đa phải lớn hơn điều kiện!");
       return;
     }
-    if (!editVoucher.tenVoucher || !editVoucher.ngayBatDau || !editVoucher.ngayKetThuc || !editVoucher.dieuKien || (editVoucher.loaiVoucher !== 2 && !editVoucher.giaTriToiDa) || editVoucher.loaiVoucher === undefined || (editVoucher.loaiVoucher !== 2 && !editVoucher.giaTri)) {
+    if (
+      !editVoucher.tenVoucher ||
+      !editVoucher.ngayBatDau ||
+      !editVoucher.ngayKetThuc ||
+      !editVoucher.dieuKien ||
+      (editVoucher.loaiVoucher !== 2 && (!editVoucher.giaTri || !editVoucher.giaTriToiDa)) ||
+      editVoucher.loaiVoucher === undefined
+    ) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
       return;
     }
 
+    // Prepare payload
+    const payload = {
+      maVoucher: editVoucher.maVoucher,
+      tenVoucher: editVoucher.tenVoucher,
+      giaTri: editVoucher.loaiVoucher === 2 ? 0 : editVoucher.giaTri ?? 0,
+      moTa: editVoucher.moTa || null,
+      ngayBatDau: editVoucher.ngayBatDau,
+      ngayKetThuc: editVoucher.ngayKetThuc,
+      dieuKien: editVoucher.dieuKien,
+      giaTriToiDa: editVoucher.loaiVoucher === 2 ? 0 : editVoucher.giaTriToiDa ?? 0,
+      loaiVoucher: editVoucher.loaiVoucher,
+      trangThai: editVoucher.trangThai,
+      hinhAnh: editVoucher.hinhAnh || null,
+    };
+
     try {
+      console.log("Sending payload to update voucher:", JSON.stringify(payload, null, 2)); // Debug payload
+
       const response = await fetch(`http://localhost:5261/api/Voucher`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          maVoucher: editVoucher.maVoucher,
-          tenVoucher: editVoucher.tenVoucher,
-          giaTri: editVoucher.loaiVoucher === 2 ? 0 : editVoucher.giaTri,
-          moTa: editVoucher.moTa || null,
-          ngayBatDau: editVoucher.ngayBatDau,
-          ngayKetThuc: editVoucher.ngayKetThuc,
-          dieuKien: editVoucher.dieuKien,
-          giaTriToiDa: editVoucher.giaTriToiDa,
-          loaiVoucher: editVoucher.loaiVoucher,
-          trangThai: editVoucher.trangThai,
-          hinhAnh: editVoucher.hinhAnh || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Không thể sửa voucher');
+        let errorMessage = "Không thể sửa voucher";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          const text = await response.text();
+          console.error("Non-JSON response from server:", text);
+          errorMessage = text || "Lỗi server không xác định";
+        }
+        throw new Error(errorMessage);
       }
 
       await fetchVouchers();
       setOpenEditModal(false);
       setEditVoucher(null);
       toast.success("Sửa voucher thành công!");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi sửa voucher:', error);
       toast.error(error.message || "Có lỗi xảy ra khi sửa voucher.");
     }
@@ -794,102 +818,101 @@ const Vouchers = () => {
 
       {/* Modal chi tiết voucher */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-    <DialogHeader>
-      <DialogTitle>Chi Tiết Voucher</DialogTitle>
-    </DialogHeader>
-    {selectedVoucher && (
-      <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Mã Voucher</label>
-            <Input value={selectedVoucher.maVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
-            <Input value={selectedVoucher.tenVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Giá Trị</label>
-            <Input
-              value={selectedVoucher.loaiVoucher === 0 ? `${selectedVoucher.giaTri ?? 0}%` :
-                     selectedVoucher.loaiVoucher === 1 ? `${selectedVoucher.giaTri != null ? selectedVoucher.giaTri.toLocaleString('vi-VN') : '0'} VND` :
-                     "Miễn phí vận chuyển"}
-              disabled
-              className="mt-1 bg-gray-50"
-            />
-          </div>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
-            <Input value={selectedVoucher.ngayBatDau ? formatDateTime(selectedVoucher.ngayBatDau) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
-            <Input value={selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Điều Kiện Trên</label>
-            <Input value={selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
-            <Input value={getVoucherTypeLabel(selectedVoucher.loaiVoucher)} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa</label>
-            <Input value={selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Trạng Thái</label>
-            <Input value={selectedVoucher.trangThai === 0 ? "Đang Dùng" : "Tạm Ngưng"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
-            {selectedVoucher.hinhAnh ? (
-              <img
-                src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
-                alt={selectedVoucher.tenVoucher}
-                className="w-24 h-24 object-cover rounded mt-1 border"
-              />
-            ) : (
-              <Input value="Chưa có hình ảnh" disabled className="mt-1 bg-gray-50" />
-            )}
-          </div>
-        </div>
-        <div className="md:col-span-3 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Mô Tả</label>
-            <Input value={selectedVoucher.moTa || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Mã Coupon</label>
-            {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
-              <ul className="list-disc pl-5 mt-1 space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
-                {selectedVoucher.coupons.map((coupon) => (
-                  <li key={coupon.id} className={coupon.trangThai === 1 ? "line-through text-gray-500" : "text-gray-800"}>
-                    {coupon.maNhap}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Input value="Không có mã" disabled className="mt-1 bg-gray-50" />
-            )}
-          </div>
-        </div>
-      </div>
-    )}
-    <DialogFooter className="mt-4">
-      <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
-        Đóng
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chi Tiết Voucher</DialogTitle>
+          </DialogHeader>
+          {selectedVoucher && (
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mã Voucher</label>
+                  <Input value={selectedVoucher.maVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
+                  <Input value={selectedVoucher.tenVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Giá Trị</label>
+                  <Input
+                    value={selectedVoucher.loaiVoucher === 0 ? `${selectedVoucher.giaTri ?? 0}%` :
+                           selectedVoucher.loaiVoucher === 1 ? `${selectedVoucher.giaTri != null ? selectedVoucher.giaTri.toLocaleString('vi-VN') : '0'} VND` :
+                           "Miễn phí vận chuyển"}
+                    disabled
+                    className="mt-1 bg-gray-50"
+                  />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
+                  <Input value={selectedVoucher.ngayBatDau ? formatDateTime(selectedVoucher.ngayBatDau) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
+                  <Input value={selectedVoucher.ngayKetThuc ? formatDateTime(selectedVoucher.ngayKetThuc) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Điều Kiện Trên</label>
+                  <Input value={selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
+                  <Input value={getVoucherTypeLabel(selectedVoucher.loaiVoucher)} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa</label>
+                  <Input value={selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Trạng Thái</label>
+                  <Input value={selectedVoucher.trangThai === 0 ? "Đang Dùng" : "Tạm Ngưng"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Hình Ảnh</label>
+                  {selectedVoucher.hinhAnh ? (
+                    <img
+                      src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
+                      alt={selectedVoucher.tenVoucher}
+                      className="w-24 h-24 object-cover rounded mt-1 border"
+                    />
+                  ) : (
+                    <Input value="Chưa có hình ảnh" disabled className="mt-1 bg-gray-50" />
+                  )}
+                </div>
+              </div>
+              <div className="md:col-span-3 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mô Tả</label>
+                  <Input value={selectedVoucher.moTa || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mã Coupon</label>
+                  {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
+                    <ul className="list-disc pl-5 mt-1 space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
+                      {selectedVoucher.coupons.map((coupon) => (
+                        <li key={coupon.id} className={coupon.trangThai === 1 ? "line-through text-gray-500" : "text-gray-800"}>
+                          {coupon.maNhap}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <Input value="Không có mã" disabled className="mt-1 bg-gray-50" />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setOpenDetailModal(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal thêm voucher */}
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
