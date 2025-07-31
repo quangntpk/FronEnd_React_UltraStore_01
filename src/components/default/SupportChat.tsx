@@ -7,14 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
 interface ApiResponse {
-  responseCode: number;
-  result: string;
-  errorMessage?: string;
-}
-
-interface AddToCartRequest {
-  maSanPham: string;
-  soLuong: number;
+  response: string;
 }
 
 const SupportChat: React.FC = () => {
@@ -54,45 +47,28 @@ const SupportChat: React.FC = () => {
 
     if (isLoading) return;
 
-
     setIsLoading(true);
     try {
-      const response = await axios.get<ApiResponse>(`http://localhost:5261/api/OpenAI/TraLoi?question=${encodeURIComponent(question)}`);
+      const response = await axios.post<ApiResponse>('http://localhost:5261/api/OpenAI/chat', {
+        query: question,
+      });
       const data = response.data;
 
-      if (data.responseCode === 201 && data.result) {
-        if (data.result.includes("Đã thêm sản phẩm")) {
-          const match = question.match(/mã sản phẩm: (\w+),\s*số lượng: (\d+)/i);
-          if (match) {
-            const [, maSanPham, soLuong] = match;
-            const cartRequest: AddToCartRequest = {
-              maSanPham,
-              soLuong: parseInt(soLuong),
-            };
-            const cartResponse = await axios.post<ApiResponse>('http://localhost:5261/api/OpenAI/ThemVaoGioHang', cartRequest);
-            if (cartResponse.data.responseCode !== 201) {
-              toast({
-                title: "Lỗi thêm giỏ hàng",
-                description: cartResponse.data.errorMessage || "Không thể thêm sản phẩm vào giỏ hàng",
-                variant: "destructive",
-              });
-            }
-          }
-        }
-        const newMessage = { question, result: data.result };
+      if (data.response) {
+        const newMessage = { question, result: data.response };
         setHistory([...history, newMessage]);
         setQuestion('');
       } else {
         toast({
           title: "Lỗi từ server",
-          description: data.errorMessage || "Có lỗi xảy ra",
+          description: "Không nhận được câu trả lời từ server",
           variant: "destructive",
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({
         title: "Lỗi kết nối",
-        description: "Không thể kết nối đến server",
+        description: err.message || "Không thể kết nối đến server",
         variant: "destructive",
       });
     } finally {
@@ -157,14 +133,6 @@ const SupportChat: React.FC = () => {
               <Send className="w-5 h-5" />
             </a>
 
-            <a
-              href="mailto:nguyenhuythien9a1@gmail.com"
-              className="flex items-center gap-2 bg-[#D44638] text-white rounded-full px-4 py-2 shadow-lg"
-            >
-              <span>Email</span>
-              <Mail className="w-5 h-5" />
-            </a>
-
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="flex items-center gap-2 bg-[#c083fc] text-white rounded-full px-4 py-2 shadow-lg"
@@ -177,7 +145,7 @@ const SupportChat: React.FC = () => {
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="flex items-center gap-2 bg-gray-500 text-white rounded-full px-4 py-2 shadow-lg"
             >
-              <span>Lên đầu trang</span>
+              <span>Lên đầu</span>
               <ArrowUp className="w-5 h-5" />
             </button>
           </>
@@ -222,7 +190,7 @@ const SupportChat: React.FC = () => {
                       <div className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-[70%]">
                         <div
                           className="text-sm prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: msg.result }}
+                          dangerouslySetInnerHTML={{ __html: msg.result.replace(/\n/g, '<br />') }}
                         />
                       </div>
                     </div>
