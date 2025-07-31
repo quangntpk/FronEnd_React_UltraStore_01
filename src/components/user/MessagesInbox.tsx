@@ -8,17 +8,14 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Search } from "lucide-react";
-import * as signalR from "@microsoft/signalr";
+import { MessageSquare, Search, Pin } from "lucide-react";
 import { MessageThread } from "./MessageThread";
 
-// ====== Interface Props ======
 interface MessagesInboxProps {
   recipientId?: string;
   recipientName?: string;
 }
 
-// ====== Interface Data Models ======
 interface NguoiDung {
   maNguoiDung: string;
   hoTen: string;
@@ -29,6 +26,7 @@ interface Thread {
   id: string;
   user: { id: string; name: string; avatar: string | null };
   lastMessage: { content: string; timestamp: string; isRead: boolean };
+  isPinned?: boolean;
 }
 
 interface UserSearchResult {
@@ -62,7 +60,6 @@ interface GiaoDien {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// ====== Component ======
 export const MessagesInbox: React.FC<MessagesInboxProps> = ({
   recipientId,
   recipientName,
@@ -74,9 +71,11 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
   const [searchQ, setSearchQ] = useState("");
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [busy, setBusy] = useState(false);
-  const [defaultAvatar, setDefaultAvatar] = useState<string | null>(null); // Thêm state cho avatar mặc định
+  const [defaultAvatar, setDefaultAvatar] = useState<string | null>(null);
 
-  // ====== Lấy avatar mặc định từ API giao diện hoạt động ======
+  const PINNED_USER_ID = "AD00012";
+  const PINNED_USER_NAME = "Admin";
+
   const fetchDefaultAvatar = async () => {
     try {
       const response = await fetch(`${API_URL}/api/GiaoDien`);
@@ -94,19 +93,17 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
     }
   };
 
-  // Gọi API lấy avatar mặc định khi component mount
   useEffect(() => {
     fetchDefaultAvatar();
   }, []);
 
-  // ====== Load threads từ API ======
   useEffect(() => {
     const fetchThreads = async () => {
       setLoading(true);
       const token = localStorage.getItem("token") || "";
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/TinNhan/threads?userId=${encodeURIComponent(me)}`,
+          `${API_URL}/api/TinNhan/threads?userId=${encodeURIComponent(me)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!response.ok) throw new Error("Không thể tải threads");
@@ -116,7 +113,7 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
           data.map(async (t) => {
             const other = t.nguoiGuiId === me ? t.nguoiNhanId : t.nguoiGuiId;
             const userResponse = await fetch(
-              `${import.meta.env.VITE_API_URL}/api/NguoiDung?searchTerm=${encodeURIComponent(other)}`,
+              `${API_URL}/api/NguoiDung?searchTerm=${encodeURIComponent(other)}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             const users: NguoiDung[] = userResponse.ok ? await userResponse.json() : [];
@@ -134,13 +131,38 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
                 timestamp: t.ngayTao,
                 isRead: true,
               },
+              isPinned: other === PINNED_USER_ID,
             } as Thread;
           })
         );
 
-        setThreads(mapThreads);
+        const pinnedUserExists = mapThreads.some((t) => t.id === PINNED_USER_ID);
+        if (!pinnedUserExists) {
+          const pinnedUserResponse = await fetch(
+            `${API_URL}/api/NguoiDung?searchTerm=${encodeURIComponent(PINNED_USER_ID)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const pinnedUsers: NguoiDung[] = pinnedUserResponse.ok ? await pinnedUserResponse.json() : [];
+          const pinnedUser = pinnedUsers.find((x) => x.maNguoiDung === PINNED_USER_ID);
 
-        // Chọn người nhận mặc định nếu có recipientId
+          mapThreads.unshift({
+            id: PINNED_USER_ID,
+            user: {
+              id: PINNED_USER_ID,
+              name: pinnedUser?.hoTen || PINNED_USER_NAME,
+              avatar: pinnedUser?.hinhAnh ? `data:image/png;base64,${pinnedUser.hinhAnh}` : null,
+            },
+            lastMessage: {
+              content: "",
+              timestamp: new Date().toISOString(),
+              isRead: true,
+            },
+            isPinned: true,
+          });
+        }
+
+        setThreads(mapThreads.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0)));
+
         if (recipientId) {
           const existing = mapThreads.find((t) => t.id === recipientId);
           if (!existing && recipientName) {
@@ -149,6 +171,7 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
                 id: recipientId,
                 user: { id: recipientId, name: recipientName, avatar: null },
                 lastMessage: { content: "", timestamp: new Date().toISOString(), isRead: true },
+                isPinned: recipientId === PINNED_USER_ID,
               },
               ...mapThreads,
             ]);
@@ -165,53 +188,6 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
     fetchThreads();
   }, [me, recipientId, recipientName]);
 
-  // ====== SignalR cho tin nhắn thời gian thực ======
-  useEffect(() => {
-    const hub = new signalR.HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_URL}/chatHub`, {
-        accessTokenFactory: () => localStorage.getItem("token") || "",
-      })
-      .withAutomaticReconnect()
-      .build();
-
-    hub
-      .start()
-      .then(() => console.log("Kết nối SignalR thành công"))
-      .catch((err) => console.error("Lỗi kết nối SignalR:", err));
-
-    hub.on("NhanTinNhan", (t: ThreadView) => {
-      const other = t.nguoiGuiId === me ? t.nguoiNhanId : t.nguoiGuiId;
-      setThreads((prev) =>
-        prev.some((th) => th.id === other)
-          ? prev.map((th) =>
-              th.id === other
-                ? {
-                    ...th,
-                    lastMessage: {
-                      content: t.noiDung,
-                      timestamp: t.ngayTao,
-                      isRead: false,
-                    },
-                  }
-                : th
-            )
-          : [
-              {
-                id: other,
-                user: { id: other, name: other, avatar: null },
-                lastMessage: { content: t.noiDung, timestamp: t.ngayTao, isRead: false },
-              },
-              ...prev,
-            ]
-      );
-    });
-
-    return () => {
-      hub.stop();
-    };
-  }, [me]);
-
-  // ====== Tìm kiếm người dùng ======
   useEffect(() => {
     if (!searchQ.trim()) {
       setResults([]);
@@ -223,7 +199,7 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
       const token = localStorage.getItem("token") || "";
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/NguoiDung?searchTerm=${encodeURIComponent(searchQ)}`,
+          `${API_URL}/api/NguoiDung?searchTerm=${encodeURIComponent(searchQ)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!response.ok) throw new Error("Không thể tìm kiếm người dùng");
@@ -245,35 +221,34 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
     return () => clearTimeout(debounce);
   }, [searchQ]);
 
-  // ====== Chọn người dùng từ kết quả tìm kiếm ======
   const selectUser = (u: UserSearchResult) => {
     if (!threads.find((t) => t.id === u.id)) {
-      setThreads((prev) => [
-        {
-          id: u.id,
-          user: u,
-          lastMessage: { content: "", timestamp: new Date().toISOString(), isRead: true },
-        },
-        ...prev,
-      ]);
+      setThreads((prev) =>
+        [
+          {
+            id: u.id,
+            user: u,
+            lastMessage: { content: "", timestamp: new Date().toISOString(), isRead: true },
+            isPinned: u.id === PINNED_USER_ID,
+          },
+          ...prev,
+        ].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+      );
     }
     setSelected(u.id);
     setResults([]);
     setSearchQ("");
   };
 
-  // ====== Giao diện khi đang tải ======
   if (loading) {
     return <div className="flex items-center justify-center h-full">Đang tải...</div>;
   }
 
-  // ====== Giao diện chính ======
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 h-full">
-      {/* Danh sách người dùng và tìm kiếm */}
-      <Card className="lg:col-span-1 border border-[#9b87f5] rounded-xl shadow h-full bg-[#f5f0ff]">
-        <CardHeader className="p-2 border-b border-[#9b87f5]/30">
-          <CardTitle className="flex items-center gap-2 text-[#9b87f5]">
+      <Card className="lg:col-span-1 border border-[#c083fc] rounded-xl shadow h-full bg-[#f5f0ff]">
+        <CardHeader className="p-2 border-b border-[#c083fc]/30">
+          <CardTitle className="flex items-center gap-2 text-[#c083fc]">
             <MessageSquare className="h-5 w-5" /> Tin nhắn
           </CardTitle>
           <CardDescription className="text-gray-600">
@@ -282,20 +257,20 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
         </CardHeader>
         <CardContent className="p-2 space-y-4">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-[#9b87f5]" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-[#c083fc]" />
             <Input
               placeholder="Tìm người dùng..."
-              className="pl-8 border-[#9b87f5] rounded-full focus:ring-[#9b87f5] bg-white"
+              className="pl-8 border-[#c083fc] rounded-full focus:ring-[#c083fc] bg-white"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
             />
           </div>
-          {busy && <p className="text-[#9b87f5] text-sm">Đang tìm...</p>}
+          {busy && <p className="text-[#c083fc] text-sm">Đang tìm...</p>}
           {results.map((u) => (
             <div
               key={u.id}
               onClick={() => selectUser(u)}
-              className="flex items-center p-2 cursor-pointer hover:bg-[#9b87f5]/10 rounded-xl border border-[#9b87f5]/50"
+              className="flex items-center p-2 cursor-pointer hover:bg-[#c083fc]/10 rounded-xl border border-[#c083fc]/50"
             >
               <Avatar className="h-8 w-8 mr-2">
                 {u.avatar ? (
@@ -303,10 +278,10 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
                 ) : defaultAvatar ? (
                   <AvatarImage src={defaultAvatar} />
                 ) : (
-                  <AvatarFallback>{u.name[0]}</AvatarFallback>
+                  <AvatarFallback className="bg-[#00c2cb] text-white">{u.name[0]}</AvatarFallback>
                 )}
               </Avatar>
-              <span className="text-[#9b87f5]">{u.name}</span>
+              <span className="text-[#c083fc]">{u.name}</span>
             </div>
           ))}
           <div className="overflow-y-auto max-h-[calc(100vh-200px)] space-y-1">
@@ -315,8 +290,8 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
                 key={t.id}
                 onClick={() => setSelected(t.id)}
                 className={`flex items-center p-2 rounded-xl cursor-pointer ${
-                  selected === t.id ? "bg-[#9b87f5]/20" : "hover:bg-[#9b87f5]/10"
-                } border border-[#9b87f5]/50`}
+                  selected === t.id ? "bg-[#c083fc]/20" : "hover:bg-[#c083fc]/10"
+                } border border-[#c083fc]/50`}
               >
                 <Avatar className="h-8 w-8 mr-2">
                   {t.user.avatar ? (
@@ -324,11 +299,13 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
                   ) : defaultAvatar ? (
                     <AvatarImage src={defaultAvatar} />
                   ) : (
-                    <AvatarFallback>{t.user.name[0]}</AvatarFallback>
+                    <AvatarFallback className="bg-[#00c2cb] text-white">{t.user.name[0]}</AvatarFallback>
                   )}
                 </Avatar>
                 <div className="flex-1">
-                  <p className="font-medium text-[#9b87f5]">{t.user.name}</p>
+                  <p className="font-medium text-[#c083fc]">
+                    {t.user.name} {t.isPinned && <Pin className="inline h-4 w-4 ml-1 text-[#c083fc]" />}
+                  </p>
                   <p className="text-xs truncate text-gray-600">{t.lastMessage.content}</p>
                 </div>
                 <span className="text-xs text-gray-500">{new Date(t.lastMessage.timestamp).toLocaleTimeString()}</span>
@@ -345,9 +322,9 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
             user={threads.find((t) => t.id === selected)!.user}
           />
         ) : (
-          <Card className="h-full flex items-center justify-center flex-col border-[#9b87f5] rounded-xl bg-[#f5f0ff]">
-            <MessageSquare className="text-[#9b87f5] text-4xl" />
-            <p className="mt-2 text-[#9b87f5]">Chọn một cuộc trò chuyện để bắt đầu</p>
+          <Card className="h-full flex items-center justify-center flex-col border-[#c083fc] rounded-xl bg-[#f5f0ff]">
+            <MessageSquare className="text-[#c083fc] text-4xl" />
+            <p className="mt-2 text-[#c083fc]">Chọn một cuộc trò chuyện để bắt đầu</p>
           </Card>
         )}
       </div>

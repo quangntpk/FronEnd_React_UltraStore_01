@@ -228,7 +228,7 @@ const Translate = () => {
       <div
         id="google_translate_element"
         style={{
-          marginLeft: 70,
+          marginLeft: 1,
           zIndex: 99999,
           position: 'relative',
           display: 'block',

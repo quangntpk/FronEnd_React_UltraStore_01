@@ -2,51 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, MicOff, Volume2, VolumeX, MessageCircle } from 'lucide-react';
+import { MessageCircle, Phone, Facebook, Send, Mail, ArrowUp, X, Menu, Loader2, MessageSquare } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
-import CryptoJS from 'crypto-js';
-import { toByteArray } from 'base64-js';
 import { cn } from "@/lib/utils";
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  onerror: (event: SpeechRecognitionErrorEvent) => void;
-  onend: () => void;
-}
-
-interface SpeechRecognitionEvent {
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  [index: number]: SpeechRecognitionResult;
-  length: number;
-}
-
-interface SpeechRecognitionResult {
-  [index: number]: SpeechRecognitionAlternative;
-  isFinal: boolean;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-}
-
-interface SpeechRecognitionErrorEvent {
-  error: string;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition?: new () => SpeechRecognition;
-    webkitSpeechRecognition?: new () => SpeechRecognition;
-  }
-}
 
 interface ApiResponse {
   responseCode: number;
@@ -54,70 +12,20 @@ interface ApiResponse {
   errorMessage?: string;
 }
 
+interface AddToCartRequest {
+  maSanPham: string;
+  soLuong: number;
+}
+
 const SupportChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showIcons, setShowIcons] = useState(false);
   const [question, setQuestion] = useState<string>('');
   const [history, setHistory] = useState<{ question: string; result: string }[]>([]);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
-  const websocketRef = useRef<WebSocket | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isListeningRef = useRef(isListening);
+  const [isLoading, setIsLoading] = useState(false);
+  const iconContainerRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  const API_KEY = "ba3f1541d8c7ca7d782cf9c324aeeaca";
-  const API_SECRET = "a68bb7419e7121dbb393d73f0c154bf4";
-
-  useEffect(() => {
-    isListeningRef.current = isListening;
-  }, [isListening]);
-
-  useEffect(() => {
-    const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognitionConstructor) {
-      const recognition = new SpeechRecognitionConstructor() as SpeechRecognition;
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'vi-VN';
-
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        setQuestion(transcript);
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
-        toast({
-          title: "Lỗi nhận diện giọng nói",
-          description: `Không thể nhận diện giọng nói: ${event.error}`,
-          variant: "destructive",
-        });
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        if (isListeningRef.current) {
-          recognition.start();
-        }
-      };
-
-      speechRecognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
-    };
-  }, [toast]);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('supportChatHistory');
@@ -128,6 +36,9 @@ const SupportChat: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('supportChatHistory', JSON.stringify(history));
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
   }, [history]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,17 +46,39 @@ const SupportChat: React.FC = () => {
     if (!question.trim()) {
       toast({
         title: "Không có nội dung",
-        description: "Vui lòng nhập câu hỏi hoặc sử dụng tính năng ghi âm",
+        description: "Vui lòng nhập câu hỏi",
         variant: "destructive",
       });
       return;
     }
 
+    if (isLoading) return;
+
+
+    setIsLoading(true);
     try {
-      const response = await axios.get<ApiResponse>(`http://localhost:5261/api/Gemini/SmartAI?input=${encodeURIComponent(question)}`);
+      const response = await axios.get<ApiResponse>(`http://localhost:5261/api/OpenAI/TraLoi?question=${encodeURIComponent(question)}`);
       const data = response.data;
 
       if (data.responseCode === 201 && data.result) {
+        if (data.result.includes("Đã thêm sản phẩm")) {
+          const match = question.match(/mã sản phẩm: (\w+),\s*số lượng: (\d+)/i);
+          if (match) {
+            const [, maSanPham, soLuong] = match;
+            const cartRequest: AddToCartRequest = {
+              maSanPham,
+              soLuong: parseInt(soLuong),
+            };
+            const cartResponse = await axios.post<ApiResponse>('http://localhost:5261/api/OpenAI/ThemVaoGioHang', cartRequest);
+            if (cartResponse.data.responseCode !== 201) {
+              toast({
+                title: "Lỗi thêm giỏ hàng",
+                description: cartResponse.data.errorMessage || "Không thể thêm sản phẩm vào giỏ hàng",
+                variant: "destructive",
+              });
+            }
+          }
+        }
         const newMessage = { question, result: data.result };
         setHistory([...history, newMessage]);
         setQuestion('');
@@ -162,162 +95,113 @@ const SupportChat: React.FC = () => {
         description: "Không thể kết nối đến server",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const toggleListening = () => {
-    if (!speechRecognitionRef.current) {
-      toast({
-        title: "Không hỗ trợ",
-        description: "Trình duyệt của bạn không hỗ trợ nhận diện giọng nói",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isListening) {
-      speechRecognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      speechRecognitionRef.current.start();
-      setIsListening(true);
-      toast({
-        title: "Đang lắng nghe",
-        description: "Hãy nói câu hỏi của bạn",
-      });
-    }
-  };
-
-  const assembleAuthUrl = (hostUrl: string, apiKey: string, apiSecret: string) => {
-    const date = new Date().toUTCString();
-    const host = new URL(hostUrl).host;
-    const requestLine = "GET /v2/tts HTTP/1.1";
-    const signatureOrigin = `host: ${host}\ndate: ${date}\n${requestLine}`;
-    const signatureSha = CryptoJS.HmacSHA256(signatureOrigin, apiSecret);
-    const signature = CryptoJS.enc.Base64.stringify(signatureSha);
-    const authorizationOrigin = `api_key="${apiKey}",algorithm="hmac-sha256",headers="host date request-line",signature="${signature}"`;
-    const authorization = btoa(authorizationOrigin);
-    return `${hostUrl}?host=${encodeURIComponent(host)}&date=${encodeURIComponent(date)}&authorization=${encodeURIComponent(authorization)}`;
-  };
-
-  const encodeTextToBase64 = (text: string): string => {
-    const encoder = new TextEncoder();
-    const utf8Bytes = encoder.encode(text);
-    const binaryString = String.fromCharCode(...utf8Bytes);
-    return btoa(binaryString);
-  };
-
-  const cleanTextForTTS = (htmlText: string): string => {
-    const div = document.createElement('div');
-    div.innerHTML = htmlText;
-    const styles = div.getElementsByTagName('style');
-    while (styles.length > 0) {
-      styles[0].parentNode?.removeChild(styles[0]);
-    }
-    let cleanText = div.textContent || div.innerText || '';
-    cleanText = cleanText.replace(/Xem chi tiết sản phẩm/g, '');
-    cleanText = cleanText.replace(/\s*\(#[0-9A-Fa-f]{6}\)/g, '');
-    cleanText = cleanText.replace(/\n\s*\n/g, '\n').replace(/\s+/g, ' ').trim();
-    return cleanText;
-  };
-
-  const speakText = (text: string) => {
-    if (!text || !text.trim()) {
-      toast({
-        title: "Lỗi dữ liệu",
-        description: "Vui lòng cung cấp nội dung để tổng hợp giọng nói",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const cleanText = cleanTextForTTS(text);
-    const wsUrl = assembleAuthUrl('wss://tts-api-sg.xf-yun.com/v2/tts', API_KEY, API_SECRET);
-    websocketRef.current = new WebSocket(wsUrl);
-
-    websocketRef.current.onopen = () => {
-      const requestData = {
-        common: { app_id: "ga62eb2a" },
-        business: {
-          vcn: "xiaoyun",
-          aue: "lame",
-          speed: 50,
-          volume: 50,
-          pitch: 50,
-          tte: "UTF8",
-        },
-        data: {
-          status: 2,
-          text: encodeTextToBase64(cleanText),
-        },
-      };
-      websocketRef.current?.send(JSON.stringify(requestData));
-      setIsSpeaking(true);
-    };
-
-    websocketRef.current.onmessage = (event) => {
-      const response = JSON.parse(event.data);
-      if (response.code === 0 && response.data.audio) {
-        const audioData = toByteArray(response.data.audio);
-        const blob = new Blob([audioData], { type: 'audio/mp3' });
-        const url = URL.createObjectURL(blob);
-        audioRef.current = new Audio(url);
-        audioRef.current.onended = () => setIsSpeaking(false);
-        audioRef.current.play();
-      } else {
-        toast({
-          title: "Lỗi tổng hợp giọng nói",
-          description: response.message || "Không thể tổng hợp giọng nói",
-          variant: "destructive",
-        });
-        setIsSpeaking(false);
-      }
-    };
-
-    websocketRef.current.onerror = () => {
-      toast({
-        title: "Lỗi kết nối",
-        description: "Không thể kết nối đến iFLYTEK TTS",
-        variant: "destructive",
-      });
-      setIsSpeaking(false);
-    };
-  };
-
-  const stopSpeaking = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    if (websocketRef.current) {
-      websocketRef.current.close();
-    }
-    setIsSpeaking(false);
+  const toggleIcons = () => {
+    setShowIcons(!showIcons);
   };
 
   return (
     <>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "fixed bottom-4 right-4 z-50",
-          "bg-[#E8A8FF] hover:bg-[#d98eff] text-black rounded-full p-3 shadow-lg",
-          "transition-all duration-300"
-        )}
+      <div
+        ref={iconContainerRef}
+        className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2"
       >
-        <MessageCircle className="w-6 h-6" />
-      </button>
+        <button
+          onClick={toggleIcons}
+          className="bg-[#c083fc] hover:bg-[#b36bf7] text-white rounded-full p-3 shadow-lg"
+        >
+          {showIcons ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {showIcons && (
+          <>
+            <a
+              href="tel:+84383777823"
+              className="flex items-center gap-2 bg-[#4CAF50] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Gọi điện</span>
+              <Phone className="w-5 h-5" />
+            </a>
+
+            <a
+              href="https://zalo.me/383777823"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#0088FF] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Zalo</span>
+              <MessageSquare className="w-5 h-5" />
+            </a>
+
+            <a
+              href="https://facebook.com/Thien2k5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#1877F2] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Facebook</span>
+              <Facebook className="w-5 h-5" />
+            </a>
+
+            <a
+              href="https://t.me/miyaru2k5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#0088CC] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Telegram</span>
+              <Send className="w-5 h-5" />
+            </a>
+
+            <a
+              href="mailto:nguyenhuythien9a1@gmail.com"
+              className="flex items-center gap-2 bg-[#D44638] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Email</span>
+              <Mail className="w-5 h-5" />
+            </a>
+
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex items-center gap-2 bg-[#c083fc] text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Chat</span>
+              <MessageCircle className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex items-center gap-2 bg-gray-500 text-white rounded-full px-4 py-2 shadow-lg"
+            >
+              <span>Lên đầu trang</span>
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          </>
+        )}
+      </div>
 
       {isOpen && (
         <div
           className={cn(
             "fixed bottom-16 right-4 w-96",
-            "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#E8A8FF]",
+            "bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-[#c083fc]",
             "flex flex-col h-[400px] z-50"
           )}
         >
-          <div className="p-3 bg-[#E8A8FF] text-black rounded-t-lg flex items-center gap-2">
+          <div className="p-3 bg-[#c083fc] text-white rounded-t-lg flex items-center justify-between">
             <h3 className="font-semibold">FashionHub</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-[#b36bf7]"
+              onClick={() => setIsOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
 
           <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-white dark:bg-gray-800">
@@ -326,55 +210,44 @@ const SupportChat: React.FC = () => {
                 Chưa có tin nhắn nào. Hãy đặt câu hỏi!
               </div>
             ) : (
-              history.map((msg, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-end">
-                    <div className="bg-[#E8A8FF] text-black p-2 rounded-lg max-w-[70%]">
-                      <p className="text-sm">{msg.question}</p>
+              <div>
+                {history.map((msg, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-end">
+                      <div className="bg-[#c083fc] text-white p-2 rounded-lg max-w-[70%]">
+                        <p className="text-sm">{msg.question}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-[70%]">
+                        <div
+                          className="text-sm prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: msg.result }}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="flex justify-start items-center gap-2">
-                    <div className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-[70%]">
-                      <div
-                        className="text-sm prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: msg.result }}
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 shrink-0 text-[#E8A8FF]"
-                      onClick={() => (isSpeaking ? stopSpeaking() : speakText(msg.result))}
-                    >
-                      {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              ))
+                ))}
+                <div ref={chatContainerRef} />
+              </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="p-3 border-t flex items-center gap-2 bg-white dark:bg-gray-800">
-            <div className="relative flex-1">
-              <Input
-                type="text"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Nhập câu hỏi của bạn"
-                className="pr-8 dark:bg-gray-700 dark:text-white"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full text-[#E8A8FF]"
-                onClick={toggleListening}
-              >
-                {isListening ? <MicOff className="h-4 w-4 text-destructive" /> : <Mic className="h-4 w-4" />}
-              </Button>
-            </div>
-            <Button type="submit" className="bg-[#E8A8FF] text-black hover:bg-[#d98eff]">
-              Gửi
+            <Input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Nhập câu hỏi của bạn"
+              className="dark:bg-gray-700 dark:text-white"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              className="bg-[#c083fc] text-white hover:bg-[#b36bf7]"
+              disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </Button>
           </form>
         </div>

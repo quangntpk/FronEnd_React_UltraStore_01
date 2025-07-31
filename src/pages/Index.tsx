@@ -722,7 +722,8 @@ const Index = () => {
   };
 
   return (
-    <div className="space-y-16 py-6">
+    <div className="space-y-6 py-6">
+
       {/* Hero Section */}
       <HeroSection />
       <CategoryView />
@@ -730,7 +731,7 @@ const Index = () => {
       <Features />
 
       {/* Featured Products */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Sản phẩm</h2>
           <Button asChild variant="link" className="text-crocus-600">
@@ -760,7 +761,7 @@ const Index = () => {
       </section>
 
       {/* Trending Combos */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Combo</h2>
           <Button asChild variant="link" className="text-crocus-600">
@@ -786,9 +787,9 @@ const Index = () => {
       </section>
 
       {/* Blog Section */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Bài viết</h2>
+          <h2 className="text-3xl font-bold">Tin tức</h2>
           <Button asChild variant="link" className="text-crocus-600">
             <Link to="/blogs">
               Xem tất cả <span aria-hidden="true">→</span>

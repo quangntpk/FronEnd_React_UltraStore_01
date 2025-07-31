@@ -28,6 +28,9 @@ import {
   Facebook,
   ChevronDown,
   Ticket,
+  RotateCcw,
+  ShieldCheck,
+  Newspaper,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -54,12 +57,12 @@ const UserLayout = () => {
   const logoutInProgress = useRef(false);
 
   const navLinks = [
-    { title: "Trang chủ", path: "/", icon: <LayoutGrid className="h-5 w-5" /> },
-    { title: "Sản phẩm", path: "/products", icon: <ShoppingBag className="h-5 w-5" /> },
-    { title: "Combo", path: "/combos", icon: <Package className="h-5 w-5" /> },
-    { title: "Giảm giá", path: "/voucher", icon: <Ticket className="h-5 w-5" /> },
-    { title: "Tin tức", path: "/blogs", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Liên hệ", path: "/contact", icon: <Mail className="h-5 w-5" /> },
+    { title: "TRANG CHỦ", path: "/", icon: <LayoutGrid className="h-5 w-5" /> },
+    { title: "SẢN PHẨM", path: "/products", icon: <ShoppingBag className="h-5 w-5" /> },
+    { title: "COMBO", path: "/combos", icon: <Package className="h-5 w-5" /> },
+    { title: "GIẢM GIÁ", path: "/voucher", icon: <Ticket className="h-5 w-5" /> },
+    { title: "TIN TỨC", path: "/blogs", icon: <Newspaper className="h-5 w-5" /> },
+    { title: "LIÊN HỆ", path: "/contact", icon: <Mail className="h-5 w-5" /> },
   ];
 
   useEffect(() => {
@@ -75,7 +78,7 @@ const UserLayout = () => {
   const handleLogout = useCallback(async () => {
     // Ngăn chặn multiple logout calls
     if (logoutInProgress.current) return;
-    
+
     logoutInProgress.current = true;
     setIsUserMenuOpen(false);
 
@@ -232,7 +235,7 @@ const UserLayout = () => {
 
 
                 </Link>
-                     <Link
+                <Link
                   to="/personalpromotions"
                   className={cn(
                     "relative hover:text-crocus-600 transition-colors",
@@ -320,7 +323,7 @@ const UserLayout = () => {
             {!isLoggedIn && (
               <Button variant="outline" size="sm" asChild>
                 <Link to="/auth/login">
-                  <LogIn className="h-4 w-4 mr-2" /> Đăng nhập
+                  <LogIn className="h-4 w-4 mr-2" /> ĐĂNG NHẬP
                 </Link>
               </Button>
             )}
@@ -343,81 +346,117 @@ const UserLayout = () => {
                   className="h-32 w-auto transform -translate-y-7"
                 />
               </Link>
-              <p className="text-gray-600 transform -translate-y-10">
+              <p className="text-gray-700 text-xl transform -translate-y-10">
                 Mang đến cho bạn những xu hướng thời trang mới nhất 2025.
               </p>
+              <Translate />
             </div>
+
             <div className="hidden md:block">
-              <h3 className="font-bold text-lg mb-4 text-crocus-700">Mua sắm</h3>
-              <ul className="space-y-2">
+              <h3 className="font-bold text-2xl mb-4 text-crocus-700">Mua sắm</h3>
+              <ul className="space-y-3">
                 <li>
-                  <Link to="/" className="text-gray-600 hover:text-crocus-500">
-                    <LayoutGrid className="h-4 w-4 inline mr-2" /> Trang chủ
+                  <Link to="/" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <LayoutGrid className="h-5 w-5 inline mr-2" /> Trang chủ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/products" className="text-gray-600 hover:text-crocus-500">
-                    <ShoppingBag className="h-4 w-4 inline mr-2" /> Sản phẩm
+                  <Link to="/products" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <ShoppingBag className="h-5 w-5 inline mr-2" /> Sản phẩm
                   </Link>
                 </li>
                 <li>
-                  <Link to="/combos" className="text-gray-600 hover:text-crocus-500">
-                    <Package className="h-4 w-4 inline mr-2" /> Combo
+                  <Link to="/combos" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <Package className="h-5 w-5 inline mr-2" /> Combo
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/Guarantee" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <RotateCcw className="h-5 w-5 inline mr-2" /> Chính sách đổi trả
                   </Link>
                 </li>
               </ul>
             </div>
+
             <div className="hidden md:block">
-              <h3 className="font-bold text-lg mb-4 text-crocus-700">Tài khoản</h3>
-              <ul className="space-y-2">
+              <h3 className="font-bold text-2xl mb-4 text-crocus-700">Tài khoản</h3>
+              <ul className="space-y-3">
                 <li>
-                  <Link to="/user/profile" className="text-gray-600 hover:text-crocus-500">
-                    <UserCircle className="h-4 w-4 inline mr-2" /> Hồ sơ
+                  <Link to="/user/profile" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <UserCircle className="h-5 w-5 inline mr-2" /> Hồ sơ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/user/orders" className="text-gray-600 hover:text-crocus-500">
-                    <Package className="h-4 w-4 inline mr-2" /> Đơn hàng
+                  <Link to="/user/orders" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <Package className="h-5 w-5 inline mr-2" /> Đơn hàng
                   </Link>
                 </li>
                 <li>
-                  <Link to="/user/cart" className="text-gray-600 hover:text-crocus-500">
-                    <ShoppingCart className="h-4 w-4 inline mr-2" /> Giỏ hàng
+                  <Link to="/user/cart" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <ShoppingCart className="h-5 w-5 inline mr-2" /> Giỏ hàng
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/Security" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <ShieldCheck className="h-5 w-5 inline mr-2" /> Chính sách bảo mật
                   </Link>
                 </li>
               </ul>
             </div>
+
             <div>
-              <h3 className="font-bold text-lg mb-4 text-crocus-700">Kết nối với chúng tôi</h3>
-              <ul className="space-y-2">
+              <h3 className="font-bold text-2xl mb-4 text-crocus-700">Kết nối với chúng tôi</h3>
+              <ul className="space-y-3">
                 <li>
-                  <Link to="/contact" className="text-gray-600 hover:text-crocus-500">
-                    <Mail className="h-4 w-4 inline mr-2" /> Liên hệ
+                  <Link to="/contact" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <Mail className="h-5 w-5 inline mr-2" /> Liên hệ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-gray-600 hover:text-crocus-500">
-                    <MapPin className="h-4 w-4 inline mr-2" /> Về chúng tôi
+                  <Link to="/about" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <MapPin className="h-5 w-5 inline mr-2" /> Về chúng tôi
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blogs" className="text-gray-700 hover:text-crocus-500 text-xl">
+                    <Newspaper className="h-5 w-5 inline mr-2" /> Tin tức
                   </Link>
                 </li>
               </ul>
-              <div className="flex space-x-4 mt-4">
-                <a href="#" className="text-gray-600 hover:text-crocus-500">
-                  <Facebook className="h-6 w-6" />
+              <div className="flex space-x-4 mt-6">
+                <a
+                  href="https://facebook.com/Ultrastore"
+                  className="text-gray-700 hover:text-crocus-500"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Facebook className="h-7 w-7" />
                 </a>
-                <a href="#" className="text-gray-600 hover:text-crocus-500">
-                  <Instagram className="h-6 w-6" />
+                <a
+                  href="https://instagram.com/ultrasstore"
+                  className="text-gray-700 hover:text-crocus-500"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Instagram className="h-7 w-7" />
                 </a>
-                <a href="#" className="text-gray-600 hover:text-crocus-500">
-                  <Twitter className="h-6 w-6" />
+                <a
+                  href="https://twitter.com/ultrastore"
+                  className="text-gray-700 hover:text-crocus-500"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Twitter className="h-7 w-7" />
                 </a>
+
               </div>
             </div>
           </div>
         </div>
         <SupportChat />
-        <Translate/>
+        
       </footer>
+
     </>
   );
 };

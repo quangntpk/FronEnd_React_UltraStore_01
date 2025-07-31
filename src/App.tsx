@@ -73,6 +73,10 @@ import { useAuth } from "@/components/auth/AuthContext";
 import { useRef } from "react";
 import AdminProfile from "./pages/admin/AdminProfile";
 import CheckOutInstant from "./pages/user/InstantCheckout";
+import Security from "./components/default/Security";
+import Guarantee from "./components/default/Guarantee";
+import AdminMessages from "./pages/admin/AdminMessages";
+
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
   const location = useLocation();
@@ -173,6 +177,9 @@ const App = () => (
                 <Route path="/user/hoadon/:orderId" element={<OrderEmailPage />} />
                 <Route path="/user/hoadon" element={<HoaDon />} />
                 <Route path="/user/CheckOutInstant" element={<CheckOutInstant/>}/>
+                <Route path="security" element={<Security />} />
+                <Route path="guarantee" element={<Guarantee />} />
+
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
@@ -213,6 +220,7 @@ const App = () => (
                 <Route path="orders/form" element={<OrdersForm />} />
                 <Route path="invoice/form" element={<InvoiceForm />} />
                 <Route path="contact" element={<AdminContact />} />
+                <Route path="messages" element={<AdminMessages />} />
 
 
                 <Route path="*" element={<NotFound />} />
