@@ -75,6 +75,7 @@ import AdminProfile from "./pages/admin/AdminProfile";
 import CheckOutInstant from "./pages/user/InstantCheckout";
 import Security from "./components/default/Security";
 import Guarantee from "./components/default/Guarantee";
+import AdminMessages from "./pages/admin/AdminMessages";
 
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
@@ -219,6 +220,7 @@ const App = () => (
                 <Route path="orders/form" element={<OrdersForm />} />
                 <Route path="invoice/form" element={<InvoiceForm />} />
                 <Route path="contact" element={<AdminContact />} />
+                <Route path="messages" element={<AdminMessages />} />
 
 
                 <Route path="*" element={<NotFound />} />

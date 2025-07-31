@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageForm } from "./MessageForm";
 import { cn } from "@/lib/utils";
-import * as signalR from "@microsoft/signalr";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -15,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 
 const API_URL = import.meta.env.VITE_API_URL;
-const HUB_URL = `${API_URL}/chatHub`;
 
 interface User {
   id: string;
@@ -73,39 +71,42 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
   const navigate = useNavigate();
   const emojiList = ["😊", "😂", "❤️", "👍", "😍", "😢", "😡", "🎉", "🔥", "💯"];
 
+  // Fetch default avatar
   const fetchDefaultAvatar = async () => {
     try {
       const response = await fetch(`${API_URL}/api/GiaoDien`);
       if (!response.ok) throw new Error("Lỗi khi tải avatar mặc định");
       const data: GiaoDien[] = await response.json();
       const activeGiaoDien = data.find((item) => item.trangThai === 1);
-      if (activeGiaoDien && activeGiaoDien.avt) {
+      if (activeGiaoDien?.avt) {
         setDefaultAvatar(`data:image/png;base64,${activeGiaoDien.avt}`);
       } else {
         setDefaultAvatar(null);
       }
     } catch (err) {
-      console.error("Lỗi khi lấy avatar mặc định:", (err as Error).message);
+      console.error("Lỗi khi lấy avatar mặc định:", err instanceof Error ? err.message : "Không xác định");
       setDefaultAvatar(null);
     }
   };
 
+  // Fetch image as blob for display
   const fetchImageAsBlob = async (url: string, token: string) => {
     try {
       const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
+        mode: "cors",
       });
-      if (!response.ok) throw new Error(`Không thể tải hình ảnh từ ${url}`);
+      console.log("Image fetch response:", response.status, response.statusText, url);
+      if (!response.ok) throw new Error(`Không thể tải hình ảnh từ ${url}: ${response.statusText}`);
       const blob = await response.blob();
       return URL.createObjectURL(blob);
     } catch (error) {
       console.error("Lỗi khi tải hình ảnh:", error);
-      return "/fallback-image.png";
+      return "/fallback-image.png"; // Fallback image
     }
   };
 
+  // Fetch messages and images
   useEffect(() => {
     const fetchMessages = async () => {
       setLoading(true);
@@ -115,18 +116,20 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
           `${API_URL}/api/TinNhan/doan-chat?nguoiGuiId=${encodeURIComponent(me)}&nguoiNhanId=${encodeURIComponent(threadId)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        if (!res.ok) throw new Error("Không thể tải tin nhắn");
+        if (!res.ok) throw new Error(`Không thể tải tin nhắn: ${res.statusText}`);
         const data: Message[] = await res.json();
-        setMsgs(data);
+        console.log("Fetched messages:", data);
 
         const imageUrls: { [key: string]: string } = {};
         for (const msg of data) {
           if (msg.kieuTinNhan === "image" && msg.tepDinhKemUrl && !msg.isPending) {
-            const imageUrl = await fetchImageAsBlob(`${API_URL}${msg.tepDinhKemUrl}`, token);
+            const fullUrl = `${API_URL}${msg.tepDinhKemUrl}`;
+            const imageUrl = await fetchImageAsBlob(fullUrl, token);
             imageUrls[msg.maTinNhan] = imageUrl;
           }
         }
         setImageDisplayUrls(imageUrls);
+        setMsgs(data);
       } catch (error) {
         console.error("Lỗi khi tải tin nhắn:", error);
         setMsgs([]);
@@ -138,73 +141,17 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
 
     fetchDefaultAvatar();
     fetchMessages();
-
-    const hub = new signalR.HubConnectionBuilder()
-      .withUrl(HUB_URL, { accessTokenFactory: () => localStorage.getItem("token") || "" })
-      .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Information)
-      .build();
-
-    hub
-      .start()
-      .then(() => console.log("Kết nối SignalR thành công"))
-      .catch((err) => console.error("Lỗi kết nối SignalR:", err));
-
-    hub.on("NhanTinNhan", async (m: Message) => {
-      console.log("Tin nhắn nhận được từ SignalR:", m);
-      setMsgs((prev) => {
-        const pendingIndex = prev.findIndex(
-          (msg) =>
-            msg.isPending &&
-            msg.nguoiGuiId === m.nguoiGuiId &&
-            msg.nguoiNhanId === m.nguoiNhanId &&
-            msg.noiDung === m.noiDung &&
-            msg.sentTime &&
-            Math.abs(new Date(msg.sentTime).getTime() - new Date(m.ngayTao).getTime()) < 5000
-        );
-
-        if (pendingIndex !== -1) {
-          const updated = [...prev];
-          updated[pendingIndex] = { ...m, isPending: false };
-          console.log("Đã thay thế tin nhắn tạm thời:", updated[pendingIndex]);
-          return updated;
-        } else {
-          const isRelevant =
-            (m.nguoiGuiId === me && m.nguoiNhanId === threadId) ||
-            (m.nguoiGuiId === threadId && m.nguoiNhanId === me);
-          if (isRelevant) {
-            console.log("Thêm tin nhắn mới:", m);
-            return [...prev, m];
-          }
-          return prev;
-        }
-      });
-
-      if (m.kieuTinNhan === "image" && m.tepDinhKemUrl && !m.isPending) {
-        const token = localStorage.getItem("token") || "";
-        const imageUrl = await fetchImageAsBlob(`${API_URL}${m.tepDinhKemUrl}`, token);
-        setImageDisplayUrls((prev) => ({
-          ...prev,
-          [m.maTinNhan]: imageUrl,
-        }));
-      }
-
-      setScroll(true);
-    });
-
-    return () => {
-      hub.stop();
-      Object.values(imageDisplayUrls).forEach((url) => URL.revokeObjectURL(url));
-    };
   }, [threadId, me]);
 
+  // Scroll to latest message
   useEffect(() => {
-    if (scroll) {
-      lastRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scroll && lastRef.current) {
+      lastRef.current.scrollIntoView({ behavior: "smooth" });
       setScroll(false);
     }
   }, [msgs, scroll]);
 
+  // Handle new message
   const handleNew = (content: string, file?: File) => {
     const now = new Date().toISOString();
     const msg: Message = {
@@ -223,6 +170,7 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
     setScroll(true);
   };
 
+  // Get file extension from URL
   const getFileExtension = (url?: string) => {
     if (!url) return "Tệp không xác định";
     const parts = url.split("/");
@@ -232,55 +180,50 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
       return fileName.substring(lastUnderscoreIndex + 1);
     }
     const dotIndex = fileName.lastIndexOf(".");
-    if (dotIndex !== -1 && dotIndex < fileName.length - 1) {
-      return fileName.substring(dotIndex + 1);
-    }
-    return fileName;
+    return dotIndex !== -1 && dotIndex < fileName.length - 1
+      ? fileName.substring(dotIndex + 1)
+      : fileName;
   };
 
+  // Open download modal
   const openDownloadModal = (url?: string, isPending?: boolean, isImage?: boolean) => {
     if (!url) return;
     setSelectedFileUrl(url);
     setSelectedFileName(getFileExtension(url));
-    setIsPendingFile(isPending || false);
-    setIsImageFile(isImage || false);
+    setIsPendingFile(!!isPending);
+    setIsImageFile(!!isImage);
     setDownloadModalOpen(true);
   };
 
+  // Handle file download
   const handleFileDownload = async () => {
     if (!selectedFileUrl) return;
 
     try {
-      if (isPendingFile) {
-        const link = document.createElement("a");
-        link.href = selectedFileUrl;
-        link.download = selectedFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        const token = localStorage.getItem("token") || "";
-        const response = await fetch(selectedFileUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const token = localStorage.getItem("token") || "";
+      console.log("Attempting download from:", selectedFileUrl);
+      const response = await fetch(selectedFileUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        mode: "cors",
+      });
 
-        if (!response.ok) throw new Error("Không thể tải tệp từ server");
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = selectedFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+      if (!response.ok) {
+        console.error(`Download failed: ${response.status} - ${response.statusText}`, selectedFileUrl);
+        throw new Error(`Không thể tải tệp: ${response.statusText}`);
       }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = selectedFileName || "file";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Lỗi khi tải tệp:", error);
-      alert("Không thể tải tệp. Vui lòng thử lại sau.");
+      alert(`Không thể tải tệp. Vui lòng thử lại. Chi tiết: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
     } finally {
       setDownloadModalOpen(false);
     }
@@ -296,9 +239,9 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
           onClick={() => navigate(`/user/profile/${user.id}`)}
         >
           {user.avatar ? (
-            <AvatarImage src={user.avatar} />
+            <AvatarImage src={user.avatar} alt={user.name} />
           ) : defaultAvatar ? (
-            <AvatarImage src={defaultAvatar} />
+            <AvatarImage src={defaultAvatar} alt="Default avatar" />
           ) : (
             <AvatarFallback>{user.name?.[0] || "?"}</AvatarFallback>
           )}
@@ -326,12 +269,14 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
                 {m.tepDinhKemUrl && (
                   m.kieuTinNhan === "image" ? (
                     <img
-                      src={m.isPending ? m.tepDinhKemUrl : imageDisplayUrls[m.maTinNhan]}
-                      alt="img"
+                      src={m.isPending ? m.tepDinhKemUrl : imageDisplayUrls[m.maTinNhan] || `${API_URL}${m.tepDinhKemUrl}`}
+                      alt="Đính kèm hình ảnh"
                       className="mt-2 max-w-[200px] rounded cursor-pointer"
                       onClick={() => openDownloadModal(m.isPending ? m.tepDinhKemUrl : `${API_URL}${m.tepDinhKemUrl}`, m.isPending, true)}
                       onError={(e) => {
-                        e.currentTarget.src = "/fallback-image.png";
+                        const target = e.target as HTMLImageElement;
+                        console.error("Hình ảnh tải thất bại:", target.src);
+                        target.src = "/fallback-image.png";
                       }}
                     />
                   ) : (
@@ -368,11 +313,19 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
                 <>
                   Bạn có muốn tải về hình ảnh này không?
                   <img
-                    src={isPendingFile ? selectedFileUrl : imageDisplayUrls[msgs.find((m) => m.tepDinhKemUrl === selectedFileUrl)?.maTinNhan || ""]}
-                    alt="Preview"
+                    src={
+                      isPendingFile
+                        ? selectedFileUrl
+                        : imageDisplayUrls[
+                            msgs.find((m) => m.tepDinhKemUrl === selectedFileUrl?.replace(`${API_URL}`, ""))?.maTinNhan
+                          ] || selectedFileUrl || "/fallback-image.png"
+                    }
+                    alt="Xem trước"
                     className="mt-2 max-w-[200px] rounded"
                     onError={(e) => {
-                      e.currentTarget.src = "/fallback-image.png";
+                      const target = e.target as HTMLImageElement;
+                      console.error("Xem trước hình ảnh thất bại:", target.src);
+                      target.src = "/fallback-image.png";
                     }}
                   />
                 </>
@@ -393,4 +346,4 @@ export const MessageThread: React.FC<Props> = ({ threadId, user }) => {
       </Dialog>
     </div>
   );
-};
+}
