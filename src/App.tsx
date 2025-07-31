@@ -76,6 +76,7 @@ import CheckOutInstant from "./pages/user/InstantCheckout";
 import Security from "./components/default/Security";
 import Guarantee from "./components/default/Guarantee";
 import AdminMessages from "./pages/admin/AdminMessages";
+import Search from "./components/default/Search";
 
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
@@ -179,6 +180,7 @@ const App = () => (
                 <Route path="/user/CheckOutInstant" element={<CheckOutInstant/>}/>
                 <Route path="security" element={<Security />} />
                 <Route path="guarantee" element={<Guarantee />} />
+                <Route path="search" element={<Search />} />
 
               </Route>
 

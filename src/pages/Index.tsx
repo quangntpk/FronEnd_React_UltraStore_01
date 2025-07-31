@@ -731,9 +731,9 @@ const Index = () => {
       <Features />
 
       {/* Featured Products */}
-      <section className="py-6">
+      <section>
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Sản phẩm</h2>
+          <h2 className="text-3xl font-bold">Sản phẩm bán chạy</h2>
           <Button asChild variant="link" className="text-crocus-600">
             <Link to="/products">
               Xem tất cả <span aria-hidden="true">→</span>
@@ -761,9 +761,9 @@ const Index = () => {
       </section>
 
       {/* Trending Combos */}
-      <section className="py-6">
+      <section>
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Combo</h2>
+          <h2 className="text-3xl font-bold">Combo mới nhất</h2>
           <Button asChild variant="link" className="text-crocus-600">
             <Link to="/combos">
               Xem tất cả <span aria-hidden="true">→</span>
@@ -787,7 +787,7 @@ const Index = () => {
       </section>
 
       {/* Blog Section */}
-      <section className="py-6">
+      <section>
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Tin tức</h2>
           <Button asChild variant="link" className="text-crocus-600">

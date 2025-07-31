@@ -8,7 +8,7 @@ import axios from "axios";
 import { useAuth } from "../auth/AuthContext";
 import SupportChat from "@/components/default/SupportChat";
 import Translate from "@/components/default/Translate";
-
+import Search from "@/components/default/Search";
 import {
   Menu,
   ShoppingCart,
@@ -31,6 +31,9 @@ import {
   RotateCcw,
   ShieldCheck,
   Newspaper,
+  Phone,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -76,7 +79,6 @@ const UserLayout = () => {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    // Ngăn chặn multiple logout calls
     if (logoutInProgress.current) return;
 
     logoutInProgress.current = true;
@@ -84,8 +86,6 @@ const UserLayout = () => {
 
     try {
       await logout();
-
-      // Chỉ hiện toast một lần
       toast({
         title: "Đăng xuất thành công 🎉",
         description: "Bạn đã đăng xuất khỏi tài khoản.",
@@ -97,16 +97,12 @@ const UserLayout = () => {
           </Button>
         ),
       });
-
-      // Delay navigate để user nhìn thấy toast
       setTimeout(() => {
         navigate("/auth/login", { replace: true });
       }, 500);
-
     } catch (error) {
       console.error("Lỗi đăng xuất:", error);
     } finally {
-      // Reset flag sau khi hoàn thành
       setTimeout(() => {
         logoutInProgress.current = false;
       }, 1000);
@@ -115,6 +111,44 @@ const UserLayout = () => {
 
   return (
     <>
+      {/* Thanh header trên cùng */}
+      <div className="bg-gray-800 text-white py-2">
+        <div className="container mx-auto px-4 flex flex-wrap justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <span className="flex items-center">
+              <MapPin className="h-4 w-4 mr-1" />
+              <span className="text-sm hidden sm:inline">123 Hà Huy Tập, TP. Buôn Ma Thuột</span>
+            </span>
+            <span className="flex items-center">
+              <Phone className="h-4 w-4 mr-1" />
+              <span className="text-sm hidden md:inline">0383 777 823</span>
+            </span>
+            <span className="flex items-center">
+              <Mail className="h-4 w-4 mr-1" />
+              <span className="text-sm hidden lg:inline">hotronfashionhubvn@gmail.com</span>
+            </span>
+          </div>
+          <div className="flex items-center space-x-4 mt-2 sm:mt-0">
+            <a href="https://zalo.me/0383777823" target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="h-5 w-5" />
+            </a>
+            <a href="https://t.me/miyaru2k5" target="_blank" rel="noopener noreferrer">
+              <Send className="h-5 w-5" />
+            </a>
+            <a href="https://facebook.com/ultrastore" target="_blank" rel="noopener noreferrer">
+              <Facebook className="h-5 w-5" />
+            </a>
+            <a href="https://instagram.com/ultrastore" target="_blank" rel="noopener noreferrer">
+              <Instagram className="h-5 w-5" />
+            </a>
+            <a href="https://twitter.com/ultrastore" target="_blank" rel="noopener noreferrer">
+              <Twitter className="h-5 w-5" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Header chính */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
@@ -141,6 +175,7 @@ const UserLayout = () => {
                     </Link>
                   </NavigationMenuItem>
                 ))}
+                <Search />
               </NavigationMenuList>
             </NavigationMenu>
           </nav>
@@ -191,7 +226,9 @@ const UserLayout = () => {
                             to="/user/orders"
                             className={cn(
                               "flex items-center gap-2 px-4 py-3 rounded-md",
-                              location.pathname === "/user/orders"
+                              location.pathname ===
+
+ "/user/orders"
                                 ? "bg-crocus-100 text-crocus-700 font-medium"
                                 : "text-gray-600"
                             )}
@@ -218,9 +255,6 @@ const UserLayout = () => {
             </Drawer>
             {isLoggedIn && (
               <>
-
-
-
                 <Link
                   to="/favorites"
                   className={cn(
@@ -229,11 +263,6 @@ const UserLayout = () => {
                   )}
                 >
                   <Heart className="h-5 w-5" />
-
-
-
-
-
                 </Link>
                 <Link
                   to="/personalpromotions"
@@ -241,19 +270,8 @@ const UserLayout = () => {
                     "relative hover:text-crocus-600 transition-colors",
                     location.pathname === "/personalpromotions" ? "text-crocus-600" : "text-gray-600"
                   )}
-                >
-                  <Ticket className="h-5 w-5" />
+                ><Ticket className="h-5 w-5" />
                 </Link>
-
-
-
-
-
-
-
-
-
-
                 <Link
                   to="/user/cart"
                   className={cn(
@@ -279,8 +297,7 @@ const UserLayout = () => {
                     className="flex items-center hover-effect"
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   >
-                    <User className="mr-2 h-4 w-4" />
-                    Xin chào {userName || "Khách"}
+                    <User className="h-4 w-4" />
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                   {isUserMenuOpen && (
@@ -351,7 +368,6 @@ const UserLayout = () => {
               </p>
               <Translate />
             </div>
-
             <div className="hidden md:block">
               <h3 className="font-bold text-2xl mb-4 text-crocus-700">Mua sắm</h3>
               <ul className="space-y-3">
@@ -377,7 +393,6 @@ const UserLayout = () => {
                 </li>
               </ul>
             </div>
-
             <div className="hidden md:block">
               <h3 className="font-bold text-2xl mb-4 text-crocus-700">Tài khoản</h3>
               <ul className="space-y-3">
@@ -403,7 +418,6 @@ const UserLayout = () => {
                 </li>
               </ul>
             </div>
-
             <div>
               <h3 className="font-bold text-2xl mb-4 text-crocus-700">Kết nối với chúng tôi</h3>
               <ul className="space-y-3">
@@ -448,15 +462,12 @@ const UserLayout = () => {
                 >
                   <Twitter className="h-7 w-7" />
                 </a>
-
               </div>
             </div>
           </div>
         </div>
         <SupportChat />
-        
       </footer>
-
     </>
   );
 };
