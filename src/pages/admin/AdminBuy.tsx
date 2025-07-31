@@ -768,7 +768,8 @@ const Products = () => {
           <Link to="/admin">
             <ArrowLeft className="w-6 h-6 hover:text-purple-500 transition-colors duration-200" />
           </Link>
-          <h1 className="text-3xl font-bold tracking-tight">Sản phẩm</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Nhân viên bán hàng</h1>
+          
         </div>
       </div>
 
@@ -777,7 +778,7 @@ const Products = () => {
         <div className="lg:col-span-3">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Tất cả sản phẩm</CardTitle>
+              <CardTitle>Bán hàng tại quầy</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-start sm:items-center">
