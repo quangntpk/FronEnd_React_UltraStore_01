@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, MouseEvent } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -43,7 +43,8 @@ const Dashboard = () => {
 
   const years = Array.from({ length: 76 }, (_, i) => 2025 + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const today = "2025-07-30"; // Fixed to current date
+  // Use current date for real-time data
+  const today = new Date().toISOString().split("T")[0]; // e.g., "2025-07-31"
 
   const API_BASE_URL = "http://localhost:5261/api/ThongKe";
 
@@ -374,6 +375,9 @@ const Dashboard = () => {
   useEffect(() => {
     if (activeTab === "summary") {
       fetchTodayData();
+      // Optional: Set up polling for real-time updates (e.g., every 60 seconds)
+      const interval = setInterval(fetchTodayData, 60000);
+      return () => clearInterval(interval);
     } else if (activeTab === "revenue") {
       if (timeFilter === "daily") {
         getDailyStatistics().then((data) => {
@@ -492,19 +496,19 @@ const Dashboard = () => {
 
         <TabsContent value="summary">
           <div className="space-y-6">
-            {/* Header Card with Today's Date */}
+            {/* Header Card with Current Date */}
             <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 text-white">
               <CardHeader className="pb-4">
                 <CardTitle className="text-2xl font-bold text-center">
                   📈 Thống kê tổng hợp hôm nay
                 </CardTitle>
                 <p className="text-center text-blue-100 text-lg font-medium">
-                  {new Date(today).toLocaleDateString('vi-VN', { 
+                  {new Date().toLocaleDateString('vi-VN', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric' 
-                  })}
+                  })} - {new Date().toLocaleTimeString('vi-VN')}
                 </p>
               </CardHeader>
             </Card>

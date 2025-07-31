@@ -685,7 +685,7 @@ const Vouchers = () => {
                     )}
                     <div><strong>ID:</strong> {item.maVoucher}</div>
                     <div>
-                      <strong>Giá trị:</strong>
+                      <strong>Giá trị: </strong>
                       {item.loaiVoucher === 0 ? `${item.giaTri ?? 0}%` :
                        item.loaiVoucher === 1 ? `${item.giaTri != null ? item.giaTri.toLocaleString('vi-VN') : '0'} VND` :
                        "Miễn phí vận chuyển"}
