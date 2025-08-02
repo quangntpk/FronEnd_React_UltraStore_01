@@ -330,7 +330,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
                 <img
                   src={comment.hinhAnh || defaultImageUrl}
                   alt={`Ảnh đại diện của ${comment.hoTen || comment.maNguoiDung}`}
-                  className="w-12 h-12 rounded-full object-cover border border-purple-300"
+                  className="w-12 h-12 rounded-full object-contain border border-purple-300"
                   onError={(e: React.SyntheticEvent<HTMLImageElement>) => (e.currentTarget.src = defaultImageUrl)}
                 />
               </div>
@@ -600,18 +600,19 @@ export const BlogDetailComponent = () => {
               </div>
             </CardHeader>
             {blog.hinhAnh && (
-              <div className="w-full h-64 sm:h-96">
+              <div className="w-full">
                 <img
                   src={`data:image/jpeg;base64,${blog.hinhAnh}`}
                   alt={blog.moTaHinhAnh || blog.tieuDe}
-                  className="w-full h-full object-cover rounded-t-md"
+                  className="w-full max-w-full h-auto object-contain rounded-t-md"
+                  onError={(e: React.SyntheticEvent<HTMLImageElement>) => (e.currentTarget.src = defaultImageUrl)}
                 />
               </div>
             )}
             <CardContent>
               <div
                 className="prose prose-sm sm:prose lg:prose-lg max-w-none ql-editor"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.noiDung, { ADD_ATTR: ['style'] }) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.noiDung, { ADD_ATTR: ['style', 'src'] }) }}
               />
               <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
                 <div>
@@ -656,6 +657,13 @@ export const BlogDetailComponent = () => {
         }
         .blog-detail .ql-editor * {
           font-size: inherit !important;
+        }
+        .blog-detail .ql-editor img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 0 auto;
+          object-fit: contain;
         }
         .blog-detail .ql-size-small {
           font-size: 0.75rem !important;
