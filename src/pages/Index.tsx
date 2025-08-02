@@ -10,6 +10,7 @@ import HeroSection from "@/components/default/HeroSection";
 import Newsletter from "@/components/default/Newsletter";
 import Features from "@/components/default/Features";
 import CategoryView from "@/components/default/CategoryView";
+import VoucherUser from "@/components/layout/voucher/VoucherUser";
 import {
   Carousel,
   CarouselContent,
@@ -729,7 +730,7 @@ const Index = () => {
       <CategoryView />
       {/* Features */}
       <Features />
-
+<VoucherUser/>
       {/* Featured Products */}
       <section>
         <div className="flex justify-between items-center mb-8">

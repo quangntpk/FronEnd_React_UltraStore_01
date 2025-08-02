@@ -1,8 +1,11 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { Gift, Clock, Sparkles, Star } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PersonalPromotionsList from "@/pages/personalpromotions/PersonalpromotionsList";
 
 // Định nghĩa kiểu dữ liệu cho Voucher
 interface Voucher {
@@ -602,181 +605,212 @@ const VoucherUser = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
       <div className="container mx-auto py-8 px-4">
-        <section id="voucher">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <div className="flex items-center justify-center mb-4">
-                <Sparkles className="text-4xl font-bold mb-4" />
-                <h2 className="text-4xl font-bold mb-4">
-                  {APP_TITLE}
-                </h2>
-                <Sparkles className="text-4xl font-bold mb-4"/>
-              </div>
-              <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-                Quay để nhận ngay mã giảm giá hoặc miễn phí vận chuyển hấp dẫn dành cho bạn!
-              </p>
-            </div>
+        <Tabs defaultValue="wheel" className="w-full max-w-6xl mx-auto">
+          <TabsList className="grid grid-cols-2 mb-8">
+            <TabsTrigger value="wheel">
+              <Star className="mr-2 h-4 w-4" />
+              Vòng Quay May Mắn
+            </TabsTrigger>
+            <TabsTrigger value="promotions">
+              <Gift className="mr-2 h-4 w-4" />
+              Khuyến Mãi Cá Nhân
+            </TabsTrigger>
+          </TabsList>
 
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-12">
-              {/* Wheel */}
-              <div className="relative flex-shrink-0">
-                <div className="relative">
-                  <div
-                    className="relative transition-transform duration-[3000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]"
-                    style={{
-                      transform: `rotate(${rotation}deg)`,
-                      filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2))',
-                    }}
-                  >
-                    <svg width={WHEEL_SIZE} height={WHEEL_SIZE} className="rounded-full">
-                      {vouchers.map((voucher, index) => renderWheelSegment(voucher, index))}
-                    </svg>
-                    {/* Center circle */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                        <Star className="w-8 h-8 text-white" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pointer */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
-                    <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[30px] border-l-transparent border-r-transparent border-b-red-500 filter drop-shadow-lg"></div>
-                  </div>
+          <TabsContent value="wheel">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="flex items-center justify-center mb-4">
+                  <Sparkles className="text-4xl font-bold mb-4" />
+                  <h2 className="text-4xl font-bold mb-4">
+                    {APP_TITLE}
+                  </h2>
+                  <Sparkles className="text-4xl font-bold mb-4"/>
                 </div>
+                <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+                  Quay để nhận ngay mã giảm giá hoặc miễn phí vận chuyển hấp dẫn dành cho bạn!
+                </p>
               </div>
 
-              {/* Controls and Result */}
-              <div className="w-full max-w-md">
-                <div className="text-center mb-8">
-                  <Button
-                    onClick={handleSpin}
-                    disabled={isSpinning || !canSpin()}
-                    className={`px-8 py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
-                      canSpin() && !isSpinning
-                        ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
-                        : 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    }`}
-                    style={{
-                      background: canSpin() && !isSpinning
-                        ? 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)'
-                        : undefined
-                    }}
-                  >
-                    {isSpinning ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2 inline-block"></div>
-                        🎯 Đang quay...
-                      </>
-                    ) : !isLoggedIn ? (
-                      <>
-                        <Clock className="w-5 h-5 mr-2 inline-block" />
-                        Đăng nhập để quay
-                      </>
-                    ) : timeLeft > 0 ? (
-                      <>
-                        <Clock className="w-5 h-5 mr-2 inline-block" />
-                        ⏰ Chờ {formatTimeLeft(timeLeft)}
-                      </>
-                    ) : (
-                      <>
-                        <Star className="w-5 h-5 mr-2 inline-block" />
-                        🍀 Quay ngay
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {selectedVoucher && !showWinnerPopup && selectedCoupon && (
-                  <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-xl">
-                    <div className="text-center mb-4">
-                      <div className="flex items-center justify-center mb-2">
-                        <Gift className="w-6 h-6 text-purple-500 mr-2" />
-                        <h3 className="text-xl font-bold text-purple-600">
-                          🎉 Chúc mừng bạn!
-                        </h3>
+              <div className="flex flex-col lg:flex-row items-center justify-center gap-12">
+                {/* Wheel */}
+                <div className="relative flex-shrink-0">
+                  <div className="relative">
+                    <div
+                      className="relative transition-transform duration-[3000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                      style={{
+                        transform: `rotate(${rotation}deg)`,
+                        filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2))',
+                      }}
+                    >
+                      <svg width={WHEEL_SIZE} height={WHEEL_SIZE} className="rounded-full">
+                        {vouchers.map((voucher, index) => renderWheelSegment(voucher, index))}
+                      </svg>
+                      {/* Center circle */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Star className="w-8 h-8 text-white" />
+                        </div>
                       </div>
                     </div>
 
-                    {selectedVoucher.hinhAnh && (
-                      <div className="mb-4">
-                        <img
-                          src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
-                          alt={selectedVoucher.tenVoucher}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                      </div>
-                    )}
+                    {/* Pointer */}
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 z-10">
+                      <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[30px] border-l-transparent border-r-transparent border-b-red-500 filter drop-shadow-lg"></div>
+                    </div>
+                  </div>
+                </div>
 
-                    <div className="space-y-3">
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-800 mb-1">
-                          {selectedVoucher.tenVoucher}
-                        </p>
-                        <p className="text-2xl font-bold text-purple-600">
-                          {formatVoucherValue(selectedVoucher)}
-                        </p>
-                      </div>
-
-                      {selectedVoucher.moTa && (
-                        <p className="text-gray-600 text-sm text-center italic">
-                          {selectedVoucher.moTa}
-                        </p>
+                {/* Controls and Result */}
+                <div className="w-full max-w-md">
+                  <div className="text-center mb-8">
+                    <Button
+                      onClick={handleSpin}
+                      disabled={isSpinning || !canSpin()}
+                      className={`px-8 py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+                        canSpin() && !isSpinning
+                          ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                          : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      }`}
+                      style={{
+                        background: canSpin() && !isSpinning
+                          ? 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)'
+                          : undefined
+                      }}
+                    >
+                      {isSpinning ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2 inline-block"></div>
+                          🎯 Đang quay...
+                        </>
+                      ) : !isLoggedIn ? (
+                        <>
+                          <Clock className="w-5 h-5 mr-2 inline-block" />
+                          Đăng nhập để quay
+                        </>
+                      ) : timeLeft > 0 ? (
+                        <>
+                          <Clock className="w-5 h-5 mr-2 inline-block" />
+                          ⏰ Chờ {formatTimeLeft(timeLeft)}
+                        </>
+                      ) : (
+                        <>
+                          <Star className="w-5 h-5 mr-2 inline-block" />
+                          🍀 Quay ngay
+                        </>
                       )}
+                    </Button>
+                  </div>
 
-                      <div className="text-center text-sm text-gray-500">
-                        <p>Hết hạn: {formatDate(selectedVoucher.ngayKetThuc)}</p>
-                        {selectedVoucher.dieuKien && (
-                          <p>Áp dụng cho đơn hàng từ {formatCondition(selectedVoucher.dieuKien)}</p>
-                        )}
-                        {selectedVoucher.giaTriToiDa && (
-                          <p>Giảm tối đa: {formatCondition(selectedVoucher.giaTriToiDa)}</p>
-                        )}
+                  {selectedVoucher && !showWinnerPopup && selectedCoupon && (
+                    <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-xl">
+                      <div className="text-center mb-4">
+                        <div className="flex items-center justify-center mb-2">
+                          <Gift className="w-6 h-6 text-purple-500 mr-2" />
+                          <h3 className="text-xl font-bold text-purple-600">
+                            🎉 Chúc mừng bạn!
+                          </h3>
+                        </div>
                       </div>
 
-                      {selectedCoupon && (
-                        <div className="space-y-2">
-                          <p className="font-medium text-gray-700 text-center">Mã</p>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-gray-100 border border-purple-200 rounded-lg p-2 text-center">
-                              <span className="font-mono font-bold text-purple-600">
-                                {selectedCoupon.maNhap}
-                              </span>
-                            </div>
-                            <Button
-                              onClick={() => handleSaveCoupon(selectedCoupon.id, selectedCoupon.maNhap)}
-                              className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 text-sm"
-                              disabled={selectedCoupon.trangThai === 2}
-                            >
-                              {selectedCoupon.trangThai === 2 ? "Đã lưu" : "Lưu"}
-                            </Button>
-                          </div>
+                      {selectedVoucher.hinhAnh && (
+                        <div className="mb-4">
+                          <img
+                            src={`data:image/jpeg;base64,${selectedVoucher.hinhAnh}`}
+                            alt={selectedVoucher.tenVoucher}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
                         </div>
                       )}
-                    </div>
-                  </div>
-                )}
 
-                {!selectedVoucher && !showWinnerPopup && (
-                  <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-xl text-center">
-                    <Gift className="w-16 h-16 text-purple-300 mx-auto mb-4" />
-                    <p className="text-gray-600">
-                      {isLoggedIn
-                        ? "Quay để nhận mã giảm giá nhé!"
-                        : "Vui lòng đăng nhập để quay!"}
-                    </p>
-                  </div>
-                )}
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-800 mb-1">
+                            {selectedVoucher.tenVoucher}
+                          </p>
+                          <p className="text-2xl font-bold text-purple-600">
+                            {formatVoucherValue(selectedVoucher)}
+                          </p>
+                        </div>
+
+                        {selectedVoucher.moTa && (
+                          <p className="text-gray-600 text-sm text-center italic">
+                            {selectedVoucher.moTa}
+                          </p>
+                        )}
+
+                        <div className="text-center text-sm text-gray-500">
+                          <p>Hết hạn: {formatDate(selectedVoucher.ngayKetThuc)}</p>
+                          {selectedVoucher.dieuKien && (
+                            <p>Áp dụng cho đơn hàng từ {formatCondition(selectedVoucher.dieuKien)}</p>
+                          )}
+                          {selectedVoucher.giaTriToiDa && (
+                            <p>Giảm tối đa: {formatCondition(selectedVoucher.giaTriToiDa)}</p>
+                          )}
+                        </div>
+
+                        {selectedCoupon && (
+                          <div className="space-y-2">
+                            <p className="font-medium text-gray-700 text-center">Mã</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-gray-100 border border-purple-200 rounded-lg p-2 text-center">
+                                <span className="font-mono font-bold text-purple-600">
+                                  {selectedCoupon.maNhap}
+                                </span>
+                              </div>
+                              <Button
+                                onClick={() => handleSaveCoupon(selectedCoupon.id, selectedCoupon.maNhap)}
+                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 text-sm"
+                                disabled={selectedCoupon.trangThai === 2}
+                              >
+                                {selectedCoupon.trangThai === 2 ? "Đã lưu" : "Lưu"}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedVoucher && !showWinnerPopup && (
+                    <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-xl text-center">
+                      <Gift className="w-16 h-16 text-purple-300 mx-auto mb-4" />
+                      <p className="text-gray-600">
+                        {isLoggedIn
+                          ? "Quay để nhận mã giảm giá nhé!"
+                          : "Vui lòng đăng nhập để quay!"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center mt-12">
+                <p className="text-gray-600">
+                  🎯 Mỗi tài khoản chỉ được quay 1 lần trong 24 giờ
+                </p>
               </div>
             </div>
+          </TabsContent>
 
-            <div className="text-center mt-12">
-              <p className="text-gray-600">
-                🎯 Mỗi tài khoản chỉ được quay 1 lần trong 24 giờ
-              </p>
+          <TabsContent value="promotions">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="flex items-center justify-center mb-4">
+                  <Gift className="text-4xl font-bold mb-4" />
+                  <h2 className="text-4xl font-bold mb-4">
+                    Khuyến Mãi Cá Nhân
+                  </h2>
+                  <Gift className="text-4xl font-bold mb-4"/>
+                </div>
+                <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+                  Xem các chương trình khuyến mãi dành riêng cho bạn!
+                </p>
+              </div>
+              <PersonalPromotionsList/>
             </div>
-          </div>
-        </section>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Winner Popup */}

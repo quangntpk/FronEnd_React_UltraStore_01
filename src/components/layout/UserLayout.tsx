@@ -264,14 +264,14 @@ const UserLayout = () => {
                 >
                   <Heart className="h-5 w-5" />
                 </Link>
-                <Link
+                {/* <Link
                   to="/personalpromotions"
                   className={cn(
                     "relative hover:text-crocus-600 transition-colors",
                     location.pathname === "/personalpromotions" ? "text-crocus-600" : "text-gray-600"
                   )}
                 ><Ticket className="h-5 w-5" />
-                </Link>
+                </Link> */}
                 <Link
                   to="/user/cart"
                   className={cn(
