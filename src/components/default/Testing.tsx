@@ -108,11 +108,11 @@ const Testing: React.FC = () => {
       const base64Data2 = await readFileAsBase64(file2);
 
       const requestData = {
-        cauHoi: 'Mặc cái áo này lên người này giúp tôi',
-        hinhAnh: [base64Data1, base64Data2],
+        textPrompt: 'Mặc cái áo trong ảnh thứ hai lên người trong ảnh thứ nhất giúp tôi',
+        imageBase64: [base64Data1, base64Data2],
       };
 
-      const response = await fetch(`${API_URL}/api/Gemini/Response`, {
+      const response = await fetch(`${API_URL}/api/GoogleApis/generate-image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,14 +122,14 @@ const Testing: React.FC = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.result) {
-        setOutputImage(`data:image/png;base64,${data.result}`);
+      if (response.ok && data.generatedImageBase64) {
+        setOutputImage(`data:image/jpeg;base64,${data.generatedImageBase64}`);
         setZoomOutput(1);
       } else {
         Swal.fire({
           icon: 'error',
           title: 'Lỗi',
-          text: data.errorMessage || 'Có lỗi xảy ra khi xử lý yêu cầu',
+          text: data.message || 'Có lỗi xảy ra khi xử lý yêu cầu',
           timer: 3000,
           timerProgressBar: true,
           showConfirmButton: false,
