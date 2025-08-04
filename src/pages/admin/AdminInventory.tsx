@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,13 +13,13 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -32,13 +31,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   Search,
-  Plus,
   RefreshCw,
   MoreVertical,
   CheckCircle,
   XCircle,
   Eye,
-  Trash2
+  Trash2,
 } from "lucide-react";
 import {
   Tabs,
@@ -47,6 +45,8 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import toast, { Toaster } from "react-hot-toast";
+import DOMPurify from "dompurify";
+import { cn } from "@/lib/utils";
 
 interface Comment {
   maBinhLuan: number;
@@ -66,13 +66,13 @@ interface Comment {
 const formatDateTime = (dateString?: string): string => {
   if (!dateString || isNaN(new Date(dateString).getTime())) return "Ngày không hợp lệ";
   const date = new Date(dateString);
-  const datePart = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const timePart = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const datePart = date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const timePart = date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   return `${datePart}, ${timePart}`;
 };
 
 const Comments = () => {
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
@@ -93,7 +93,7 @@ const Comments = () => {
       const data: Comment[] = await response.json();
       setComments(data);
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách bình luận:', error);
+      console.error("Lỗi khi lấy danh sách bình luận:", error);
       toast.error("Không thể tải danh sách bình luận.");
     } finally {
       setLoading(false);
@@ -105,17 +105,17 @@ const Comments = () => {
 
     try {
       const response = await fetch(`http://localhost:5261/api/Comment/delete/${commentToDelete.maBinhLuan}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!response.ok) {
-        throw new Error('Không thể xóa bình luận');
+        throw new Error("Không thể xóa bình luận");
       }
-      setComments(comments.filter(comment => comment.maBinhLuan !== commentToDelete.maBinhLuan));
+      setComments(comments.filter((comment) => comment.maBinhLuan !== commentToDelete.maBinhLuan));
       setOpenDeleteModal(false);
       setCommentToDelete(null);
       toast.success("Xóa bình luận thành công!");
     } catch (error) {
-      console.error('Lỗi khi xóa bình luận:', error);
+      console.error("Lỗi khi xóa bình luận:", error);
       toast.error("Có lỗi xảy ra khi xóa bình luận.");
     }
   };
@@ -123,17 +123,15 @@ const Comments = () => {
   const handleApproveComment = async (comment: Comment) => {
     try {
       const response = await fetch(`http://localhost:5261/api/Comment/approve/${comment.maBinhLuan}`, {
-        method: 'PUT',
+        method: "PUT",
       });
       if (!response.ok) {
-        throw new Error('Không thể duyệt bình luận');
+        throw new Error("Không thể duyệt bình luận");
       }
-      setComments(comments.map(c =>
-        c.maBinhLuan === comment.maBinhLuan ? { ...c, trangThai: 1 } : c
-      ));
+      setComments(comments.map((c) => (c.maBinhLuan === comment.maBinhLuan ? { ...c, trangThai: 1 } : c)));
       toast.success("Duyệt bình luận thành công!");
     } catch (error) {
-      console.error('Lỗi khi duyệt bình luận:', error);
+      console.error("Lỗi khi duyệt bình luận:", error);
       toast.error("Có lỗi xảy ra khi duyệt bình luận.");
     }
   };
@@ -141,17 +139,15 @@ const Comments = () => {
   const handleUnapproveComment = async (comment: Comment) => {
     try {
       const response = await fetch(`http://localhost:5261/api/Comment/unapprove/${comment.maBinhLuan}`, {
-        method: 'PUT',
+        method: "PUT",
       });
       if (!response.ok) {
-        throw new Error('Không thể hủy duyệt bình luận');
+        throw new Error("Không thể hủy duyệt bình luận");
       }
-      setComments(comments.map(c =>
-        c.maBinhLuan === comment.maBinhLuan ? { ...c, trangThai: 0 } : c
-      ));
+      setComments(comments.map((c) => (c.maBinhLuan === comment.maBinhLuan ? { ...c, trangThai: 0 } : c)));
       toast.success("Hủy duyệt bình luận thành công!");
     } catch (error) {
-      console.error('Lỗi khi hủy duyệt bình luận:', error);
+      console.error("Lỗi khi hủy duyệt bình luận:", error);
       toast.error("Có lỗi xảy ra khi hủy duyệt bình luận.");
     }
   };
@@ -164,38 +160,38 @@ const Comments = () => {
     setCurrentPage({ product: 1, blog: 1 });
   }, [activeTab]);
 
-  const filteredComments = (type: 'product' | 'blog') => {
+  const filteredComments = (type: "product" | "blog") => {
     return comments
-      .filter(item => {
-        const isProductComment = type === 'product' && item.maSanPham !== undefined && item.maSanPham !== null;
-        const isBlogComment = type === 'blog' && item.maBlog !== undefined && item.maBlog !== null;
+      .filter((item) => {
+        const isProductComment = type === "product" && item.maSanPham !== undefined && item.maSanPham !== null;
+        const isBlogComment = type === "blog" && item.maBlog !== undefined && item.maBlog !== null;
         if (!isProductComment && !isBlogComment) return false;
 
         const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
         return (
-          (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-          (item.maBinhLuan.toString().includes(searchTerm.toLowerCase()) || '') ||
-          (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || '') ||
-          (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-          (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-          (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-          (item.maBlog?.toString().includes(searchTerm.toLowerCase()) || '')
+          (item.noiDungBinhLuan?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+          (item.maBinhLuan.toString().includes(searchTerm.toLowerCase()) || "") ||
+          (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || "") ||
+          (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+          (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+          (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+          (item.maBlog?.toString().includes(searchTerm.toLowerCase()) || "")
         );
       })
       .sort((a, b) => new Date(b.ngayBinhLuan || "").getTime() - new Date(a.ngayBinhLuan || "").getTime());
   };
 
-  const productComments = filteredComments('product');
-  const blogComments = filteredComments('blog');
+  const productComments = filteredComments("product");
+  const blogComments = filteredComments("blog");
 
-  const indexOfLastComment = (type: 'product' | 'blog') => currentPage[type] * commentsPerPage;
-  const indexOfFirstComment = (type: 'product' | 'blog') => indexOfLastComment(type) - commentsPerPage;
-  const currentComments = (type: 'product' | 'blog') => {
-    const comments = type === 'product' ? productComments : blogComments;
+  const indexOfLastComment = (type: "product" | "blog") => currentPage[type] * commentsPerPage;
+  const indexOfFirstComment = (type: "product" | "blog") => indexOfLastComment(type) - commentsPerPage;
+  const currentComments = (type: "product" | "blog") => {
+    const comments = type === "product" ? productComments : blogComments;
     return comments.slice(indexOfFirstComment(type), indexOfLastComment(type));
   };
-  const totalPages = (type: 'product' | 'blog') => {
-    const comments = type === 'product' ? productComments : blogComments;
+  const totalPages = (type: "product" | "blog") => {
+    const comments = type === "product" ? productComments : blogComments;
     return Math.ceil(comments.length / commentsPerPage);
   };
 
@@ -209,7 +205,7 @@ const Comments = () => {
     setOpenDetailModal(true);
   };
 
-  const renderCommentTable = (comments: Comment[], type: 'product' | 'blog') => (
+  const renderCommentTable = (comments: Comment[], type: "product" | "blog") => (
     <div className="rounded-md border overflow-hidden">
       <Table>
         <TableHeader>
@@ -218,8 +214,8 @@ const Comments = () => {
             <TableHead>Hình Ảnh</TableHead>
             <TableHead>Họ Tên</TableHead>
             <TableHead>Nội Dung</TableHead>
-            {type === 'product' ? <TableHead>Tên Sản Phẩm</TableHead> : <TableHead>Mã Blog</TableHead>}
-            {type === 'product' && <TableHead>Đánh Giá</TableHead>}
+            {type === "product" ? <TableHead>Tên Sản Phẩm</TableHead> : <TableHead>Mã Blog</TableHead>}
+            {type === "product" && <TableHead>Đánh Giá</TableHead>}
             <TableHead>Trạng Thái</TableHead>
             <TableHead>Ngày Bình Luận</TableHead>
             <TableHead className="w-[60px]"></TableHead>
@@ -228,7 +224,7 @@ const Comments = () => {
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={type === 'product' ? 9 : 8} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={type === "product" ? 9 : 8} className="text-center py-6 text-muted-foreground">
                 Đang tải...
               </TableCell>
             </TableRow>
@@ -244,27 +240,32 @@ const Comments = () => {
                   />
                 </TableCell>
                 <TableCell>{item.hoTen}</TableCell>
-                <TableCell>{item.noiDungBinhLuan}</TableCell>
-                <TableCell>{type === 'product' ? item.tenSanPham ?? "Chưa cập nhật" : item.maBlog ?? "Chưa cập nhật"}</TableCell>
-                {type === 'product' && (
-                  <TableCell>{`${item.danhGia || 0} / 5`}</TableCell>
-                )}
+                <TableCell>
+                  <div
+                    className="text-gray-800 line-clamp-3"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(item.noiDungBinhLuan || "Chưa cập nhật", {
+                        ADD_ATTR: ["style", "src"],
+                      }),
+                    }}
+                  />
+                </TableCell>
+                <TableCell>{type === "product" ? item.tenSanPham ?? "Chưa cập nhật" : item.maBlog ?? "Chưa cập nhật"}</TableCell>
+                {type === "product" && <TableCell>{`${item.danhGia || 0} / 5`}</TableCell>}
                 <TableCell>
                   <span
-                    className={
+                    className={cn(
                       item.trangThai === 1
-                        ? 'bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100'
+                        ? "bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-100"
                         : item.trangThai === 0
-                          ? 'bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100'
-                          : ''
-                    }
+                          ? "bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-100"
+                          : ""
+                    )}
                   >
                     {item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : ""}
                   </span>
                 </TableCell>
-                <TableCell>
-                  {item.ngayBinhLuan ? formatDateTime(item.ngayBinhLuan) : 'Ngày không hợp lệ'}
-                </TableCell>
+                <TableCell>{item.ngayBinhLuan ? formatDateTime(item.ngayBinhLuan) : "Ngày không hợp lệ"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -299,7 +300,7 @@ const Comments = () => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={type === 'product' ? 9 : 8} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={type === "product" ? 9 : 8} className="text-center py-6 text-muted-foreground">
                 Không tìm thấy bình luận nào phù hợp với tìm kiếm của bạn.
               </TableCell>
             </TableRow>
@@ -310,7 +311,7 @@ const Comments = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 comments">
       <Toaster position="top-right" />
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -354,7 +355,7 @@ const Comments = () => {
             </TabsList>
 
             <TabsContent value="productComments">
-              {renderCommentTable(currentComments('product'), 'product')}
+              {renderCommentTable(currentComments("product"), "product")}
               <div className="flex justify-between items-center mt-4">
                 <Button
                   variant="outline"
@@ -365,13 +366,13 @@ const Comments = () => {
                   Trang Trước
                 </Button>
                 <span>
-                  Trang {currentPage.product} / {totalPages('product')}
+                  Trang {currentPage.product} / {totalPages("product")}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage({ ...currentPage, product: Math.min(totalPages('product'), currentPage.product + 1) })}
-                  disabled={currentPage.product === totalPages('product')}
+                  onClick={() => setCurrentPage({ ...currentPage, product: Math.min(totalPages("product"), currentPage.product + 1) })}
+                  disabled={currentPage.product === totalPages("product")}
                 >
                   Trang Sau
                 </Button>
@@ -379,7 +380,7 @@ const Comments = () => {
             </TabsContent>
 
             <TabsContent value="blogComments">
-              {renderCommentTable(currentComments('blog'), 'blog')}
+              {renderCommentTable(currentComments("blog"), "blog")}
               <div className="flex justify-between items-center mt-4">
                 <Button
                   variant="outline"
@@ -390,13 +391,13 @@ const Comments = () => {
                   Trang Trước
                 </Button>
                 <span>
-                  Trang {currentPage.blog} / {totalPages('blog')}
+                  Trang {currentPage.blog} / {totalPages("blog")}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage({ ...currentPage, blog: Math.min(totalPages('blog'), currentPage.blog + 1) })}
-                  disabled={currentPage.blog === totalPages('blog')}
+                  onClick={() => setCurrentPage({ ...currentPage, blog: Math.min(totalPages("blog"), currentPage.blog + 1) })}
+                  disabled={currentPage.blog === totalPages("blog")}
                 >
                   Trang Sau
                 </Button>
@@ -474,7 +475,14 @@ const Comments = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium">Nội Dung</label>
-                <Input value={selectedComment.noiDungBinhLuan || "Chưa cập nhật"} disabled />
+                <div
+                  className="text-gray-800 border border-input rounded-md p-2 bg-background"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(selectedComment.noiDungBinhLuan || "Chưa cập nhật", {
+                      ADD_ATTR: ["style", "src"],
+                    }),
+                  }}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium">Số Tim</label>
@@ -482,10 +490,7 @@ const Comments = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium">Trạng Thái</label>
-                <Input
-                  value={selectedComment.trangThai === 0 ? "Chưa Duyệt" : "Đã Duyệt"}
-                  disabled
-                />
+                <Input value={selectedComment.trangThai === 0 ? "Chưa Duyệt" : "Đã Duyệt"} disabled />
               </div>
               <div>
                 <label className="block text-sm font-medium">Ngày Bình Luận</label>
@@ -503,6 +508,30 @@ const Comments = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+    <style>{`
+  .comments .line-clamp-3 {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow: hidden;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: vertical;
+    white-space: pre-line;
+  }
+
+  .comments .line-clamp-3 img {
+    display: block;
+    transform: scale(1.5);
+    transform-origin: top left;
+    max-width: 225px;
+    height: auto;
+    margin-top: 0.5rem;
+  }
+`}</style>
+
+
+
     </div>
   );
 };

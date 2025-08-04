@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Heart, Star, Trash2 } from "lucide-react";
+import DOMPurify from "dompurify";
 
-// Default image URL (short placeholder image)
+// Default image URL
 const defaultImageUrl = "https://via.placeholder.com/150";
 
 const Notification = ({ message, type, onClose }) => {
@@ -55,6 +56,29 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
+// Hàm tách nội dung chữ và hình ảnh
+const extractTextAndImages = (htmlContent) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(DOMPurify.sanitize(htmlContent, { ADD_TAGS: ["img"], ADD_ATTR: ["src"] }), "text/html");
+  
+  // Lấy tất cả nội dung chữ
+  const textNodes = [];
+  const walk = (node) => {
+    if (node.nodeType === 3) { // Text node
+      textNodes.push(node.textContent.trim());
+    } else if (node.nodeType === 1 && node.tagName !== "IMG") {
+      node.childNodes.forEach(walk);
+    }
+  };
+  walk(doc.body);
+  const textContent = textNodes.join(" ").trim();
+
+  // Lấy tất cả hình ảnh
+  const images = Array.from(doc.querySelectorAll("img")).map((img) => img.src);
+
+  return { textContent, images };
+};
+
 const Comments = ({ productId }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -71,26 +95,21 @@ const Comments = ({ productId }) => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const baseProductId = productId.split("_")[0] || productId;
+        const baseProductId = productId.length >= 6 ? productId.substring(0, 6) : productId;
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
         const commentData = await commentResponse.json();
-        console.log("Fetched comments:", commentData);
         const productComments = commentData
-          .filter((comment) => comment.maSanPham === baseProductId && comment.trangThai === 1)
+          .filter((comment) => comment.maSanPham?.substring(0, 6) === baseProductId && comment.trangThai === 1)
           .map((comment) => ({
             ...comment,
             soTimBinhLuan: comment.soTimBinhLuan || 0,
           }))
           .sort((a, b) => b.soTimBinhLuan - a.soTimBinhLuan);
 
-        // Tính điểm trung bình từ các đánh giá
         if (productComments.length > 0) {
-          const totalRating = productComments.reduce((sum, comment) => {
-            return sum + (comment.danhGia || 0);
-          }, 0);
-          const avgRating = totalRating / productComments.length;
-          setAverageRating(avgRating);
+          const totalRating = productComments.reduce((sum, comment) => sum + (comment.danhGia || 0), 0);
+          setAverageRating(totalRating / productComments.length);
         } else {
           setAverageRating(0);
         }
@@ -131,7 +150,7 @@ const Comments = ({ productId }) => {
     }
 
     const commentData = {
-      maSanPham: productId.split("_")[0] || productId,
+      maSanPham: productId.length >= 6 ? productId.substring(0, 6) : productId,
       maNguoiDung: maNguoiDung,
       noiDungBinhLuan: newComment,
       danhGia: rating,
@@ -251,7 +270,7 @@ const Comments = ({ productId }) => {
   const currentUserId = JSON.parse(localStorage.getItem("user"))?.maNguoiDung;
 
   return (
-    <div className="mt-12">
+    <div className="mt-12 comments">
       {notification && (
         <Notification message={notification.message} type={notification.type} onClose={closeNotification} />
       )}
@@ -261,7 +280,6 @@ const Comments = ({ productId }) => {
         onConfirm={confirmDeleteComment}
       />
       <h2 className="text-2xl font-medium mb-6">Đánh Giá</h2>
-      {/* Hiển thị điểm trung bình và số sao */}
       <div className="mb-6">
         <div className="flex items-center gap-2">
           <span className="text-lg font-medium">Đánh giá trung bình:</span>
@@ -283,70 +301,134 @@ const Comments = ({ productId }) => {
         {comments.length === 0 ? (
           <p className="text-muted-foreground">Chưa có bình luận nào.</p>
         ) : (
-          comments.map((comment) => (
-            <div
-              key={comment.maBinhLuan}
-              className="bg-white p-4 rounded-lg shadow-md flex items-start gap-4"
-            >
-              <div className="flex-shrink-0">
-                <img
-                  src={comment.hinhAnh || defaultImageUrl}
-                  alt={`Ảnh của ${comment.hoTen || comment.maNguoiDung}`}
-                  className="w-12 h-12 rounded-full object-cover border border-border"
-                  onError={(e) => {
-                    console.warn(`Failed to load image for comment ${comment.maBinhLuan}, using default`);
-                    (e.target as HTMLImageElement).src = defaultImageUrl; // Ép kiểu HTMLImageElement
-                  }}
-                />
-              </div>
-              <div className="flex-1 flex justify-between items-start">
-                <div>
-                  <div className="flex items-center mb-2">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star
-                        key={index}
-                        className={cn(
-                          "w-4 h-4",
-                          index < comment.danhGia ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-800">{comment.noiDungBinhLuan}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Bởi {comment.hoTen || comment.maNguoiDung} -{" "}
-                    {new Date(comment.ngayBinhLuan).toLocaleDateString()}
-                  </p>
-                  <div className="flex items-center mt-2">
-                    <button
-                      onClick={() => handleLikeComment(comment.maBinhLuan)}
-                      className="flex items-center gap-1"
-                    >
-                      <Heart
-                        className={cn(
-                          "w-5 h-5",
-                          likedComments.has(comment.maBinhLuan)
-                            ? "fill-red-500 text-red-500"
-                            : "text-gray-400"
-                        )}
-                      />
-                      <span>{comment.soTimBinhLuan}</span>
-                    </button>
-                  </div>
+          comments.map((comment) => {
+            const { textContent, images } = extractTextAndImages(comment.noiDungBinhLuan || "Chưa cập nhật");
+            return (
+              <div
+                key={comment.maBinhLuan}
+                className="bg-white p-4 rounded-lg shadow-md flex items-start gap-4"
+              >
+                <div className="flex-shrink-0">
+                  <img
+                    src={comment.hinhAnh || defaultImageUrl}
+                    alt={`Ảnh của ${comment.hoTen || comment.maNguoiDung}`}
+                    className="w-4 h-4 rounded-full object-cover border border-border"
+                    onError={(e) => {
+                      console.warn(`Failed to load image for comment ${comment.maBinhLuan}, using default`);
+                      (e.target as HTMLImageElement).src = defaultImageUrl;
+                    }}
+                  />
                 </div>
-                {comment.maNguoiDung === currentUserId && (
-                  <button
-                    onClick={() => handleDeleteComment(comment.maBinhLuan)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
+                <div className="flex-1 flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center mb-2">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <Star
+                          key={index}
+                          className={cn(
+                            "w-4 h-4",
+                            index < comment.danhGia ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    {/* Hiển thị nội dung chữ */}
+                    <div className="text-gray-800 line-clamp-3 mb-2" style={{ whiteSpace: "pre-line" }}>
+                      {textContent || "Chưa cập nhật"}
+                    </div>
+                    {/* Hiển thị hình ảnh (nếu có) */}
+                    {images.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {images.map((src, index) => (
+                          <img
+                            key={index}
+                            src={src}
+                            alt={`Hình ảnh bình luận ${index + 1}`}
+                            className="w-48 h-auto object-contain rounded"
+                            style={{ maxWidth: "225px" }}
+                            onError={(e) => {
+                              console.warn(`Failed to load comment image ${index + 1}`);
+                              (e.target as HTMLImageElement).src = defaultImageUrl;
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Bởi {comment.hoTen || comment.maNguoiDung} -{" "}
+                      {new Date(comment.ngayBinhLuan).toLocaleDateString()}
+                    </p>
+                    <div className="flex items-center mt-2">
+                      <button
+                        onClick={() => handleLikeComment(comment.maBinhLuan)}
+                        className="flex items-center gap-1"
+                      >
+                        <Heart
+                          className={cn(
+                            "w-5 h-5",
+                            likedComments.has(comment.maBinhLuan)
+                              ? "fill-red-500 text-red-500"
+                              : "text-gray-400"
+                          )}
+                        />
+                        <span>{comment.soTimBinhLuan}</span>
+                      </button>
+                    </div>
+                  </div>
+                  {comment.maNguoiDung === currentUserId && (
+                    <button
+                      onClick={() => handleDeleteComment(comment.maBinhLuan)}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+      {/* Comment input section (uncomment if needed) */}
+      {/* <div className="mt-6">
+        <div className="flex items-center mb-4">
+          <span className="mr-2">Đánh giá:</span>
+          <div className="flex">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Star
+                key={index}
+                className={cn(
+                  "w-6 h-6 cursor-pointer",
+                  index < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                )}
+                onClick={() => setRating(index + 1)}
+              />
+            ))}
+          </div>
+        </div>
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Viết bình luận của bạn..."
+          className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-roboto"
+          rows={4}
+        />
+        <button
+          onClick={handleAddComment}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-roboto"
+        >
+          Gửi Bình Luận
+        </button>
+      </div> */}
+      <style>{`
+        .comments .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          white-space: pre-line;
+        }
+      `}</style>
     </div>
   );
 };
