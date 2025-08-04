@@ -51,6 +51,7 @@ import toast, { Toaster } from "react-hot-toast";
 interface Comment {
   maBinhLuan: number;
   maSanPham?: number;
+  maComBo?: number;
   tenSanPham?: string;
   maNguoiDung?: number;
   hoTen?: string;
