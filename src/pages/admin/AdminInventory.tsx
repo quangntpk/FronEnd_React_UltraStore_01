@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 interface Comment {
   maBinhLuan: number;
   maSanPham?: number;
+  maComBo?: number;
   tenSanPham?: string;
   maNguoiDung?: number;
   hoTen?: string;

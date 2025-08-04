@@ -77,8 +77,8 @@ import Security from "./components/default/Security";
 import Guarantee from "./components/default/Guarantee";
 import AdminMessages from "./pages/admin/AdminMessages";
 import Search from "./components/default/Search";
-import ProductView from "./components/default/ProductView"
 import CmtForm from "@/pages/products/CmtForm"
+
 
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
@@ -183,8 +183,6 @@ const App = () => (
                 <Route path="security" element={<Security />} />
                 <Route path="guarantee" element={<Guarantee />} />
                 <Route path="search" element={<Search />} />
-                <Route path="productsview/:id" element={<ProductView />} />
-    
 
               </Route>
 
