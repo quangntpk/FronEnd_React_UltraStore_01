@@ -29,6 +29,7 @@ interface FormErrors {
     quanHuyen?: string;
     phuongXa?: string;
     diaChi?: string;
+    leadTime?: string;
 }
 interface ProvinceResponse {
     provinceID: number;
@@ -42,71 +43,78 @@ interface WardResponse {
     wardCode: string;
     wardName: string;
 }
+interface LeadTimeResponse {
+    leadtime: number;
+    leadtime_order: {
+        from_estimate_date: string;
+        to_estimate_date: string;
+    };
+}
 
-const shippingData = {
-    "Hà Nội": { fee: 40000, time: "3 - 5 ngày" },
-    "TP. Hồ Chí Minh": { fee: 20000, time: "2 - 3 ngày" },
-    "Hải Phòng": { fee: 45000, time: "3 - 5 ngày" },
-    "Đà Nẵng": { fee: 30000, time: "2 - 3 ngày" },
-    "Cần Thơ": { fee: 30000, time: "2 - 4 ngày" },
-    "An Giang": { fee: 35000, time: "3 - 4 ngày" },
-    "Bà Rịa - Vũng Tàu": { fee: 25000, time: "2 - 3 ngày" },
-    "Bắc Giang": { fee: 45000, time: "3 - 5 ngày" },
-    "Bắc Kạn": { fee: 50000, time: "4 - 6 ngày" },
-    "Bạc Liêu": { fee: 35000, time: "3 - 4 ngày" },
-    "Bắc Ninh": { fee: 40000, time: "3 - 5 ngày" },
-    "Bến Tre": { fee: 30000, time: "2 - 4 ngày" },
-    "Bình Định": { fee: 25000, time: "2 - 3 ngày" },
-    "Bình Dương": { fee: 20000, time: "2 - 3 ngày" },
-    "Bình Phước": { fee: 20000, time: "2 - 3 ngày" },
-    "Bình Thuận": { fee: 25000, time: "2 - 3 ngày" },
-    "Cà Mau": { fee: 35000, time: "3 - 5 ngày" },
-    "Cao Bằng": { fee: 50000, time: "4 - 6 ngày" },
-    "Đắk Lắk": { fee: 0, time: "Nội tỉnh" },
-    "Đắk Nông": { fee: 15000, time: "1 - 2 ngày" },
-    "Điện Biên": { fee: 50000, time: "4 - 6 ngày" },
-    "Đồng Nai": { fee: 20000, time: "2 - 3 ngày" },
-    "Đồng Tháp": { fee: 30000, time: "3 - 4 ngày" },
-    "Gia Lai": { fee: 15000, time: "1 - 2 ngày" },
-    "Hà Giang": { fee: 50000, time: "4 - 6 ngày" },
-    "Hà Nam": { fee: 45000, time: "3 - 5 ngày" },
-    "Hà Tĩnh": { fee: 35000, time: "3 - 4 ngày" },
-    "Hải Dương": { fee: 45000, time: "3 - 5 ngày" },
-    "Hậu Giang": { fee: 35000, time: "3 - 4 ngày" },
-    "Hòa Bình": { fee: 45000, time: "3 - 5 ngày" },
-    "Hưng Yên": { fee: 40000, time: "3 - 5 ngày" },
-    "Khánh Hòa": { fee: 25000, time: "2 - 3 ngày" },
-    "Kiên Giang": { fee: 35000, time: "3 - 4 ngày" },
-    "Kon Tum": { fee: 15000, time: "1 - 2 ngày" },
-    "Lai Châu": { fee: 50000, time: "4 - 6 ngày" },
-    "Lâm Đồng": { fee: 20000, time: "1 - 2 ngày" },
-    "Lạng Sơn": { fee: 50000, time: "4 - 6 ngày" },
-    "Lào Cai": { fee: 50000, time: "4 - 6 ngày" },
-    "Long An": { fee: 30000, time: "2 - 4 ngày" },
-    "Nam Định": { fee: 45000, time: "3 - 5 ngày" },
-    "Nghệ An": { fee: 35000, time: "3 - 4 ngày" },
-    "Ninh Bình": { fee: 45000, time: "3 - 5 ngày" },
-    "Ninh Thuận": { fee: 25000, time: "2 - 3 ngày" },
-    "Phú Thọ": { fee: 45000, time: "3 - 5 ngày" },
-    "Phú Yên": { fee: 25000, time: "2 - 3 ngày" },
-    "Quảng Bình": { fee: 35000, time: "3 - 4 ngày" },
-    "Quảng Nam": { fee: 25000, time: "2 - 3 ngày" },
-    "Quảng Ngãi": { fee: 25000, time: "2 - 3 ngày" },
-    "Quảng Ninh": { fee: 50000, time: "4 - 6 ngày" },
-    "Quảng Trị": { fee: 30000, time: "3 - 4 ngày" },
-    "Sóc Trăng": { fee: 35000, time: "3 - 4 ngày" },
-    "Sơn La": { fee: 50000, time: "4 - 6 ngày" },
-    "Tây Ninh": { fee: 25000, time: "2 - 3 ngày" },
-    "Thái Bình": { fee: 45000, time: "3 - 5 ngày" },
-    "Thái Nguyên": { fee: 45000, time: "3 - 5 ngày" },
-    "Thanh Hóa": { fee: 40000, time: "3 - 4 ngày" },
-    "Thừa Thiên Huế": { fee: 30000, time: "2 - 3 ngày" },
-    "Tiền Giang": { fee: 30000, time: "2 - 3 ngày" },
-    "Trà Vinh": { fee: 30000, time: "2 - 3 ngày" },
-    "Tuyên Quang": { fee: 50000, time: "4 - 6 ngày" },
-    "Vĩnh Long": { fee: 30000, time: "2 - 3 ngày" },
-    "Vĩnh Phúc": { fee: 45000, time: "3 - 5 ngày" },
-    "Yên Bái": { fee: 50000, time: "4 - 6 ngày" },
+const shippingData: { [key: string]: { fee: number } } = {
+    "Hà Nội": { fee: 40000 },
+    "TP. Hồ Chí Minh": { fee: 20000 },
+    "Hải Phòng": { fee: 45000 },
+    "Đà Nẵng": { fee: 30000 },
+    "Cần Thơ": { fee: 30000 },
+    "An Giang": { fee: 35000 },
+    "Bà Rịa - Vũng Tàu": { fee: 25000 },
+    "Bắc Giang": { fee: 45000 },
+    "Bắc Kạn": { fee: 50000 },
+    "Bạc Liêu": { fee: 35000 },
+    "Bắc Ninh": { fee: 40000 },
+    "Bến Tre": { fee: 30000 },
+    "Bình Định": { fee: 25000 },
+    "Bình Dương": { fee: 20000 },
+    "Bình Phước": { fee: 20000 },
+    "Bình Thuận": { fee: 25000 },
+    "Cà Mau": { fee: 35000 },
+    "Cao Bằng": { fee: 50000 },
+    "Đắk Lắk": { fee: 0 },
+    "Đắk Nông": { fee: 15000 },
+    "Điện Biên": { fee: 50000 },
+    "Đồng Nai": { fee: 20000 },
+    "Đồng Tháp": { fee: 30000 },
+    "Gia Lai": { fee: 15000 },
+    "Hà Giang": { fee: 50000 },
+    "Hà Nam": { fee: 45000 },
+    "Hà Tĩnh": { fee: 35000 },
+    "Hải Dương": { fee: 45000 },
+    "Hậu Giang": { fee: 35000 },
+    "Hòa Bình": { fee: 45000 },
+    "Hưng Yên": { fee: 40000 },
+    "Khánh Hòa": { fee: 25000 },
+    "Kiên Giang": { fee: 35000 },
+    "Kon Tum": { fee: 15000 },
+    "Lai Châu": { fee: 50000 },
+    "Lâm Đồng": { fee: 20000 },
+    "Lạng Sơn": { fee: 50000 },
+    "Lào Cai": { fee: 50000 },
+    "Long An": { fee: 30000 },
+    "Nam Định": { fee: 45000 },
+    "Nghệ An": { fee: 35000 },
+    "Ninh Bình": { fee: 45000 },
+    "Ninh Thuận": { fee: 25000 },
+    "Phú Thọ": { fee: 45000 },
+    "Phú Yên": { fee: 25000 },
+    "Quảng Bình": { fee: 35000 },
+    "Quảng Nam": { fee: 25000 },
+    "Quảng Ngãi": { fee: 25000 },
+    "Quảng Ninh": { fee: 50000 },
+    "Quảng Trị": { fee: 30000 },
+    "Sóc Trăng": { fee: 35000 },
+    "Sơn La": { fee: 50000 },
+    "Tây Ninh": { fee: 25000 },
+    "Thái Bình": { fee: 45000 },
+    "Thái Nguyên": { fee: 45000 },
+    "Thanh Hóa": { fee: 40000 },
+    "Thừa Thiên Huế": { fee: 30000 },
+    "Tiền Giang": { fee: 30000 },
+    "Trà Vinh": { fee: 30000 },
+    "Tuyên Quang": { fee: 50000 },
+    "Vĩnh Long": { fee: 30000 },
+    "Vĩnh Phúc": { fee: 45000 },
+    "Yên Bái": { fee: 50000 },
 };
 
 const AddressForm = ({
@@ -145,10 +153,63 @@ const AddressForm = ({
     formErrors: FormErrors;
 }) => {
     const [formData, setFormData] = useState<Partial<DiaChi>>(diaChi);
+    const [leadTime, setLeadTime] = useState<LeadTimeResponse | null>(null);
+    const [isLoadingLeadTime, setIsLoadingLeadTime] = useState<boolean>(false);
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
+
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem("token");
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
 
     useEffect(() => {
         setFormData(diaChi);
     }, [diaChi]);
+
+    useEffect(() => {
+        if (!selectedDistrict?.DistrictID || !selectedWard?.WardCode) {
+            setLeadTime(null);
+            return;
+        }
+
+        const fetchLeadTime = async () => {
+            setIsLoadingLeadTime(true);
+            try {
+                const request = {
+                    from_district_id: 1552,
+                    from_ward_code: "400103",
+                    to_district_id: selectedDistrict.DistrictID,
+                    to_ward_code: selectedWard.WardCode,
+                    service_id: 53320,
+                };
+                const response = await fetch(`${API_URL}/api/GHN/leadtime`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...getAuthHeaders(),
+                    },
+                    body: JSON.stringify(request),
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data: LeadTimeResponse = await response.json();
+                setLeadTime(data);
+            } catch (error) {
+                console.error("Error fetching lead time:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi",
+                    text: "Không thể tải thời gian giao hàng dự kiến",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                });
+            } finally {
+                setIsLoadingLeadTime(false);
+            }
+        };
+        fetchLeadTime();
+    }, [selectedDistrict, selectedWard, API_URL]);
 
     const handleChange = (field: keyof DiaChi, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -164,6 +225,14 @@ const AddressForm = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(formData);
+    };
+
+    const formatDate = (dateString: string) => {
+        const deliveryDate = new Date(dateString);
+        const day = deliveryDate.getDate();
+        const month = deliveryDate.getMonth() + 1; // Months are 0-based in JavaScript
+        const year = deliveryDate.getFullYear();
+        return `Ngày ${day}, tháng ${month}, năm ${year} nhận hàng`;
     };
 
     const shippingInfo = selectedProvince ? shippingData[selectedProvince.ProvinceName] : null;
@@ -333,7 +402,14 @@ const AddressForm = ({
                         <strong className="font-semibold">Phí giao hàng:</strong> {shippingInfo.fee.toLocaleString()} VND
                     </p>
                     <p className="text-sm text-[#2c3e50]">
-                        <strong className="font-semibold">Thời gian giao hàng:</strong> {shippingInfo.time}
+                        <strong className="font-semibold">Thời gian giao hàng:</strong>{" "}
+                        {isLoadingLeadTime ? (
+                            "Đang tính thời gian giao hàng..."
+                        ) : leadTime ? (
+                            formatDate(leadTime.leadtime_order.to_estimate_date)
+                        ) : (
+                            "Không thể tải thời gian giao hàng"
+                        )}
                     </p>
                 </div>
             )}
@@ -675,7 +751,6 @@ const DiaChiCart = () => {
                             Thêm địa chỉ mới
                             <ChevronDown className="ml-2 h-4 w-4" />
                         </button>
-
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl p-0 border-[#9b87f5] bg-white">
                         <div className="p-6 border border-[#9b87f5] rounded-md bg-white shadow-lg">

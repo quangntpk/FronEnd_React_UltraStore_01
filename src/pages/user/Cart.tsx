@@ -10,6 +10,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import Swal from "sweetalert2";
 import { CircleLoader } from "react-spinners";
 import DiaChiCart from "@/components/default/DiaChiCart";
+import DiaChiTime from "@/components/default/DiaChiTime";
 
 interface CartItem {
   idSanPham: string;
@@ -1312,6 +1313,8 @@ const CartPage = () => {
                       >
                         Quay về trang Sản Phẩm
                       </Link>
+                      
+                      <DiaChiTime />
 
                       {qrCodeUrl && (
                         <div className="mt-6">
