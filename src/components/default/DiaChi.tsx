@@ -38,6 +38,26 @@ interface LeadTimeResponse {
     to_estimate_date: string;
   };
 }
+interface ShippingFeeResponse {
+  total: number;
+  main_service: number | null;
+  insurance: number | null;
+  cod_fee: number;
+  station_do: number | null;
+  station_pu: number | null;
+  return_fee: number | null;
+  r2s: number | null;
+  return_again: number;
+  coupon: number | null;
+  document_return: number;
+  double_check: number;
+  double_check_deliver: number | null;
+  pick_remote_areas_fee: number;
+  deliver_remote_areas_fee: number;
+  pick_remote_areas_fee_return: number | null;
+  deliver_remote_areas_fee_return: number | null;
+  cod_failed_fee: number;
+}
 type Mode = "add" | "edit" | "view";
 
 interface ProvinceResponse {
@@ -52,72 +72,6 @@ interface WardResponse {
   wardCode: string;
   wardName: string;
 }
-
-const shippingData: { [key: string]: { fee: number } } = {
-  "Hà Nội": { fee: 40000 },
-  "TP. Hồ Chí Minh": { fee: 20000 },
-  "Hải Phòng": { fee: 45000 },
-  "Đà Nẵng": { fee: 30000 },
-  "Cần Thơ": { fee: 30000 },
-  "An Giang": { fee: 35000 },
-  "Bà Rịa - Vũng Tàu": { fee: 25000 },
-  "Bắc Giang": { fee: 45000 },
-  "Bắc Kạn": { fee: 50000 },
-  "Bạc Liêu": { fee: 35000 },
-  "Bắc Ninh": { fee: 40000 },
-  "Bến Tre": { fee: 30000 },
-  "Bình Định": { fee: 25000 },
-  "Bình Dương": { fee: 20000 },
-  "Bình Phước": { fee: 20000 },
-  "Bình Thuận": { fee: 25000 },
-  "Cà Mau": { fee: 35000 },
-  "Cao Bằng": { fee: 50000 },
-  "Đắk Lắk": { fee: 0 },
-  "Đắk Nông": { fee: 15000 },
-  "Điện Biên": { fee: 50000 },
-  "Đồng Nai": { fee: 20000 },
-  "Đồng Tháp": { fee: 30000 },
-  "Gia Lai": { fee: 15000 },
-  "Hà Giang": { fee: 50000 },
-  "Hà Nam": { fee: 45000 },
-  "Hà Tĩnh": { fee: 35000 },
-  "Hải Dương": { fee: 45000 },
-  "Hậu Giang": { fee: 35000 },
-  "Hòa Bình": { fee: 45000 },
-  "Hưng Yên": { fee: 40000 },
-  "Khánh Hòa": { fee: 25000 },
-  "Kiên Giang": { fee: 35000 },
-  "Kon Tum": { fee: 15000 },
-  "Lai Châu": { fee: 50000 },
-  "Lâm Đồng": { fee: 20000 },
-  "Lạng Sơn": { fee: 50000 },
-  "Lào Cai": { fee: 50000 },
-  "Long An": { fee: 30000 },
-  "Nam Định": { fee: 45000 },
-  "Nghệ An": { fee: 35000 },
-  "Ninh Bình": { fee: 45000 },
-  "Ninh Thuận": { fee: 25000 },
-  "Phú Thọ": { fee: 45000 },
-  "Phú Yên": { fee: 25000 },
-  "Quảng Bình": { fee: 35000 },
-  "Quảng Nam": { fee: 25000 },
-  "Quảng Ngãi": { fee: 25000 },
-  "Quảng Ninh": { fee: 50000 },
-  "Quảng Trị": { fee: 30000 },
-  "Sóc Trăng": { fee: 35000 },
-  "Sơn La": { fee: 50000 },
-  "Tây Ninh": { fee: 25000 },
-  "Thái Bình": { fee: 45000 },
-  "Thái Nguyên": { fee: 45000 },
-  "Thanh Hóa": { fee: 40000 },
-  "Thừa Thiên Huế": { fee: 30000 },
-  "Tiền Giang": { fee: 30000 },
-  "Trà Vinh": { fee: 30000 },
-  "Tuyên Quang": { fee: 50000 },
-  "Vĩnh Long": { fee: 30000 },
-  "Vĩnh Phúc": { fee: 45000 },
-  "Yên Bái": { fee: 50000 },
-};
 
 const AddressForm = ({
   mode,
@@ -137,6 +91,8 @@ const AddressForm = ({
   isLoadingDistricts,
   isLoadingWards,
   formErrors,
+  shippingFee,
+  isLoadingShippingFee,
 }: {
   mode: Mode;
   diaChi: Partial<DiaChi>;
@@ -155,6 +111,8 @@ const AddressForm = ({
   isLoadingDistricts: boolean;
   isLoadingWards: boolean;
   formErrors: FormErrors;
+  shippingFee: number | null;
+  isLoadingShippingFee: boolean;
 }) => {
   const isViewMode = mode === "view";
   const [formData, setFormData] = useState<Partial<DiaChi>>(diaChi);
@@ -229,7 +187,7 @@ const AddressForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, moTa: shippingFee !== null ? shippingFee.toString() : "" });
   };
 
   const formatDate = (dateString: string) => {
@@ -239,8 +197,6 @@ const AddressForm = ({
     const year = deliveryDate.getFullYear();
     return `Ngày ${day}, tháng ${month}, năm ${year} nhận hàng`;
   };
-
-  const shippingInfo = selectedProvince ? shippingData[selectedProvince.ProvinceName] : null;
 
   return (
     <div className="space-y-4">
@@ -352,23 +308,20 @@ const AddressForm = ({
           {formErrors.diaChi && <p className="text-red-500 text-sm mt-1">{formErrors.diaChi}</p>}
         </div>
       </div>
-      <div>
-        <Label htmlFor="moTa" className="font-semibold text-gray-800">Mô tả</Label>
-        <textarea
-          id="moTa"
-          value={formData.moTa || ""}
-          onChange={(e) => handleChange("moTa", e.target.value)}
-          disabled={isViewMode}
-          placeholder="Nhập mô tả địa chỉ (tùy chọn)"
-          className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
-          rows={2}
-        />
-      </div>
-      {shippingInfo && selectedWard && (
+      {selectedWard && (
         <div className="mt-4 p-4 bg-gray-50 rounded-md">
-          <p><strong className="font-semibold">Phí giao hàng:</strong> {shippingInfo.fee.toLocaleString()} VND</p>
           <p>
-            <strong className="font-semibold">Thời gian giao hàng:</strong>{" "}
+            <strong className="font-semibold">Phí giao hàng dự kiến:</strong>{" "}
+            {isLoadingShippingFee ? (
+              "Đang tính phí giao hàng..."
+            ) : shippingFee !== null ? (
+              `${shippingFee.toLocaleString()} VND`
+            ) : (
+              "Không thể tải phí giao hàng"
+            )}
+          </p>
+          <p>
+            <strong className="font-semibold">Thời gian giao hàng dự kiến:</strong>{" "}
             {isLoadingLeadTime ? (
               "Đang tính thời gian giao hàng..."
             ) : leadTime ? (
@@ -428,6 +381,10 @@ const DiaChi = () => {
   const [activeTab, setActiveTab] = useState<"add" | "list">("list");
   const [leadTimes, setLeadTimes] = useState<{ [key: number]: LeadTimeResponse | null }>({});
   const [isLoadingLeadTimes, setIsLoadingLeadTimes] = useState<{ [key: number]: boolean }>({});
+  const [shippingFees, setShippingFees] = useState<{ [key: number]: number | null }>({});
+  const [isLoadingShippingFees, setIsLoadingShippingFees] = useState<{ [key: number]: boolean }>({});
+  const [formShippingFee, setFormShippingFee] = useState<number | null>(null);
+  const [isLoadingFormShippingFee, setIsLoadingFormShippingFee] = useState<boolean>(false);
 
   const navigate = useNavigate();
   const addressListRef = useRef<HTMLDivElement>(null);
@@ -474,6 +431,7 @@ const DiaChi = () => {
       setWards([]);
       setSelectedDistrict(null);
       setSelectedWard(null);
+      setFormShippingFee(null);
       return;
     }
 
@@ -491,6 +449,7 @@ const DiaChi = () => {
         setWards([]);
         setSelectedDistrict(null);
         setSelectedWard(null);
+        setFormShippingFee(null);
       } catch (error) {
         console.error("Error fetching districts:", error);
         Swal.fire({
@@ -513,6 +472,7 @@ const DiaChi = () => {
     if (!selectedDistrict?.DistrictID) {
       setWards([]);
       setSelectedWard(null);
+      setFormShippingFee(null);
       return;
     }
 
@@ -528,6 +488,7 @@ const DiaChi = () => {
         }));
         setWards(transformedWards);
         setSelectedWard(null);
+        setFormShippingFee(null);
       } catch (error) {
         console.error("Error fetching wards:", error);
         Swal.fire({
@@ -546,6 +507,59 @@ const DiaChi = () => {
     fetchWards();
   }, [selectedDistrict, API_URL]);
 
+  useEffect(() => {
+    if (!selectedDistrict?.DistrictID || !selectedWard?.WardCode) {
+      setFormShippingFee(null);
+      return;
+    }
+
+    const fetchShippingFee = async () => {
+      setIsLoadingFormShippingFee(true);
+      try {
+        const request = {
+          service_type_id: 2,
+          from_district_id: 1552,
+          from_ward_code: "400103",
+          to_district_id: selectedDistrict.DistrictID,
+          to_ward_code: selectedWard.WardCode,
+          length: 35,
+          width: 25,
+          height: 10,
+          weight: 1000,
+          insurance_value: 0,
+          coupon: null,
+          items: [],
+        };
+        const response = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(request),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data: ShippingFeeResponse = await response.json();
+        setFormShippingFee(data.total);
+      } catch (error) {
+        console.error("Error fetching shipping fee:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Không thể tải phí giao hàng",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          showCloseButton: true,
+        });
+        setFormShippingFee(null);
+      } finally {
+        setIsLoadingFormShippingFee(false);
+      }
+    };
+    fetchShippingFee();
+  }, [selectedDistrict, selectedWard, API_URL]);
+
   const fetchDiaChiList = useCallback(async () => {
     if (!maNguoiDung) return;
     setIsLoading(true);
@@ -557,10 +571,15 @@ const DiaChi = () => {
       setDiaChiList(sortedData);
 
       const leadTimesData: { [key: number]: LeadTimeResponse | null } = {};
-      const loadingStates: { [key: number]: boolean } = {};
+      const loadingLeadTimes: { [key: number]: boolean } = {};
+      const shippingFeesData: { [key: number]: number | null } = {};
+      const loadingShippingFees: { [key: number]: boolean } = {};
+
       for (const dc of sortedData) {
-        loadingStates[dc.maDiaChi] = true;
+        loadingLeadTimes[dc.maDiaChi] = true;
         leadTimesData[dc.maDiaChi] = null;
+        loadingShippingFees[dc.maDiaChi] = true;
+        shippingFeesData[dc.maDiaChi] = null;
 
         const province = provinces.find((p) => p.ProvinceName === dc.tinh);
         if (province) {
@@ -575,7 +594,7 @@ const DiaChi = () => {
               const wardsData: WardResponse[] = await wardResponse.json();
               const ward = wardsData.find((w) => w.wardName === dc.phuongXa);
               if (ward) {
-                const request = {
+                const leadTimeRequest = {
                   from_district_id: 1552,
                   from_ward_code: "400103",
                   to_district_id: district.districtID,
@@ -585,21 +604,47 @@ const DiaChi = () => {
                 const leadTimeResponse = await fetch(`${API_URL}/api/GHN/leadtime`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                  body: JSON.stringify(request),
+                  body: JSON.stringify(leadTimeRequest),
                 });
                 if (!leadTimeResponse.ok) throw new Error(`HTTP error! status: ${leadTimeResponse.status}`);
                 const leadTimeData: LeadTimeResponse = await leadTimeResponse.json();
                 leadTimesData[dc.maDiaChi] = leadTimeData;
+
+                const feeRequest = {
+                  service_type_id: 2,
+                  from_district_id: 1552,
+                  from_ward_code: "400103",
+                  to_district_id: district.districtID,
+                  to_ward_code: ward.wardCode,
+                  length: 35,
+                  width: 25,
+                  height: 10,
+                  weight: 1000,
+                  insurance_value: 0,
+                  coupon: null,
+                  items: [],
+                };
+                const feeResponse = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                  body: JSON.stringify(feeRequest),
+                });
+                if (!feeResponse.ok) throw new Error(`HTTP error! status: ${feeResponse.status}`);
+                const feeData: ShippingFeeResponse = await feeResponse.json();
+                shippingFeesData[dc.maDiaChi] = feeData.total;
               }
             }
           } catch (error) {
-            console.error(`Error fetching lead time for address ${dc.maDiaChi}:`, error);
+            console.error(`Error fetching data for address ${dc.maDiaChi}:`, error);
           }
         }
-        loadingStates[dc.maDiaChi] = false;
+        loadingLeadTimes[dc.maDiaChi] = false;
+        loadingShippingFees[dc.maDiaChi] = false;
       }
       setLeadTimes(leadTimesData);
-      setIsLoadingLeadTimes(loadingStates);
+      setIsLoadingLeadTimes(loadingLeadTimes);
+      setShippingFees(shippingFeesData);
+      setIsLoadingShippingFees(loadingShippingFees);
     } catch (error) {
       console.error("Error fetching address list:", error);
       Swal.fire({
@@ -774,6 +819,16 @@ const DiaChi = () => {
         delete newLoadingStates[deleteMaDiaChi];
         return newLoadingStates;
       });
+      setShippingFees((prev) => {
+        const newShippingFees = { ...prev };
+        delete newShippingFees[deleteMaDiaChi];
+        return newShippingFees;
+      });
+      setIsLoadingShippingFees((prev) => {
+        const newLoadingStates = { ...prev };
+        delete newLoadingStates[deleteMaDiaChi];
+        return newLoadingStates;
+      });
       Swal.fire({
         icon: "success",
         title: "Thành công",
@@ -857,6 +912,7 @@ const DiaChi = () => {
     setDistricts([]);
     setWards([]);
     setFormErrors({});
+    setFormShippingFee(null);
   };
 
   const openEditForm = (diaChi: DiaChi) => {
@@ -1068,6 +1124,8 @@ const DiaChi = () => {
             isLoadingDistricts={isLoadingDistricts}
             isLoadingWards={isLoadingWards}
             formErrors={formErrors}
+            shippingFee={formShippingFee}
+            isLoadingShippingFee={isLoadingFormShippingFee}
           />
         )}
 
@@ -1087,7 +1145,7 @@ const DiaChi = () => {
                   <div>
                     <p><strong className="font-semibold text-gray-800">Họ tên:</strong> {dc.hoTen}</p>
                     <p><strong className="font-semibold text-gray-800">Số điện thoại:</strong> {dc.sdt}</p>
-                    <p><strong className="font-semibold text-gray-800">Mô tả:</strong> {dc.moTa || "Không có mô tả"}</p>
+                    <p><strong className="font-semibold text-gray-800">Phí giao hàng dự kiến:</strong> {dc.moTa || "Không có mô tả"} VND</p>
                     <p>
                       <strong className="font-semibold text-gray-800">Địa chỉ:</strong> {dc.diaChi}, {dc.phuongXa},{" "}
                       {dc.quanHuyen}, {dc.tinh}
@@ -1096,26 +1154,6 @@ const DiaChi = () => {
                       <strong className="font-semibold text-gray-800">Trạng thái:</strong>{" "}
                       {dc.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}
                     </p>
-                    {shippingData[dc.tinh] ? (
-                      <div className="mt-2 text-sm text-gray-800">
-                        <p>
-                          <strong className="font-semibold">Phí giao hàng:</strong>{" "}
-                          {shippingData[dc.tinh].fee.toLocaleString()} VND
-                        </p>
-                        <p>
-                          <strong className="font-semibold">Thời gian giao hàng:</strong>{" "}
-                          {isLoadingLeadTimes[dc.maDiaChi] ? (
-                            "Đang tính thời gian giao hàng..."
-                          ) : leadTimes[dc.maDiaChi] ? (
-                            formatDate(leadTimes[dc.maDiaChi]!.leadtime_order.to_estimate_date)
-                          ) : (
-                            "Không thể tải thời gian giao hàng"
-                          )}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-gray-800">Không có thông tin phí và thời gian giao hàng</p>
-                    )}
                   </div>
                   <div className="flex flex-col items-center space-y-2">
                     <input
@@ -1183,6 +1221,8 @@ const DiaChi = () => {
                 isLoadingDistricts={isLoadingDistricts}
                 isLoadingWards={isLoadingWards}
                 formErrors={formErrors}
+                shippingFee={formShippingFee}
+                isLoadingShippingFee={isLoadingFormShippingFee}
               />
             </div>
           </div>

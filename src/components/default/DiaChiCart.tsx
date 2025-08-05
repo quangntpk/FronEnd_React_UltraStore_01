@@ -20,6 +20,7 @@ interface DiaChi {
     phuongXa: string;
     quanHuyen: string;
     tinh: string;
+    moTa: string;
     trangThai: number;
 }
 interface FormErrors {
@@ -50,72 +51,26 @@ interface LeadTimeResponse {
         to_estimate_date: string;
     };
 }
-
-const shippingData: { [key: string]: { fee: number } } = {
-    "Hà Nội": { fee: 40000 },
-    "TP. Hồ Chí Minh": { fee: 20000 },
-    "Hải Phòng": { fee: 45000 },
-    "Đà Nẵng": { fee: 30000 },
-    "Cần Thơ": { fee: 30000 },
-    "An Giang": { fee: 35000 },
-    "Bà Rịa - Vũng Tàu": { fee: 25000 },
-    "Bắc Giang": { fee: 45000 },
-    "Bắc Kạn": { fee: 50000 },
-    "Bạc Liêu": { fee: 35000 },
-    "Bắc Ninh": { fee: 40000 },
-    "Bến Tre": { fee: 30000 },
-    "Bình Định": { fee: 25000 },
-    "Bình Dương": { fee: 20000 },
-    "Bình Phước": { fee: 20000 },
-    "Bình Thuận": { fee: 25000 },
-    "Cà Mau": { fee: 35000 },
-    "Cao Bằng": { fee: 50000 },
-    "Đắk Lắk": { fee: 0 },
-    "Đắk Nông": { fee: 15000 },
-    "Điện Biên": { fee: 50000 },
-    "Đồng Nai": { fee: 20000 },
-    "Đồng Tháp": { fee: 30000 },
-    "Gia Lai": { fee: 15000 },
-    "Hà Giang": { fee: 50000 },
-    "Hà Nam": { fee: 45000 },
-    "Hà Tĩnh": { fee: 35000 },
-    "Hải Dương": { fee: 45000 },
-    "Hậu Giang": { fee: 35000 },
-    "Hòa Bình": { fee: 45000 },
-    "Hưng Yên": { fee: 40000 },
-    "Khánh Hòa": { fee: 25000 },
-    "Kiên Giang": { fee: 35000 },
-    "Kon Tum": { fee: 15000 },
-    "Lai Châu": { fee: 50000 },
-    "Lâm Đồng": { fee: 20000 },
-    "Lạng Sơn": { fee: 50000 },
-    "Lào Cai": { fee: 50000 },
-    "Long An": { fee: 30000 },
-    "Nam Định": { fee: 45000 },
-    "Nghệ An": { fee: 35000 },
-    "Ninh Bình": { fee: 45000 },
-    "Ninh Thuận": { fee: 25000 },
-    "Phú Thọ": { fee: 45000 },
-    "Phú Yên": { fee: 25000 },
-    "Quảng Bình": { fee: 35000 },
-    "Quảng Nam": { fee: 25000 },
-    "Quảng Ngãi": { fee: 25000 },
-    "Quảng Ninh": { fee: 50000 },
-    "Quảng Trị": { fee: 30000 },
-    "Sóc Trăng": { fee: 35000 },
-    "Sơn La": { fee: 50000 },
-    "Tây Ninh": { fee: 25000 },
-    "Thái Bình": { fee: 45000 },
-    "Thái Nguyên": { fee: 45000 },
-    "Thanh Hóa": { fee: 40000 },
-    "Thừa Thiên Huế": { fee: 30000 },
-    "Tiền Giang": { fee: 30000 },
-    "Trà Vinh": { fee: 30000 },
-    "Tuyên Quang": { fee: 50000 },
-    "Vĩnh Long": { fee: 30000 },
-    "Vĩnh Phúc": { fee: 45000 },
-    "Yên Bái": { fee: 50000 },
-};
+interface ShippingOrderFee {
+    total?: number;
+    main_service?: number;
+    insurance?: number;
+    cod_fee?: number;
+    station_do?: number;
+    station_pu?: number;
+    return_fee?: number;
+    r2s?: number;
+    return_again?: number;
+    coupon?: number;
+    document_return?: number;
+    double_check?: number;
+    double_check_deliver?: number;
+    pick_remote_areas_fee?: number;
+    deliver_remote_areas_fee?: number;
+    pick_remote_areas_fee_return?: number;
+    deliver_remote_areas_fee_return?: number;
+    cod_failed_fee?: number;
+}
 
 const AddressForm = ({
     diaChi,
@@ -155,6 +110,8 @@ const AddressForm = ({
     const [formData, setFormData] = useState<Partial<DiaChi>>(diaChi);
     const [leadTime, setLeadTime] = useState<LeadTimeResponse | null>(null);
     const [isLoadingLeadTime, setIsLoadingLeadTime] = useState<boolean>(false);
+    const [shippingFee, setShippingFee] = useState<ShippingOrderFee | null>(null);
+    const [isLoadingShippingFee, setIsLoadingShippingFee] = useState<boolean>(false);
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
 
     const getAuthHeaders = () => {
@@ -169,6 +126,7 @@ const AddressForm = ({
     useEffect(() => {
         if (!selectedDistrict?.DistrictID || !selectedWard?.WardCode) {
             setLeadTime(null);
+            setShippingFee(null);
             return;
         }
 
@@ -208,7 +166,54 @@ const AddressForm = ({
                 setIsLoadingLeadTime(false);
             }
         };
+
+        const fetchShippingFee = async () => {
+            setIsLoadingShippingFee(true);
+            try {
+                const request = {
+                    service_type_id: 2,
+                    from_district_id: 1552,
+                    from_ward_code: "400103",
+                    to_district_id: selectedDistrict.DistrictID,
+                    to_ward_code: selectedWard.WardCode,
+                    length: 35,
+                    width: 25,
+                    height: 10,
+                    weight: 1000,
+                    insurance_value: 0,
+                    coupon: null,
+                    items: [],
+                };
+                const response = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...getAuthHeaders(),
+                    },
+                    body: JSON.stringify(request),
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data: ShippingOrderFee = await response.json();
+                setShippingFee(data);
+                setFormData((prev) => ({ ...prev, moTa: data.total?.toString() || "" }));
+            } catch (error) {
+                console.error("Error fetching shipping fee:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi",
+                    text: "Không thể tải phí giao hàng",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                });
+            } finally {
+                setIsLoadingShippingFee(false);
+            }
+        };
+
         fetchLeadTime();
+        fetchShippingFee();
     }, [selectedDistrict, selectedWard, API_URL]);
 
     const handleChange = (field: keyof DiaChi, value: string) => {
@@ -230,12 +235,10 @@ const AddressForm = ({
     const formatDate = (dateString: string) => {
         const deliveryDate = new Date(dateString);
         const day = deliveryDate.getDate();
-        const month = deliveryDate.getMonth() + 1; // Months are 0-based in JavaScript
+        const month = deliveryDate.getMonth() + 1;
         const year = deliveryDate.getFullYear();
         return `Ngày ${day}, tháng ${month}, năm ${year} nhận hàng`;
     };
-
-    const shippingInfo = selectedProvince ? shippingData[selectedProvince.ProvinceName] : null;
 
     return (
         <div className="space-y-4">
@@ -396,10 +399,17 @@ const AddressForm = ({
                     {formErrors.diaChi && <p className="mt-1 text-sm text-[#ef4444]">{formErrors.diaChi}</p>}
                 </div>
             </div>
-            {shippingInfo && selectedWard && (
+            {selectedWard && (
                 <div className="p-4 bg-[#f9fafb] rounded-lg mt-4">
                     <p className="text-sm text-[#2c3e50]">
-                        <strong className="font-semibold">Phí giao hàng:</strong> {shippingInfo.fee.toLocaleString()} VND
+                        <strong className="font-semibold">Phí giao hàng:</strong>{" "}
+                        {isLoadingShippingFee ? (
+                            "Đang tính phí giao hàng..."
+                        ) : shippingFee && shippingFee.total ? (
+                            `${shippingFee.total.toLocaleString()} VND`
+                        ) : (
+                            "Không thể tải phí giao hàng"
+                        )}
                     </p>
                     <p className="text-sm text-[#2c3e50]">
                         <strong className="font-semibold">Thời gian giao hàng:</strong>{" "}
