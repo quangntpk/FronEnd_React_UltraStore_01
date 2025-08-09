@@ -129,7 +129,14 @@ const AdminContact = () => {
   const fetchLienHe = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/LienHe`);
+      const response = await fetch(`${API_URL}/api/LienHe`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Lỗi khi tải danh sách liên hệ");
       const data = await response.json();
       setLienHeList(data);
@@ -201,7 +208,9 @@ const AdminContact = () => {
     try {
       const response = await fetch(`${API_URL}/api/LienHe/${contact.maLienHe}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+         },
         body: JSON.stringify({ ...contact, trangThai: Number(newStatus) }),
       });
       if (!response.ok) throw new Error("Lỗi khi cập nhật trạng thái");
@@ -273,7 +282,9 @@ const AdminContact = () => {
       if (selectedLienHeIds.length > 0) {
         const response = await fetch(`${API_URL}/api/LienHe/DeleteMultiple`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+           },
           body: JSON.stringify(selectedLienHeIds),
         });
         if (!response.ok) throw new Error("Lỗi khi xóa nhiều liên hệ");
@@ -282,6 +293,9 @@ const AdminContact = () => {
       } else if (deleteContact) {
         const response = await fetch(`${API_URL}/api/LienHe/${deleteContact.maLienHe}`, {
           method: "DELETE",
+          headers: { "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
         });
         if (!response.ok) throw new Error("Lỗi khi xóa liên hệ");
         setLienHeList((prev) => prev.filter((lh) => lh.maLienHe !== deleteContact.maLienHe));
@@ -340,7 +354,9 @@ const AdminContact = () => {
       };
       const response = await fetch(`${API_URL}/api/LienHe/SupportEmail`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+         },
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error("Lỗi khi gửi email hỗ trợ");
@@ -348,7 +364,9 @@ const AdminContact = () => {
       if (selectedContact) {
         const updateResponse = await fetch(`${API_URL}/api/LienHe/${selectedContact.maLienHe}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+           },
           body: JSON.stringify({ ...selectedContact, trangThai: 1 }),
         });
         if (!updateResponse.ok) throw new Error("Lỗi khi cập nhật trạng thái");

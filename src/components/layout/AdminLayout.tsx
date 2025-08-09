@@ -1,11 +1,22 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { jwtDecode } from "jwt-decode";
 
 interface AdminLayoutProps {
   role: "staff" | "admin";
+}
+
+interface MyToken {
+  sub?: string;
+  jti?: string;
+  [key: string]: any; 
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"?: string;
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"?: string;
+  exp?: number;
+  iss?: string;
+  aud?: string;
 }
 
 const getPageTitle = (pathname: string): string => {
@@ -30,24 +41,34 @@ const AdminLayout = ({ role }: AdminLayoutProps) => {
   const [pageTitle, setPageTitle] = useState(getPageTitle(location.pathname));
   const [isPageLoading, setIsPageLoading] = useState(true);
 
+  const token = localStorage.getItem("token");
+  console.log("Token from localStorage:", token);
+  let userRole = "";
+
+  if (token) {
+    try {
+      const decoded = jwtDecode<MyToken>(token);
+      console.log("Decoded Token:", decoded);
+      userRole = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]?.toLowerCase() || "";
+    } catch (error) {
+      console.error("Error decoding token:", error);
+    }
+  }
+
+  console.log("User Role:", userRole, "Expected Role:", role.toLowerCase());
+  if (!userRole || userRole !== role.toLowerCase()) {
+    return <Navigate to="/notfound" replace />;
+  }
+  if (userRole === "staff" && (location.pathname.includes("/statistics") || location.pathname.includes("/users") || location.pathname.includes("/settings"))) {
+    return <Navigate to="/notfound" replace />;
+  }
+
   useEffect(() => {
     setPageTitle(getPageTitle(location.pathname));
     setIsPageLoading(true);
     const timer = setTimeout(() => setIsPageLoading(false), 300);
     return () => clearTimeout(timer);
   }, [location.pathname]);
-
-  // useEffect(() => {
-  //   if (location.pathname === "/admin" && !sessionStorage.getItem("welcomed")) {
-  //     setTimeout(() => {
-  //       toast.success("Chào mừng đến với FashionHub Admin", {
-  //         description: "Bảng điều khiển quản lý bán hàng mạnh mẽ của bạn",
-  //         duration: 5000,
-  //       });
-  //       sessionStorage.setItem("welcomed", "true");
-  //     }, 1000);
-  //   }
-  // }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen w-full">
@@ -69,5 +90,4 @@ const AdminLayout = ({ role }: AdminLayoutProps) => {
     </div>
   );
 };
-
 export default AdminLayout;

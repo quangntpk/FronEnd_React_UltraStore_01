@@ -15,9 +15,10 @@ interface LoginResponse {
   message: string;
   user?: {
     maNguoiDung: string;
-    hoTen: string;  
+    hoTen: string;
     email: string;
     vaiTro: number;
+    role: string;
   };
   token: string;
   redirectUrl?: string;
@@ -59,13 +60,14 @@ export const LoginForm = () => {
         }
       );
 
-      const { user, token } = response.data;
+      const { user, token, redirectUrl } = response.data;
       if (user) {
         setAuth(token, {
-          maNguoiDung: user.maNguoiDung || "",
-          fullName: user.hoTen || "",
-          email: user.email || "",
-          vaiTro: user.vaiTro || "",
+          maNguoiDung: user.maNguoiDung,
+          fullName: user.hoTen,
+          email: user.email,
+          vaiTro: user.vaiTro,
+         role: user.role.toLowerCase(),
         });
 
         toast({
@@ -75,20 +77,7 @@ export const LoginForm = () => {
           className: "bg-green-500 text-white border border-green-700 shadow-lg",
         });
 
-        let redirectPath = "/";
-        switch (user.vaiTro) {
-          case 0:
-            redirectPath = "/";
-            break;
-          case 1:
-            redirectPath = "/admin";
-            break;
-          case 2:
-            redirectPath = "/staff";
-            break;
-          default:
-            redirectPath = "/home";
-        }
+        const redirectPath = redirectUrl.replace("http://localhost:8080", "");
         setTimeout(() => navigate(redirectPath), 1000);
       }
     } catch (error) {
@@ -115,7 +104,7 @@ export const LoginForm = () => {
       if (!loginUrl) throw new Error("Không thể lấy URL đăng nhập Google");
       window.location.href = loginUrl;
     } catch (error) {
-     toast({
+      toast({
         title: "Đăng nhập Google thất bại!",
         description: error.message || "Đã có lỗi xảy ra khi đăng nhập với Google.",
         variant: "destructive",

@@ -35,7 +35,14 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   useEffect(() => {
     const fetchLoaiSanPham = async () => {
       try {
-        const response = await fetch("http://localhost:5261/api/LoaiSanPham");
+         const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/LoaiSanPham",{
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         if (!response.ok) throw new Error("Failed to fetch product types");
         const data = await response.json();
         setLoaiSanPhamList(Array.isArray(data) ? data : []);
@@ -54,7 +61,14 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     const fetchThuongHieu = async () => {
       try {
-        const response = await fetch("http://localhost:5261/api/ThuongHieu");
+         const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/ThuongHieu",{
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         if (!response.ok) throw new Error("Failed to fetch brands");
         const data = await response.json();
         setThuongHieuList(Array.isArray(data) ? data : []);
@@ -73,7 +87,14 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     const fetchHashTags = async () => {
       try {
-        const response = await fetch("http://localhost:5261/api/HashTag");
+         const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/HashTag",{
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         if (!response.ok) throw new Error("Failed to fetch hashtags");
         const data = await response.json();
         setHashTagList(Array.isArray(data) ? data : []);
@@ -327,10 +348,12 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     setErrors({});
     console.log(newProductData)
     try {
+       const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
         body: JSON.stringify(newProductData),
       });

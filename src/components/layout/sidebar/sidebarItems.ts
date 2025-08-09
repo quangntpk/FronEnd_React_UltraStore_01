@@ -18,7 +18,7 @@ interface SidebarItemType {
 export const adminItems: SidebarItemType[] = [
   { title: "Thống kê", icon: BarChart, path: "/admin/statistics", color: "text-blue-600" },
   { title: "Đơn hàng", icon: ShoppingCart, path: "/admin/orders", color: "text-orange-600" },
-   { title: "Mua offline", icon: CreditCard, path: "/buy", color: "text-red-600" },
+  { title: "Mua offline", icon: CreditCard, path: "/admin/buy", color: "text-red-600" },
   { title: "Sản phẩm", icon: Package, path: "/admin/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/admin/combos", color: "text-teal-600" },
   { title: "Thương hiệu", icon: Tag, path: "/admin/thuonghieu", color: "text-indigo-600" },
@@ -35,13 +35,18 @@ export const adminItems: SidebarItemType[] = [
 ];
 
 export const staffItems: SidebarItemType[] = [
-  // { title: "Bảng điều khiển", icon: LayoutDashboard, path: "/staff", color: "text-blue-600" },
-  // { title: "Sản phẩm", icon: Package, path: "/staff/products", color: "text-green-600" },
-  // { title: "Đơn hàng", icon: ShoppingCart, path: "/staff/orders", badge: "3", color: "text-orange-600" },
-  // { title: "Kho hàng", icon: Archive, path: "/staff/inventory", color: "text-purple-600" },
-  // { title: "Đơn đặt hàng", icon: ClipboardList, path: "/staff/purchase-orders", color: "text-teal-600" },
-  // { title: "Vận chuyển", icon: Truck, path: "/staff/shipping", color: "text-indigo-600" },
-  // { title: "Danh mục", icon: Tag, path: "/staff/categories", color: "text-pink-600" },
+  { title: "Đơn hàng", icon: ShoppingCart, path: "/staff/orders", color: "text-orange-600" },
+  { title: "Mua offline", icon: CreditCard, path: "/staff/buy", color: "text-red-600" },
+  { title: "Sản phẩm", icon: Package, path: "/staff/products", color: "text-green-600" },
+  { title: "Combo", icon: Layers, path: "/staff/combos", color: "text-teal-600" },
+  { title: "Thương hiệu", icon: Tag, path: "/staff/thuonghieu", color: "text-indigo-600" },
+  { title: "Loại sản phẩm", icon: LayoutGrid, path: "/staff/loaisanpham", color: "text-teal-600" },
+  { title: "HashTag", icon: Globe, path: "/staff/hashtag", color: "text-teal-600" },
+  { title: "Bình luận", icon: MessageCircle, path: "/staff/inventory", color: "text-cyan-600" },
+  { title: "Voucher", icon: Tag, path: "/staff/invoices", color: "text-gray-600" },
+  { title: "Blog", icon: Newspaper, path: "/staff/blog", color: "text-blue-600" },
+  { title: "Hỗ trợ", icon: MessageSquare, path: "/staff/messages", color: "text-blue-600" },
+  { title: "Liên hệ", icon: HelpCircle, path: "/staff/contact", color: "text-blue-600" },
 ];
 
 export const adminManagementItems: SidebarItemType[] = [

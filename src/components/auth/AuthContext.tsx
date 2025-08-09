@@ -1,10 +1,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import axios from "axios";
 
+interface User {
+  maNguoiDung: string;
+  fullName: string;
+  email: string;
+  vaiTro: number;
+  role: string; 
+}
+
 interface AuthContextType {
   isLoggedIn: boolean;
+  user: User | null;
   userName: string;
-  setAuth: (token: string | null, user: any) => void;
+  setAuth: (token: string | null, user: User | null) => void;
   logout: () => void;
 }
 
@@ -12,40 +21,30 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
-  const [user, setUser] = useState<any>(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const userData = localStorage.getItem("user");
     return userData ? JSON.parse(userData) : null;
   });
 
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem("token", token);
-    } else {
-      localStorage.removeItem("token");
-    }
-
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
-  }, [token, user]);
-
-  const setAuth = (newToken: string | null, newUser: any) => {
+const setAuth = (newToken: string | null, newUser: User | null) => {
   setToken(newToken);
   setUser(newUser);
 
-  if (newToken && newUser) {
+  if (newToken) {
     localStorage.setItem("token", newToken);
-    localStorage.setItem("user", JSON.stringify(newUser));
-
-    localStorage.setItem("userId", newUser.maNguoiDung || newUser.userId || "");
   } else {
     localStorage.removeItem("token");
+  }
+
+  if (newUser) {
+    localStorage.setItem("user", JSON.stringify(newUser));
+    localStorage.setItem("userId", newUser.maNguoiDung);
+  } else {
     localStorage.removeItem("user");
-    localStorage.removeItem("userId"); 
+    localStorage.removeItem("userId");
   }
 };
+
 
   const logout = async () => {
     try {
@@ -54,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         {},
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -65,10 +64,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const isLoggedIn = !!token;
-  const userName = user?.hoTen || user?.fullName || "";
+  const userName = user?.fullName || "";
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, userName, setAuth, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, userName, setAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -92,7 +92,14 @@ const AdminHashTag = () => {
         try {
             setLoading(true);
             const targetStatus = activeTab === "active" ? 1 : 0;
-            const response = await fetch(`${API_URL}/api/HashTag?trangThai=${targetStatus}`);
+            const response = await fetch(`${API_URL}/api/HashTag?trangThai=${targetStatus}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+                    },
+                }
+            );
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(errorText || "Không thể lấy danh sách hashtag");

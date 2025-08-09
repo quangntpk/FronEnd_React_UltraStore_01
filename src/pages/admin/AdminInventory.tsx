@@ -88,7 +88,13 @@ const Comments = () => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5261/api/Comment/list");
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5261/api/Comment/list",{
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Không thể lấy dữ liệu bình luận: ${response.status} ${response.statusText}`);
       }
@@ -106,8 +112,13 @@ const Comments = () => {
     if (!commentToDelete) return;
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5261/api/Comment/delete/${commentToDelete.maBinhLuan}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
       });
       if (!response.ok) {
         throw new Error("Không thể xóa bình luận");
@@ -124,8 +135,13 @@ const Comments = () => {
 
   const handleApproveComment = async (comment: Comment) => {
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5261/api/Comment/approve/${comment.maBinhLuan}`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
       });
       if (!response.ok) {
         throw new Error("Không thể duyệt bình luận");
@@ -140,8 +156,13 @@ const Comments = () => {
 
   const handleUnapproveComment = async (comment: Comment) => {
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5261/api/Comment/unapprove/${comment.maBinhLuan}`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
       });
       if (!response.ok) {
         throw new Error("Không thể hủy duyệt bình luận");
