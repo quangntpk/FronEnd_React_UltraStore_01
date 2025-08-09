@@ -29,6 +29,11 @@ import Swal from "sweetalert2";
 import ReactQuill from "react-quill";
 import 'react-quill/dist/quill.snow.css';
 
+interface NguoiDung {
+  maNguoiDung: string | number;
+  hoTen: string;
+}
+
 interface Blog {
   maBlog: string | number | null;
   maNguoiDung: string;
@@ -42,6 +47,7 @@ interface Blog {
   metaDescription?: string;
   hinhAnh?: string | null;
   moTaHinhAnh?: string;
+  chuDe?: string;
   isPublished: boolean;
   tags?: string[];
 }
@@ -106,6 +112,7 @@ const AdminBlog = () => {
     metaDescription: "",
     hinhAnh: "",
     moTaHinhAnh: "",
+    chuDe: "",
     isPublished: false,
     tags: [],
   });
@@ -114,6 +121,7 @@ const AdminBlog = () => {
   const [isDraggingEdit, setIsDraggingEdit] = useState(false);
   const [maNguoiDung, setMaNguoiDung] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [nguoiDungs, setNguoiDungs] = useState<{ [key: string]: NguoiDung | null }>({});
   const blogsPerPage = 8;
 
   useEffect(() => {
@@ -146,6 +154,21 @@ const AdminBlog = () => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data: Blog[] = await response.json();
       setBlogs(data || []);
+
+      // Fetch user data
+      const uniqueMaNguoiDungs = [...new Set(data.map(blog => blog.maNguoiDung))];
+      const nguoiDungPromises = uniqueMaNguoiDungs.map(maNguoiDung =>
+        fetch(`${import.meta.env.VITE_API_URL}/api/NguoiDung/${maNguoiDung}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }).then(res => res.ok ? res.json() : null).catch(() => null)
+      );
+      const nguoiDungResponses = await Promise.all(nguoiDungPromises);
+      const nguoiDungMap = uniqueMaNguoiDungs.reduce((acc, maNguoiDung, index) => {
+        acc[maNguoiDung] = nguoiDungResponses[index] || null;
+        return acc;
+      }, {} as { [key: string]: NguoiDung | null });
+      setNguoiDungs(nguoiDungMap);
     } catch (error) {
       console.error("Error fetching blogs:", error);
       setError("Có lỗi xảy ra khi tải danh sách blog.");
@@ -218,11 +241,11 @@ const AdminBlog = () => {
       });
       return;
     }
-    if (!newBlog.tieuDe || !newBlog.noiDung) {
+    if (!newBlog.tieuDe || !newBlog.noiDung || !newBlog.chuDe) {
       Swal.fire({
         icon: "warning",
         title: "Cảnh báo",
-        text: "Vui lòng điền tiêu đề và nội dung!",
+        text: "Vui lòng điền tiêu đề, nội dung và chủ đề!",
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -246,6 +269,7 @@ const AdminBlog = () => {
           hinhAnh: newBlog.hinhAnh || null,
           slug: newSlug,
           moTaHinhAnh: newMoTaHinhAnh,
+          chuDe: newBlog.chuDe,
         }),
       });
 
@@ -267,6 +291,7 @@ const AdminBlog = () => {
         metaDescription: "",
         hinhAnh: "",
         moTaHinhAnh: "",
+        chuDe: "",
         isPublished: false,
         tags: [],
       });
@@ -294,11 +319,11 @@ const AdminBlog = () => {
   };
 
   const editBlogSubmit = async () => {
-    if (!editBlog || !editBlog.tieuDe || !editBlog.noiDung) {
+    if (!editBlog || !editBlog.tieuDe || !editBlog.noiDung || !editBlog.chuDe) {
       Swal.fire({
         icon: "warning",
         title: "Cảnh báo",
-        text: "Vui lòng điền tiêu đề và nội dung!",
+        text: "Vui lòng điền tiêu đề, nội dung và chủ đề!",
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -325,6 +350,7 @@ const AdminBlog = () => {
             hinhAnh: editBlog.hinhAnh || null,
             slug: newSlug,
             moTaHinhAnh: newMoTaHinhAnh,
+            chuDe: editBlog.chuDe,
           }),
         }
       );
@@ -406,6 +432,7 @@ const AdminBlog = () => {
       metaTitle: blog.metaTitle || "",
       metaDescription: blog.metaDescription || "",
       moTaHinhAnh: blog.moTaHinhAnh || "",
+      chuDe: blog.chuDe || "",
       tags: blog.tags || [],
     });
     setOpenEditModal(true);
@@ -518,7 +545,7 @@ const AdminBlog = () => {
       [{ 'script': 'sub' }, { 'script': 'super' }],
       [{ 'indent': '-1' }, { 'indent': '+1' }],
       [{ 'direction': 'rtl' }],
-      [{ 'size': ['small', 'normal', 'large', 'huge'] }], // Explicit font sizes
+      [{ 'size': ['small', 'normal', 'large', 'huge'] }],
       [{ 'color': [] }, { 'background': [] }],
       [{ 'font': [] }],
       [{ 'align': [] }],
@@ -580,18 +607,10 @@ const AdminBlog = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="rounded-lg shadow-lg">
                   <DropdownMenuItem onClick={() => setSortBy("")}>Mặc định</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("title-asc")}>
-                    Tiêu đề: A - Z
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("title-desc")}>
-                    Tiêu đề: Z - A
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("date-asc")}>
-                    Cũ nhất
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("date-desc")}>
-                    Mới nhất
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("title-asc")}>Tiêu đề: A - Z</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("title-desc")}>Tiêu đề: Z - A</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("date-asc")}>Cũ nhất</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("date-desc")}>Mới nhất</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <div className="flex border rounded-md">
@@ -626,131 +645,143 @@ const AdminBlog = () => {
           ) : currentBlogs.length > 0 ? (
             view === "grid" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {currentBlogs.map((item) => (
-                  <Card
-                    key={item.maBlog}
-                    className="hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden bg-white group"
-                  >
-                    <div className="aspect-square bg-purple-50 flex items-center justify-center">
-                      {item.hinhAnh ? (
-                        <img
-                          src={`data:image/jpeg;base64,${item.hinhAnh}`}
-                          alt={item.tieuDe}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-gray-400 text-sm">Không có hình</div>
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-gray-800 truncate">{item.tieuDe}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Người tạo: {item.maNguoiDung}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Ngày tạo: {formatDateTime(item.ngayTao)}
-                          </p>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <FaEllipsisV className="h-4 w-4 text-gray-600" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
-                            <DropdownMenuItem
-                              onClick={() => handleDetailClick(item)}
-                              className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                            >
-                              <FaEye className="mr-2 h-4 w-4 text-blue-500" />
-                              Chi tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleEditClick(item)}
-                              className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600"
-                            >
-                              <FaEdit className="mr-2 h-4 w-4 text-green-500" />
-                              Sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClick(item)}
-                              className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600"
-                            >
-                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
-                              Xóa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                {currentBlogs.map((item) => {
+                  const displayName = nguoiDungs[item.maNguoiDung]?.hoTen || item.hoTen || item.maNguoiDung.replace(/\d+$/, '').trim() || "Không xác định";
+                  return (
+                    <Card
+                      key={item.maBlog}
+                      className="hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden bg-white group"
+                    >
+                      <div className="max-h-48 bg-purple-50 flex items-center justify-center overflow-hidden">
+                        {item.hinhAnh ? (
+                          <img
+                            src={`data:image/jpeg;base64,${item.hinhAnh}`}
+                            alt={item.moTaHinhAnh || item.tieuDe}
+                            className="w-full max-h-48 object-contain"
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-sm">Không có hình</div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-gray-800 whitespace-normal break-words">{item.tieuDe}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Người tạo: {displayName}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Ngày tạo: {formatDateTime(item.ngayTao)}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Chủ đề: {item.chuDe || "Chưa xác định"}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <FaEllipsisV className="h-4 w-4 text-gray-600" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
+                              <DropdownMenuItem
+                                onClick={() => handleDetailClick(item)}
+                                className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                              >
+                                <FaEye className="mr-2 h-4 w-4 text-blue-500" />
+                                Chi tiết
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEditClick(item)}
+                                className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600"
+                              >
+                                <FaEdit className="mr-2 h-4 w-4 text-green-500" />
+                                Sửa
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteClick(item)}
+                                className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
+                                Xóa
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <div className="border rounded-md divide-y">
-                {currentBlogs.map((item) => (
-                  <div
-                    key={item.maBlog}
-                    className="p-4 flex items-center gap-4 hover:bg-muted/50"
-                  >
-                    <div className="h-20 w-20 bg-purple-50 rounded-md flex items-center justify-center">
-                      {item.hinhAnh ? (
-                        <img
-                          src={`data:image/jpeg;base64,${item.hinhAnh}`}
-                          alt={item.tieuDe}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                      ) : (
-                        <div className="text-gray-400 text-xs">Không có hình</div>
-                      )}
+                {currentBlogs.map((item) => {
+                  const displayName = nguoiDungs[item.maNguoiDung]?.hoTen || item.hoTen || item.maNguoiDung.replace(/\d+$/, '').trim() || "Không xác định";
+                  return (
+                    <div
+                      key={item.maBlog}
+                      className="p-4 flex items-center gap-4 hover:bg-muted/50"
+                    >
+                      <div className="max-w-20 max-h-20 bg-purple-50 rounded-md flex items-center justify-center overflow-hidden">
+                        {item.hinhAnh ? (
+                          <img
+                            src={`data:image/jpeg;base64,${item.hinhAnh}`}
+                            alt={item.moTaHinhAnh || item.tieuDe}
+                            className="max-w-full max-h-full object-contain rounded-md"
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-xs">Không có hình</div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800 whitespace-normal break-words">{item.tieuDe}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Người tạo: {displayName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Ngày tạo: {formatDateTime(item.ngayTao)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Chủ đề: {item.chuDe || "Chưa xác định"}
+                        </p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <FaEllipsisV className="h-4 w-4 text-gray-600" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
+                          <DropdownMenuItem
+                            onClick={() => handleDetailClick(item)}
+                            className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                          >
+                            <FaEye className="mr-2 h-4 w-4 text-blue-500" />
+                            Chi tiết
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleEditClick(item)}
+                            className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600"
+                          >
+                            <FaEdit className="mr-2 h-4 w-4 text-green-500" />
+                            Sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(item)}
+                            className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
+                            Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{item.tieuDe}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Người tạo: {item.maNguoiDung}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Ngày tạo: {formatDateTime(item.ngayTao)}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <FaEllipsisV className="h-4 w-4 text-gray-600" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
-                        <DropdownMenuItem
-                          onClick={() => handleDetailClick(item)}
-                          className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                        >
-                          <FaEye className="mr-2 h-4 w-4 text-blue-500" />
-                          Chi tiết
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleEditClick(item)}
-                          className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600"
-                        >
-                          <FaEdit className="mr-2 h-4 w-4 text-green-500" />
-                          Sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClick(item)}
-                          className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )
           ) : (
@@ -881,7 +912,15 @@ const AdminBlog = () => {
                 <div>
                   <Label className="block text-sm font-semibold text-gray-700">Người tạo</Label>
                   <Input
-                    value={selectedBlog.maNguoiDung || "Chưa cập nhật"}
+                    value={nguoiDungs[selectedBlog.maNguoiDung]?.hoTen || selectedBlog.hoTen || selectedBlog.maNguoiDung.replace(/\d+$/, '').trim() || "Chưa cập nhật"}
+                    disabled
+                    className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-sm font-semibold text-gray-700">Chủ đề</Label>
+                  <Input
+                    value={selectedBlog.chuDe || "Chưa cập nhật"}
                     disabled
                     className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
@@ -910,7 +949,7 @@ const AdminBlog = () => {
                     <img
                       src={`data:image/jpeg;base64,${selectedBlog.hinhAnh}`}
                       alt={selectedBlog.moTaHinhAnh || selectedBlog.tieuDe}
-                      className="w-64 h-32 object-cover rounded-lg mt-1 border border-gray-200"
+                      className="max-w-full max-h-64 object-contain rounded-lg mt-1 border border-gray-200"
                     />
                   ) : (
                     <Input
@@ -1008,6 +1047,17 @@ const AdminBlog = () => {
                 />
               </div>
               <div>
+                <Label className="block text-sm font-semibold text-gray-700">Chủ đề</Label>
+                <Input
+                  name="chuDe"
+                  placeholder="Chủ đề"
+                  value={newBlog.chuDe}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <div>
                 <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
                 <Input
                   name="metaTitle"
@@ -1032,8 +1082,8 @@ const AdminBlog = () => {
                     <div className="relative inline-block">
                       <img
                         src={`data:image/jpeg;base64,${newBlog.hinhAnh}`}
-                        alt="Preview"
-                        className="h-24 w-48 mx-auto object-cover rounded-lg border border-gray-200"
+                        alt={newBlog.moTaHinhAnh || newBlog.tieuDe}
+                        className="max-w-full max-h-48 object-contain rounded-lg border border-gray-200"
                       />
                       <button
                         className="absolute top-0 right-0 -mt-2 -mr-2 bg-white rounded-full p-1 shadow-md hover:bg-red-100"
@@ -1116,7 +1166,7 @@ const AdminBlog = () => {
                   value={newBlog.noiDung}
                   onChange={(content) => setNewBlog({ ...newBlog, noiDung: content })}
                   modules={quillModules}
-                  className="h-48 borde rounded-lg mb-10"
+                  className="h-48 border rounded-lg mb-10"
                 />
               </div>
             </div>
@@ -1154,7 +1204,7 @@ const AdminBlog = () => {
                 <div>
                   <Label className="block text-sm font-semibold text-gray-700">Mã người dùng</Label>
                   <Input
-                    value={editBlog.maNguoiDung}
+                    value={nguoiDungs[editBlog.maNguoiDung]?.hoTen || editBlog.maNguoiDung.replace(/\d+$/, '').trim() || "Chưa cập nhật"}
                     disabled
                     className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
@@ -1165,6 +1215,17 @@ const AdminBlog = () => {
                     name="tieuDe"
                     placeholder="Tiêu đề"
                     value={editBlog.tieuDe}
+                    onChange={handleEditInputChange}
+                    required
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-sm font-semibold text-gray-700">Chủ đề</Label>
+                  <Input
+                    name="chuDe"
+                    placeholder="Chủ đề"
+                    value={editBlog.chuDe}
                     onChange={handleEditInputChange}
                     required
                     className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
@@ -1195,8 +1256,8 @@ const AdminBlog = () => {
                       <div className="relative inline-block">
                         <img
                           src={`data:image/jpeg;base64,${editBlog.hinhAnh}`}
-                          alt="Preview"
-                          className="h-24 w-48 mx-auto object-cover rounded-lg border border-gray-200"
+                          alt={editBlog.moTaHinhAnh || editBlog.tieuDe}
+                          className="max-w-full max-h-48 object-contain rounded-lg border border-gray-200"
                         />
                         <button
                           type="button"
@@ -1300,7 +1361,7 @@ const AdminBlog = () => {
                     value={editBlog.noiDung}
                     onChange={(content) => setEditBlog({ ...editBlog, noiDung: content })}
                     modules={quillModules}
-                    className="h-48 borde rounded-lg mb-10"
+                    className="h-48 border rounded-lg mb-10"
                   />
                 </div>
               </div>

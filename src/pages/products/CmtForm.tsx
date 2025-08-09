@@ -5,29 +5,24 @@ import { cn } from "@/lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import Swal from "sweetalert2";
 
-interface Comment {
-  maSanPham: string;
-  maNguoiDung: string;
-  noiDungBinhLuan: string;
-  danhGia: number;
-  ngayBinhLuan: string;
-  trangThai: number;
-  soTimBinhLuan: number;
-  hinhAnh?: string;
-  moTaHinhAnh?: string;
-}
-
 interface CmtFormProps {
   productId: string;
   orderId: string;
+  onAddComment: (
+    orderId: string,
+    productId: string,
+    content: string,
+    rating: number,
+    image?: string,
+    imageDescription?: string
+  ) => Promise<boolean>;
 }
 
-const CmtForm = ({ productId, orderId }: CmtFormProps) => {
+const CmtForm = ({ productId, orderId, onAddComment }: CmtFormProps) => {
   const [newComment, setNewComment] = useState({
     noiDungBinhLuan: "",
     danhGia: 0,
@@ -98,7 +93,8 @@ const CmtForm = ({ productId, orderId }: CmtFormProps) => {
     if (file) handleImageChange(file);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newComment.noiDungBinhLuan || newComment.danhGia < 1 || newComment.danhGia > 5) {
       Swal.fire({
         icon: "error",
@@ -108,85 +104,33 @@ const CmtForm = ({ productId, orderId }: CmtFormProps) => {
       return;
     }
 
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const maNguoiDung = userData?.maNguoiDung;
-
-    if (!maNguoiDung) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Vui lòng đăng nhập trước khi thêm bình luận!",
-      });
-      return;
-    }
-
-    const commentData: Comment = {
-      maSanPham: productId,
-      maNguoiDung,
-      noiDungBinhLuan: newComment.noiDungBinhLuan,
-      danhGia: newComment.danhGia,
-      ngayBinhLuan: new Date().toISOString(),
-      trangThai: 0,
-      soTimBinhLuan: 0,
-      hinhAnh: newComment.hinhAnh || "",
-      moTaHinhAnh: newComment.hinhAnh ? newComment.moTaHinhAnh : "",
-    };
-
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:5261/api/Comment/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ ...commentData, maDonHang: orderId }),
-      });
+      const success = await onAddComment(
+        orderId,
+        productId,
+        newComment.noiDungBinhLuan,
+        newComment.danhGia,
+        newComment.hinhAnh || undefined,
+        newComment.hinhAnh ? newComment.moTaHinhAnh : undefined
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Không thể gửi bình luận!");
+      if (success) {
+        setNewComment({ noiDungBinhLuan: "", danhGia: 0, hinhAnh: "", moTaHinhAnh: "" });
+        Swal.fire({
+          icon: "success",
+          title: "Thành công",
+          text: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!",
+          timer: 3000,
+          showConfirmButton: false,
+        });
       }
-
-      Swal.fire({
-        icon: "success",
-        title: "Thành công",
-        text: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!",
-        timer: 3000,
-        showConfirmButton: false,
-      });
-
-      // Reset form
-      setNewComment({ noiDungBinhLuan: "", danhGia: 0, hinhAnh: "", moTaHinhAnh: "" });
-
-      // Lưu thời gian bình luận và danh sách sản phẩm đã bình luận vào localStorage
-      const commentKey = `${orderId}-${productId}`;
-      const likedCommentsKey = `likedComments_${maNguoiDung}`;
-      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as string[];
-      const updatedCommentedProducts = [...new Set([...storedCommentedProducts, commentKey])];
-      localStorage.setItem(likedCommentsKey, JSON.stringify(updatedCommentedProducts));
-      localStorage.setItem(`lastCommentTime_${maNguoiDung}`, Date.now().toString());
     } catch (error: any) {
       console.error("Error submitting comment:", error);
-      let errorMessage = "Có lỗi xảy ra khi gửi bình luận!";
-      if (error.response?.status === 401) {
-        errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: errorMessage,
-        }).then(() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          window.location.href = "/login";
-        });
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: errorMessage,
+        text: error.message || "Có lỗi xảy ra khi gửi bình luận!",
       });
     } finally {
       setIsSubmitting(false);
@@ -199,7 +143,7 @@ const CmtForm = ({ productId, orderId }: CmtFormProps) => {
         <CardTitle className="text-lg font-semibold">Viết bình luận</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4 font-roboto">
+        <form onSubmit={handleSubmit} className="space-y-4 font-roboto">
           <div>
             <Label className="block text-sm font-semibold text-gray-700">Đánh giá</Label>
             <div className="flex items-center mt-1">
@@ -215,7 +159,6 @@ const CmtForm = ({ productId, orderId }: CmtFormProps) => {
               ))}
             </div>
           </div>
-       
           <div>
             <Label className="block text-sm font-semibold text-gray-700">Nội dung bình luận</Label>
             <ReactQuill
@@ -225,17 +168,57 @@ const CmtForm = ({ productId, orderId }: CmtFormProps) => {
               className="h-72 rounded-lg mb-10"
             />
           </div>
+          <div
+            className={cn(
+              "border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors",
+              isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-300"
+            )}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <Label htmlFor="file-upload" className="cursor-pointer">
+              {newComment.hinhAnh ? (
+                <div className="relative w-32 h-32 mx-auto">
+                  <img
+                    src={`data:image/jpeg;base64,${newComment.hinhAnh}`}
+                    alt="Uploaded"
+                    className="w-full h-full object-cover rounded"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                    onClick={() => setNewComment({ ...newComment, hinhAnh: "", moTaHinhAnh: "" })}
+                  >
+                    <IoClose className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-500">Kéo và thả hình ảnh vào đây hoặc nhấp để chọn</p>
+                  <p className="text-xs text-gray-400 mt-1">Hỗ trợ: JPG, PNG</p>
+                </div>
+              )}
+            </Label>
+            <input
+              id="file-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileInputChange}
+            />
+          </div>
           <div className="flex justify-end">
             <Button
+              type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handleSubmit}
               disabled={isSubmitting}
             >
               <IoAddCircleOutline className="h-4 w-4 mr-2" />
               {isSubmitting ? "Đang gửi..." : "Gửi bình luận"}
             </Button>
           </div>
-        </div>
+        </form>
       </CardContent>
     </Card>
   );

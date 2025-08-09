@@ -116,16 +116,14 @@ interface Comment {
   maDonHang: string;
   hinhAnh?: string | null;
   moTaHinhAnh?: string | null;
+  maCombo: number;
 }
 
 interface OrderItemProps {
   order: Order;
   onCancel: (orderId: string) => void;
-  onAddComment: (orderId: string, productId: string, content: string, rating: number, image?: string, imageDescription?: string) => Promise<boolean>;
+  onAddComment: (orderId: string, productId: string, content: string, rating: number, image?: string, imageDescription?: string, isCombo?: boolean) => Promise<boolean>;
   commentedProducts: Set<string>;
-  canComment: boolean;
-  timeUntilNextComment: number;
-  formatTimeRemaining: (seconds: number) => string;
 }
 
 const OrderItem = ({
@@ -133,9 +131,6 @@ const OrderItem = ({
   onCancel,
   onAddComment,
   commentedProducts,
-  canComment,
-  timeUntilNextComment,
-  formatTimeRemaining,
 }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const statusInfo = orderStatuses[mapStatus(order.trangThaiDonHang)] || orderStatuses.pending;
@@ -150,7 +145,7 @@ const OrderItem = ({
 
   return (
     <div className="border rounded-lg overflow-hidden mb-4 transition-all duration-200 hover:shadow-md">
-      <div className="p-4 bg-gray-50 overflow-x-auto">
+      <div className="p-4 bg-gray-50涯overflow-x-auto">
         <div className="grid grid-cols-12 gap-4 items-center min-w-[700px]">
           <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
             <span className="font-medium text-gray-800">Mã đơn hàng: {order.maDonHang || "N/A"}</span>
@@ -317,15 +312,12 @@ const OrderItem = ({
                       <h3 className="text-lg font-medium mb-4 text-blue-800">
                         Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
                       </h3>
-                      {!canComment && (
-                        <p className="text-red-600 text-sm mb-4">
-                          Bạn phải đợi {formatTimeRemaining(timeUntilNextComment)} trước khi có thể bình luận lại.
-                        </p>
-                      )}
                       <CmtForm
-                        productId={productId}
+                        productId={item.laCombo ? item.maCombo?.toString() ?? "0" : item.maSanPham ?? "0"}
                         orderId={order.maDonHang.toString()}
-                      
+                        onAddComment={(orderId, productId, content, rating, image, imageDescription) =>
+                          onAddComment(orderId, productId, content, rating, image, imageDescription, item.laCombo)
+                        }
                       />
                     </div>
                   )}
@@ -417,8 +409,6 @@ const OrderHistory = () => {
   const [cancelReason, setCancelReason] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [commentedProducts, setCommentedProducts] = useState<Set<string>>(new Set());
-  const [canComment, setCanComment] = useState(true);
-  const [timeUntilNextComment, setTimeUntilNextComment] = useState(0);
 
   const cancelReasonsSuggestions = [
     "Không muốn mua nữa",
@@ -426,41 +416,6 @@ const OrderHistory = () => {
     "Sai thông tin đơn hàng",
     "Khác",
   ];
-
-  const formatTimeRemaining = (seconds: number) => {
-    const minutes = Math.ceil(seconds / 60);
-    return `${minutes} phút`;
-  };
-
-  const checkCommentAvailability = () => {
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const maNguoiDung = userData?.maNguoiDung;
-    if (!maNguoiDung) return;
-
-    const lastCommentTime = localStorage.getItem(`lastCommentTime_${maNguoiDung}`);
-    if (lastCommentTime) {
-      const lastTime = parseInt(lastCommentTime);
-      const currentTime = Date.now();
-      const secondsSinceLastComment = (currentTime - lastTime) / 1000;
-      const cooldownSeconds = 3600; // 1 hour
-      if (secondsSinceLastComment < cooldownSeconds) {
-        setCanComment(false);
-        setTimeUntilNextComment(cooldownSeconds - secondsSinceLastComment);
-      } else {
-        setCanComment(true);
-        setTimeUntilNextComment(0);
-      }
-    } else {
-      setCanComment(true);
-      setTimeUntilNextComment(0);
-    }
-  };
-
-  useEffect(() => {
-    checkCommentAvailability();
-    const interval = setInterval(checkCommentAvailability, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchOrdersByUserId = async () => {
     try {
@@ -527,7 +482,7 @@ const OrderHistory = () => {
       const comments = response.data || [];
       const userComments = comments.filter((comment) => comment.maNguoiDung === parseInt(maNguoiDung));
       const apiCommentedProductKeys = new Set<string>(
-        userComments.map((comment) => `${comment.maDonHang}-${comment.maSanPham}`)
+        userComments.map((comment) => `${comment.maDonHang}-${comment.maSanPham || comment.maCombo}`)
       );
 
       const mergedCommentedProductKeys = new Set<string>([...apiCommentedProductKeys, ...storedCommentedProducts]);
@@ -543,7 +498,15 @@ const OrderHistory = () => {
     }
   };
 
-  const handleAddComment = async (orderId: string, productId: string, content: string, rating: number, image?: string, imageDescription?: string) => {
+  const handleAddComment = async (
+    orderId: string,
+    productId: string,
+    content: string,
+    rating: number,
+    image?: string,
+    imageDescription?: string,
+    isCombo: boolean = false
+  ) => {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
@@ -576,17 +539,9 @@ const OrderHistory = () => {
         return false;
       }
 
-      if (!canComment) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: `Bạn phải đợi ${formatTimeRemaining(timeUntilNextComment)} trước khi có thể bình luận lại.`,
-        });
-        return false;
-      }
-
       const commentData = {
-        maSanPham: productId,
+        maSanPham: isCombo ? null : productId,
+        maCombo: isCombo ? parseInt(productId) : 0,
         maNguoiDung: maNguoiDung,
         noiDungBinhLuan: content,
         danhGia: rating,
@@ -611,7 +566,6 @@ const OrderHistory = () => {
           newSet.add(`${orderId}-${productId}`);
           const likedCommentsKey = `likedComments_${maNguoiDung}`;
           localStorage.setItem(likedCommentsKey, JSON.stringify([...newSet]));
-          localStorage.setItem(`lastCommentTime_${maNguoiDung}`, Date.now().toString());
           return newSet;
         });
         Swal.fire({
@@ -622,7 +576,6 @@ const OrderHistory = () => {
           showConfirmButton: false,
         });
         await fetchCommentedProducts();
-        checkCommentAvailability();
         return true;
       }
       return false;
@@ -879,7 +832,6 @@ const OrderHistory = () => {
             localStorage.removeItem("user");
             if (maNguoiDung) {
               localStorage.removeItem(`likedComments_${maNguoiDung}`);
-              localStorage.removeItem(`lastCommentTime_${maNguoiDung}`);
             }
             navigate("/login");
           });
@@ -924,7 +876,6 @@ const OrderHistory = () => {
           localStorage.removeItem("user");
           if (maNguoiDung) {
             localStorage.removeItem(`likedComments_${maNguoiDung}`);
-            localStorage.removeItem(`lastCommentTime_${maNguoiDung}`);
           }
           navigate("/login");
         });
@@ -955,7 +906,6 @@ const OrderHistory = () => {
               localStorage.removeItem("user");
               if (maNguoiDung) {
                 localStorage.removeItem(`likedComments_${maNguoiDung}`);
-                localStorage.removeItem(`lastCommentTime_${maNguoiDung}`);
               }
               navigate("/login");
             });
@@ -1039,9 +989,6 @@ const OrderHistory = () => {
                         onCancel={handleCancelClick}
                         onAddComment={handleAddComment}
                         commentedProducts={commentedProducts}
-                        canComment={canComment}
-                        timeUntilNextComment={timeUntilNextComment}
-                        formatTimeRemaining={formatTimeRemaining}
                       />
                     ))}
                   </div>
@@ -1075,9 +1022,6 @@ const OrderHistory = () => {
                         onCancel={handleCancelClick}
                         onAddComment={handleAddComment}
                         commentedProducts={commentedProducts}
-                        canComment={canComment}
-                        timeUntilNextComment={timeUntilNextComment}
-                        formatTimeRemaining={formatTimeRemaining}
                       />
                     ))}
                   </div>

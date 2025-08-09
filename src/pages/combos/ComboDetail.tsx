@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Swal from "sweetalert2";
+import CommentsCombo from "./CommentsComBo";
 
 const ComboDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -447,8 +448,12 @@ const ComboDetail = () => {
               <ShoppingCart className="mr-2 h-4 w-4" /> Thêm Vào Giỏ Hàng
             </Button>
           </div>
+          
         </div>
       </div>
+
+      {/* Comments Section */}
+      <CommentsCombo maCombo={id} />
     </div>
   );
 };

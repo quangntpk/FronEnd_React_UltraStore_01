@@ -79,7 +79,7 @@ const extractTextAndImages = (htmlContent) => {
   return { textContent, images };
 };
 
-const Comments = ({ productId }) => {
+const CommentsCombo = ({ maCombo }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [rating, setRating] = useState(0);
@@ -95,25 +95,26 @@ const Comments = ({ productId }) => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const baseProductId = productId.length >= 6 ? productId.substring(0, 6) : null;
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
         const commentData = await commentResponse.json();
-        const productComments = commentData
+        const comboComments = commentData
           .filter((comment) => 
-            (baseProductId && comment.maSanPham && comment.maSanPham !== "string" && comment.maSanPham.substring(0, 6) === baseProductId && comment.trangThai === 1) ||
-            ((comment.maSanPham === null || comment.maSanPham === "string") && comment.maCombo !== null && comment.trangThai === 1)
+            comment.maCombo !== null && 
+            comment.maCombo !== 0 && 
+            comment.maCombo === parseInt(maCombo, 10) && 
+            comment.trangThai === 1
           )
           .map((comment) => ({
             ...comment,
             soTimBinhLuan: comment.soTimBinhLuan || 0,
-            tenSanPham: comment.maSanPham && comment.maSanPham !== "string" ? comment.tenSanPham : comment.tenCombo || `Combo ${comment.maCombo}`,
+            tenCombo: comment.tenCombo || `Combo ${comment.maCombo}`,
           }))
           .sort((a, b) => b.soTimBinhLuan - a.soTimBinhLuan);
 
-        if (productComments.length > 0) {
-          const totalRating = productComments.reduce((sum, comment) => sum + (comment.danhGia || 0), 0);
-          setAverageRating(totalRating / productComments.length);
+        if (comboComments.length > 0) {
+          const totalRating = comboComments.reduce((sum, comment) => sum + (comment.danhGia || 0), 0);
+          setAverageRating(totalRating / comboComments.length);
         } else {
           setAverageRating(0);
         }
@@ -126,7 +127,7 @@ const Comments = ({ productId }) => {
           setLikedComments(new Set(storedLikedComments));
         }
 
-        setComments(productComments);
+        setComments(comboComments);
       } catch (err) {
         console.error("Error fetching comments:", err);
         showNotification("Có lỗi xảy ra khi tải bình luận!", "error");
@@ -135,7 +136,7 @@ const Comments = ({ productId }) => {
     };
 
     fetchComments();
-  }, [productId]);
+  }, [maCombo]);
 
   const handleAddComment = async () => {
     if (!newComment || rating < 1 || rating > 5) {
@@ -154,8 +155,7 @@ const Comments = ({ productId }) => {
     }
 
     const commentData = {
-      maSanPham: productId.length >= 6 ? productId.substring(0, 6) : null,
-      maCombo: productId.length === 4 ? parseInt(productId, 10) : null,
+      maCombo: parseInt(maCombo, 10),
       maNguoiDung: maNguoiDung,
       noiDungBinhLuan: newComment,
       danhGia: rating,
@@ -337,11 +337,9 @@ const Comments = ({ productId }) => {
                         />
                       ))}
                     </div>
-                    {/* Hiển thị nội dung chữ */}
                     <div className="text-gray-800 line-clamp-3 mb-2" style={{ whiteSpace: "pre-line" }}>
                       {textContent || "Chưa cập nhật"}
                     </div>
-                    {/* Hiển thị hình ảnh (nếu có) */}
                     {images.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {images.map((src, index) => (
@@ -362,7 +360,7 @@ const Comments = ({ productId }) => {
                     <p className="text-sm text-muted-foreground mt-1">
                       Bởi {comment.hoTen || comment.maNguoiDung} -{" "}
                       {new Date(comment.ngayBinhLuan).toLocaleDateString()} -{" "}
-                      {comment.maSanPham && comment.maSanPham !== "string" ? `Sản phẩm: ${comment.tenSanPham}` : `Combo: ${comment.tenCombo || comment.maCombo}`}
+                      Combo: {comment.tenCombo || comment.maCombo}
                     </p>
                     <div className="flex items-center mt-2">
                       <button
@@ -395,36 +393,6 @@ const Comments = ({ productId }) => {
           })
         )}
       </div>
-      {/* <div className="mt-6">
-        <div className="flex items-center mb-4">
-          <span className="mr-2">Đánh giá:</span>
-          <div className="flex">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star
-                key={index}
-                className={cn(
-                  "w-6 h-6 cursor-pointer",
-                  index < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                )}
-                onClick={() => setRating(index + 1)}
-              />
-            ))}
-          </div>
-        </div>
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Viết bình luận của bạn..."
-          className="w-full p-3 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-roboto"
-          rows={4}
-        />
-        <button
-          onClick={handleAddComment}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-roboto"
-        >
-          Gửi Bình Luận
-        </button>
-      </div> */}
       <style>{`
         .comments .line-clamp-3 {
           display: -webkit-box;
@@ -438,4 +406,4 @@ const Comments = ({ productId }) => {
   );
 };
 
-export default Comments;
+export default CommentsCombo;

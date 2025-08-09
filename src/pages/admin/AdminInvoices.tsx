@@ -238,11 +238,6 @@ const Vouchers = () => {
     }
 
     // Validation
-    const today = new Date().toISOString().split('T')[0];
-    if (editVoucher.ngayBatDau < today && editVoucher.ngayBatDau !== today) {
-      toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
-      return;
-    }
     if (editVoucher.ngayKetThuc < editVoucher.ngayBatDau) {
       toast.error("Ngày kết thúc không được trước ngày bắt đầu!");
       return;
@@ -797,7 +792,9 @@ const Vouchers = () => {
       </Card>
 
       {/* Modal xác nhận xóa */}
-      <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
+      <Dialog open={openDeleteModal} onOpenChange={(open) => {
+        if (!open) setOpenDeleteModal(false);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Xác nhận xóa voucher</DialogTitle>
@@ -817,7 +814,9 @@ const Vouchers = () => {
       </Dialog>
 
       {/* Modal chi tiết voucher */}
-      <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
+      <Dialog open={openDetailModal} onOpenChange={(open) => {
+        if (!open) setOpenDetailModal(false);
+      }}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chi Tiết Voucher</DialogTitle>
@@ -915,7 +914,9 @@ const Vouchers = () => {
       </Dialog>
 
       {/* Modal thêm voucher */}
-      <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
+      <Dialog open={openCreateModal} onOpenChange={(open) => {
+        if (!open) setOpenCreateModal(false);
+      }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Thêm Voucher Mới</DialogTitle>
@@ -1090,7 +1091,9 @@ const Vouchers = () => {
       </Dialog>
 
       {/* Modal sửa voucher */}
-      <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
+      <Dialog open={openEditModal} onOpenChange={(open) => {
+        if (!open) setOpenEditModal(false);
+      }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Sửa Voucher</DialogTitle>
@@ -1139,7 +1142,6 @@ const Vouchers = () => {
                     placeholder="Ngày bắt đầu"
                     value={editVoucher.ngayBatDau}
                     onChange={handleEditNgayBatDauChange}
-                    min={today}
                     required
                   />
                 </div>
@@ -1150,7 +1152,7 @@ const Vouchers = () => {
                     placeholder="Ngày kết thúc"
                     value={editVoucher.ngayKetThuc}
                     onChange={handleEditNgayKetThucChange}
-                    min={editVoucher.ngayBatDau || today}
+                    min={editVoucher.ngayBatDau}
                     required
                   />
                 </div>

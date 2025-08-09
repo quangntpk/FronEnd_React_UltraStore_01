@@ -51,8 +51,9 @@ import { cn } from "@/lib/utils";
 interface Comment {
   maBinhLuan: number;
   maSanPham?: number;
-  maComBo?: number;
+  maCombo?: number;
   tenSanPham?: string;
+  tenCombo?: string;
   maNguoiDung?: number;
   hoTen?: string;
   noiDungBinhLuan?: string;
@@ -80,7 +81,7 @@ const Comments = () => {
   const [commentToDelete, setCommentToDelete] = useState<Comment | null>(null);
   const [openDetailModal, setOpenDetailModal] = useState<boolean>(false);
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
-  const [currentPage, setCurrentPage] = useState<{ product: number; blog: number }>({ product: 1, blog: 1 });
+  const [currentPage, setCurrentPage] = useState<{ product: number; blog: number; combo: number }>({ product: 1, blog: 1, combo: 1 });
   const [activeTab, setActiveTab] = useState<string>("productComments");
   const commentsPerPage: number = 10;
 
@@ -158,15 +159,16 @@ const Comments = () => {
   }, []);
 
   useEffect(() => {
-    setCurrentPage({ product: 1, blog: 1 });
+    setCurrentPage({ product: 1, blog: 1, combo: 1 });
   }, [activeTab]);
 
-  const filteredComments = (type: "product" | "blog") => {
+  const filteredComments = (type: "product" | "blog" | "combo") => {
     return comments
       .filter((item) => {
         const isProductComment = type === "product" && item.maSanPham !== undefined && item.maSanPham !== null;
         const isBlogComment = type === "blog" && item.maBlog !== undefined && item.maBlog !== null;
-        if (!isProductComment && !isBlogComment) return false;
+        const isComboComment = type === "combo" && item.maCombo !== undefined && item.maCombo !== null;
+        if (!isProductComment && !isBlogComment && !isComboComment) return false;
 
         const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
         return (
@@ -175,8 +177,10 @@ const Comments = () => {
           (item.ngayBinhLuan?.toString().includes(searchTerm.toLowerCase()) || "") ||
           (trangThaiText.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
           (item.tenSanPham?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
+          (item.tenCombo?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
           (item.hoTen?.toLowerCase().includes(searchTerm.toLowerCase()) || "") ||
-          (item.maBlog?.toString().includes(searchTerm.toLowerCase()) || "")
+          (item.maBlog?.toString().includes(searchTerm.toLowerCase()) || "") ||
+          (item.maCombo?.toString().includes(searchTerm.toLowerCase()) || "")
         );
       })
       .sort((a, b) => new Date(b.ngayBinhLuan || "").getTime() - new Date(a.ngayBinhLuan || "").getTime());
@@ -184,15 +188,16 @@ const Comments = () => {
 
   const productComments = filteredComments("product");
   const blogComments = filteredComments("blog");
+  const comboComments = filteredComments("combo");
 
-  const indexOfLastComment = (type: "product" | "blog") => currentPage[type] * commentsPerPage;
-  const indexOfFirstComment = (type: "product" | "blog") => indexOfLastComment(type) - commentsPerPage;
-  const currentComments = (type: "product" | "blog") => {
-    const comments = type === "product" ? productComments : blogComments;
+  const indexOfLastComment = (type: "product" | "blog" | "combo") => currentPage[type] * commentsPerPage;
+  const indexOfFirstComment = (type: "product" | "blog" | "combo") => indexOfLastComment(type) - commentsPerPage;
+  const currentComments = (type: "product" | "blog" | "combo") => {
+    const comments = type === "product" ? productComments : type === "blog" ? blogComments : comboComments;
     return comments.slice(indexOfFirstComment(type), indexOfLastComment(type));
   };
-  const totalPages = (type: "product" | "blog") => {
-    const comments = type === "product" ? productComments : blogComments;
+  const totalPages = (type: "product" | "blog" | "combo") => {
+    const comments = type === "product" ? productComments : type === "blog" ? blogComments : comboComments;
     return Math.ceil(comments.length / commentsPerPage);
   };
 
@@ -206,7 +211,7 @@ const Comments = () => {
     setOpenDetailModal(true);
   };
 
-  const renderCommentTable = (comments: Comment[], type: "product" | "blog") => (
+  const renderCommentTable = (comments: Comment[], type: "product" | "blog" | "combo") => (
     <div className="rounded-md border overflow-hidden">
       <Table>
         <TableHeader>
@@ -215,8 +220,8 @@ const Comments = () => {
             <TableHead>Hình Ảnh</TableHead>
             <TableHead>Họ Tên</TableHead>
             <TableHead>Nội Dung</TableHead>
-            {type === "product" ? <TableHead>Tên Sản Phẩm</TableHead> : <TableHead>Mã Blog</TableHead>}
-            {type === "product" && <TableHead>Đánh Giá</TableHead>}
+            {type === "product" ? <TableHead>Tên Sản Phẩm</TableHead> : type === "combo" ? <TableHead>Tên Combo</TableHead> : <TableHead>Mã Blog</TableHead>}
+            {(type === "product" || type === "combo") && <TableHead>Đánh Giá</TableHead>}
             <TableHead>Trạng Thái</TableHead>
             <TableHead>Ngày Bình Luận</TableHead>
             <TableHead className="w-[60px]"></TableHead>
@@ -225,7 +230,7 @@ const Comments = () => {
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={type === "product" ? 9 : 8} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={type === "product" || type === "combo" ? 9 : 8} className="text-center py-6 text-muted-foreground">
                 Đang tải...
               </TableCell>
             </TableRow>
@@ -251,8 +256,8 @@ const Comments = () => {
                     }}
                   />
                 </TableCell>
-                <TableCell>{type === "product" ? item.tenSanPham ?? "Chưa cập nhật" : item.maBlog ?? "Chưa cập nhật"}</TableCell>
-                {type === "product" && <TableCell>{`${item.danhGia || 0} / 5`}</TableCell>}
+                <TableCell>{type === "product" ? item.tenSanPham ?? "Chưa cập nhật" : type === "combo" ? item.tenCombo ?? `Combo ${item.maCombo}` : item.maBlog ?? "Chưa cập nhật"}</TableCell>
+                {(type === "product" || type === "combo") && <TableCell>{`${item.danhGia || 0} / 5`}</TableCell>}
                 <TableCell>
                   <span
                     className={cn(
@@ -301,7 +306,7 @@ const Comments = () => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={type === "product" ? 9 : 8} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={type === "product" || type === "combo" ? 9 : 8} className="text-center py-6 text-muted-foreground">
                 Không tìm thấy bình luận nào phù hợp với tìm kiếm của bạn.
               </TableCell>
             </TableRow>
@@ -346,13 +351,17 @@ const Comments = () => {
           </div>
 
           <Tabs defaultValue="productComments" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full md:w-auto grid-cols-2 gap-1">
+            <TabsList className="grid w-full md:w-auto grid-cols-3 gap-1">
               <TabsTrigger value="productComments" className="flex items-center gap-2">
                 Bình Luận Sản Phẩm
+              </TabsTrigger>
+                <TabsTrigger value="comboComments" className="flex items-center gap-2">
+                Bình Luận Combo
               </TabsTrigger>
               <TabsTrigger value="blogComments" className="flex items-center gap-2">
                 Bình Luận Blog
               </TabsTrigger>
+            
             </TabsList>
 
             <TabsContent value="productComments">
@@ -399,6 +408,31 @@ const Comments = () => {
                   size="sm"
                   onClick={() => setCurrentPage({ ...currentPage, blog: Math.min(totalPages("blog"), currentPage.blog + 1) })}
                   disabled={currentPage.blog === totalPages("blog")}
+                >
+                  Trang Sau
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="comboComments">
+              {renderCommentTable(currentComments("combo"), "combo")}
+              <div className="flex justify-between items-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage({ ...currentPage, combo: Math.max(1, currentPage.combo - 1) })}
+                  disabled={currentPage.combo === 1}
+                >
+                  Trang Trước
+                </Button>
+                <span>
+                  Trang {currentPage.combo} / {totalPages("combo")}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage({ ...currentPage, combo: Math.min(totalPages("combo"), currentPage.combo + 1) })}
+                  disabled={currentPage.combo === totalPages("combo")}
                 >
                   Trang Sau
                 </Button>
@@ -464,6 +498,21 @@ const Comments = () => {
                     <Input value={`${selectedComment.danhGia || 0} / 5`} disabled />
                   </div>
                 </>
+              ) : selectedComment.maCombo !== undefined && selectedComment.maCombo !== null ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium">Mã Combo</label>
+                    <Input value={selectedComment.maCombo || "Chưa cập nhật"} disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Tên Combo</label>
+                    <Input value={selectedComment.tenCombo || `Combo ${selectedComment.maCombo}`} disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Đánh Giá</label>
+                    <Input value={`${selectedComment.danhGia || 0} / 5`} disabled />
+                  </div>
+                </>
               ) : (
                 <div>
                   <label className="block text-sm font-medium">Mã Blog</label>
@@ -510,29 +559,26 @@ const Comments = () => {
         </DialogContent>
       </Dialog>
 
-    <style>{`
-  .comments .line-clamp-3 {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    overflow: hidden;
-    -webkit-line-clamp: unset;
-    -webkit-box-orient: vertical;
-    white-space: pre-line;
-  }
+      <style>{`
+        .comments .line-clamp-3 {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          overflow: hidden;
+          -webkit-line-clamp: unset;
+          -webkit-box-orient: vertical;
+          white-space: pre-line;
+        }
 
-  .comments .line-clamp-3 img {
-    display: block;
-    transform: scale(1.5);
-    transform-origin: top left;
-    max-width: 225px;
-    height: auto;
-    margin-top: 0.5rem;
-  }
-`}</style>
-
-
-
+        .comments .line-clamp-3 img {
+          display: block;
+          transform: scale(1.5);
+          transform-origin: top left;
+          max-width: 225px;
+          height: auto;
+          margin-top: 0.5rem;
+        }
+      `}</style>
     </div>
   );
 };

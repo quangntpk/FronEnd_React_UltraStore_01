@@ -6,7 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import { Link } from "react-router-dom";
 
 export interface NguoiDung {
@@ -18,6 +18,7 @@ export interface NguoiDung {
 interface Blog {
   maBlog: number;
   maNguoiDung: string;
+  hoTen?: string | null;
   ngayTao: string;
   ngayCapNhat: string | null;
   tieuDe: string;
@@ -27,8 +28,11 @@ interface Blog {
   metaDescription: string | null;
   hinhAnh: string | null;
   moTaHinhAnh: string | null;
+  chuDe: string | null;
   isPublished: boolean;
   tags: string[] | null;
+  likes: number;
+  userLikes: string[];
 }
 
 interface BlogCardProps {
@@ -38,7 +42,6 @@ interface BlogCardProps {
 
 const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
   const isMobile = useIsMobile();
-  // Sử dụng metaDescription nếu có, nếu không thì dùng noiDung
   const excerpt = post.metaDescription
     ? post.metaDescription.length > 100
       ? post.metaDescription.slice(0, 100) + "..."
@@ -52,19 +55,28 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
     day: "2-digit",
   });
 
+  // Xử lý tên người tạo để loại bỏ số không mong muốn
+  const displayName = post.hoTen && post.hoTen !== post.maNguoiDung
+    ? post.hoTen
+    : nguoiDung?.hoTen
+      ? nguoiDung.hoTen
+      : post.maNguoiDung.replace(/\d+$/, '').trim() || 'Không rõ';
+
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       {post.hinhAnh && post.slug && (
         <Link to={`/blogs/${post.slug}`} aria-label={`Xem chi tiết bài viết ${post.tieuDe}`}>
-          <img
-            src={`data:image/jpeg;base64,${post.hinhAnh}`}
-            alt={post.moTaHinhAnh || post.tieuDe}
-            className="w-full h-48 object-cover rounded-t-md"
-          />
+          <div className="w-full h-48 flex items-center justify-center bg-gray-100">
+            <img
+              src={`data:image/jpeg;base64,${post.hinhAnh}`}
+              alt={post.moTaHinhAnh || post.tieuDe}
+              className="max-w-full max-h-full object-contain rounded-t-md"
+            />
+          </div>
         </Link>
       )}
       <CardHeader>
-        <CardTitle className="text-lg font-semibold truncate">
+        <CardTitle className="text-lg font-semibold whitespace-normal break-words">
           {post.slug ? (
             <Link to={`/blogs/${post.slug}`} aria-label={`Xem chi tiết bài viết ${post.tieuDe}`}>
               {post.tieuDe}
@@ -76,9 +88,14 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-sm text-gray-600">{excerpt}</p>
+        {post.chuDe && (
+          <div className="text-sm text-gray-500 italic">
+            Chủ đề: {post.chuDe}
+          </div>
+        )}
         <div className="flex justify-between items-center text-xs text-gray-500">
           <div>
-            <span>Người tạo: {nguoiDung?.hoTen || post.maNguoiDung}</span>
+            <span>Người tạo: {displayName}</span>
             {nguoiDung?.vaiTro && (
               <span
                 className={`ml-2 px-2 py-1 rounded 
@@ -105,6 +122,9 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
             ))}
           </div>
         )}
+        <div className="text-xs text-gray-500">
+          <span>Lượt thích: {post.likes}</span>
+        </div>
       </CardContent>
     </Card>
   );
@@ -148,13 +168,14 @@ export const BlogList = () => {
   }, []);
 
   const filteredBlogs = useMemo(() => {
-    let filtered = blogs.filter((post) => post.isPublished); // Chỉ hiển thị blog công khai
+    let filtered = blogs.filter((post) => post.isPublished);
 
     if (searchTerm) {
       filtered = filtered.filter(
         (post) =>
           post.tieuDe.toLowerCase().includes(searchTerm.toLowerCase()) ||
           post.noiDung.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.chuDe?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (post.tags && post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
       );
     }
@@ -213,7 +234,7 @@ export const BlogList = () => {
     <div className="space-y-6 p-4 sm:p-6 bg-gray-50 min-h-screen">
       <Toaster position="top-right" />
       <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
-        Danh Sách Bài Viết
+        Danh sách tin tức
       </h1>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
