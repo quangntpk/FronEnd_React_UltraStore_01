@@ -82,7 +82,7 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-12 bg-crocus-50 rounded-xl">
+    <section className="py-6 bg-crocus-50 rounded-xl">
       <div className="text-center max-w-xl mx-auto px-4">
         <h2 className="text-3xl font-bold mb-4">Đăng ký nhận tin tức</h2>
         <p className="text-gray-600 mb-6">

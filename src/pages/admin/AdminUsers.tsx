@@ -943,7 +943,7 @@ const AdminUsers = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center">
-            Quản Lý Người Dùng
+            Quản lý người dùng
           </h1>
         </div>
         <Dialog open={openModal} onOpenChange={setOpenModal}>

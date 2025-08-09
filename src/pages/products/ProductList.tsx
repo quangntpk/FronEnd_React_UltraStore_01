@@ -17,6 +17,12 @@ interface UserData {
   hoTen?: string;
 }
 
+// Interface cho hashtag
+interface HashTag {
+  id: number;
+  name: string;
+}
+
 // Interface cho sản phẩm
 interface Product {
   id: string;
@@ -34,6 +40,9 @@ interface Product {
   isFavorite: boolean;
   hot: boolean;
   likedId?: string;
+  hashtags: HashTag[];
+  gioiTinh: string;
+  trangThai: number;
 }
 
 // Hàm hiển thị thông báo SweetAlert2
@@ -60,6 +69,7 @@ const ProductListing = () => {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, Infinity]);
   const [sortBy, setSortBy] = useState("name_asc");
   const [showFilters, setShowFilters] = useState(false);
@@ -78,7 +88,7 @@ const ProductListing = () => {
         }
 
         const productData = await productResponse.json();
-
+        console.log(productData)
         // Lấy danh sách bình luận
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Không thể tải bình luận");
@@ -115,6 +125,9 @@ const ProductListing = () => {
           kichThuoc: string[];
           mauSac: string[];
           hot?: boolean;
+          listHashTag: HashTag[];
+          gioiTinh?: string;
+          trangThai?: number;
         }) => {
           const baseProductId = product.id.split("_")[0] || product.id;
           const productComments = commentData.filter(
@@ -145,6 +158,9 @@ const ProductListing = () => {
             isFavorite: !!userFavorite,
             hot: product.hot || false,
             likedId: userFavorite?.maYeuThich,
+            hashtags: product.listHashTag || [],
+            gioiTinh: product.gioiTinh || "Không xác định",
+            trangThai: product.trangThai || 0,
           };
         });
 
@@ -183,7 +199,7 @@ const ProductListing = () => {
     }
   }, [location.search]);
 
-  // Lấy danh sách màu sắc, kích thước, thương hiệu, danh mục duy nhất
+  // Lấy danh sách màu sắc, kích thước, thương hiệu, danh mục, giới tính duy nhất
   const uniqueColors = useMemo(
     () => [...new Set(originalProducts.flatMap((product) => product.mauSac))].sort(),
     [originalProducts]
@@ -201,6 +217,11 @@ const ProductListing = () => {
 
   const uniqueCategories = useMemo(
     () => [...new Set(originalProducts.map((product) => product.category))].sort(),
+    [originalProducts]
+  );
+
+  const uniqueGenders = useMemo(
+    () => [...new Set(originalProducts.map((product) => product.gioiTinh))].sort(),
     [originalProducts]
   );
 
@@ -253,6 +274,11 @@ const ProductListing = () => {
       result = result.filter((product) => selectedCategories.includes(product.category));
     }
 
+    // Lọc theo giới tính
+    if (selectedGenders.length > 0) {
+      result = result.filter((product) => selectedGenders.includes(product.gioiTinh));
+    }
+
     // Lọc theo khoảng giá
     result = result.filter(
       (product) =>
@@ -285,6 +311,7 @@ const ProductListing = () => {
     selectedSizes,
     selectedBrands,
     selectedCategories,
+    selectedGenders,
     priceRange,
     sortBy,
   ]);
@@ -314,6 +341,12 @@ const ProductListing = () => {
     );
   };
 
+  const handleGenderChange = (gender: string) => {
+    setSelectedGenders((prev) =>
+      prev.includes(gender) ? prev.filter((g) => g !== gender) : [...prev, gender]
+    );
+  };
+
   // Xóa bộ lọc
   const clearFilters = () => {
     setSearchQuery("");
@@ -321,6 +354,7 @@ const ProductListing = () => {
     setSelectedSizes([]);
     setSelectedBrands([]);
     setSelectedCategories([]);
+    setSelectedGenders([]);
     setPriceRange([minPrice, maxPrice]);
     setSortBy("name_asc");
     setShowFilters(false);
@@ -395,8 +429,7 @@ const ProductListing = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          },
+            "Authorization": `Bearer ${localStorage.getItem("token")}` },
           body: JSON.stringify(yeuThichData),
         });
         if (!response.ok) throw new Error("Không thể thêm sản phẩm vào danh sách yêu thích");
@@ -471,7 +504,7 @@ const ProductListing = () => {
           {/* Bộ lọc */}
           {showFilters && (
             <div className="bg-white p-6 rounded-xl shadow-sm mb-8 animate-fade-in">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 {/* Danh mục */}
                 <div>
                   <Label className="text-lg font-medium mb-3 block">Danh Mục</Label>
@@ -519,33 +552,32 @@ const ProductListing = () => {
                 </div>
 
                 {/* Màu sắc */}
-             <div>
-  <Label className="text-lg font-medium mb-3 block">Màu Sắc</Label>
-  <div className="space-y-2">
-    {uniqueColors.map((color) => (
-      <div key={color} className="flex items-center space-x-2">
-        <Checkbox
-          id={`color-${color}`}
-          checked={selectedColors.includes(color)}
-          onCheckedChange={() => handleColorChange(color)}
-          aria-label={`Chọn màu ${color}`}
-        />
-        <span
-          className="inline-block w-5 h-5 rounded-full border border-gray-300"
-          style={{ backgroundColor: `#${color.replace(/^#/, '')}` }}
-          title={`Màu #${color.replace(/^#/, '')}`}
-        />
-        <label
-          htmlFor={`color-${color}`}
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          {/* Có thể bỏ hoặc giữ tên màu nếu cần */}
-          {`Màu ${color.replace(/^#/, '')}`}
-        </label>
-      </div>
-    ))}
-  </div>
-</div>
+                <div>
+                  <Label className="text-lg font-medium mb-3 block">Màu Sắc</Label>
+                  <div className="space-y-2">
+                    {uniqueColors.map((color) => (
+                      <div key={color} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`color-${color}`}
+                          checked={selectedColors.includes(color)}
+                          onCheckedChange={() => handleColorChange(color)}
+                          aria-label={`Chọn màu ${color}`}
+                        />
+                        <span
+                          className="inline-block w-5 h-5 rounded-full border border-gray-300"
+                          style={{ backgroundColor: `#${color.replace(/^#/, '')}` }}
+                          title={`Màu #${color.replace(/^#/, '')}`}
+                        />
+                        <label
+                          htmlFor={`color-${color}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {`Màu ${color.replace(/^#/, '')}`}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Kích thước */}
                 <div>
@@ -564,6 +596,29 @@ const ProductListing = () => {
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
                           {size}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Giới tính */}
+                <div>
+                  <Label className="text-lg font-medium mb-3 block">Giới Tính</Label>
+                  <div className="space-y-2">
+                    {uniqueGenders.map((gender) => (
+                      <div key={gender} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`gender-${gender}`}
+                          checked={selectedGenders.includes(gender)}
+                          onCheckedChange={() => handleGenderChange(gender)}
+                          aria-label={`Chọn giới tính ${gender}`}
+                        />
+                        <label
+                          htmlFor={`gender-${gender}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {gender}
                         </label>
                       </div>
                     ))}
@@ -668,11 +723,15 @@ const ProductListing = () => {
                           loading="lazy"
                         />
                       </Link>
-                      {/* {product.hot && (
+                      {product.hot && product.trangThai === 1 ? (
                         <Badge className="absolute top-2 left-2 bg-red-500 text-white">
                           Đang bán chạy
                         </Badge>
-                      )} */}
+                      ) : product.trangThai !== 1 ? (
+                        <Badge className="absolute top-2 left-2 bg-gray-500 text-white">
+                          Đã ngừng bán
+                        </Badge>
+                      ) : null}
                       <Button
                         variant="outline"
                         size="icon"
@@ -723,6 +782,27 @@ const ProductListing = () => {
                           </span>
                         ))}
                       </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {product.hashtags.slice(0, 3).map((hashtag) => (
+                          <Badge
+                            key={hashtag.id}
+                            className="bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          >
+                            #{hashtag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                          {product.category}
+                        </Badge>
+                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+                          {product.chatLieu}
+                        </Badge>
+                        <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-200">
+                          {product.gioiTinh}
+                        </Badge>
+                      </div>
                       <div className="mt-4 flex gap-2">
                         <Button
                           asChild
@@ -734,7 +814,7 @@ const ProductListing = () => {
                             Chi tiết
                           </Link>
                         </Button>
-                        <Button
+                        {/* <Button
                           size="sm"
                           className="flex-1 bg-crocus-500 hover:bg-crocus-600"
                           onClick={() => handleBuyNow(product)}
@@ -742,7 +822,7 @@ const ProductListing = () => {
                         >
                           <ShoppingCart className="h-4 w-4 mr-2" />
                           Mua ngay
-                        </Button>
+                        </Button> */}
                       </div>
                     </CardContent>
                   </Card>

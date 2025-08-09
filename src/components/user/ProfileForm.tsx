@@ -446,6 +446,7 @@ export const ProfileForm = () => {
                       value={formData.taikhoan}
                       onChange={handleInputChange}
                       className="pl-10"
+                      readOnly
                     />
                   </div>
                 </div>

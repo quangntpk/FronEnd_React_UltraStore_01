@@ -31,6 +31,33 @@ interface FormErrors {
   phuongXa?: string;
   diaChi?: string;
 }
+interface LeadTimeResponse {
+  leadtime: number;
+  leadtime_order: {
+    from_estimate_date: string;
+    to_estimate_date: string;
+  };
+}
+interface ShippingFeeResponse {
+  total: number;
+  main_service: number | null;
+  insurance: number | null;
+  cod_fee: number;
+  station_do: number | null;
+  station_pu: number | null;
+  return_fee: number | null;
+  r2s: number | null;
+  return_again: number;
+  coupon: number | null;
+  document_return: number;
+  double_check: number;
+  double_check_deliver: number | null;
+  pick_remote_areas_fee: number;
+  deliver_remote_areas_fee: number;
+  pick_remote_areas_fee_return: number | null;
+  deliver_remote_areas_fee_return: number | null;
+  cod_failed_fee: number;
+}
 type Mode = "add" | "edit" | "view";
 
 interface ProvinceResponse {
@@ -45,72 +72,6 @@ interface WardResponse {
   wardCode: string;
   wardName: string;
 }
-
-const shippingData = {
-  "Hà Nội": { fee: 40000, time: "3 - 5 ngày" },
-  "TP. Hồ Chí Minh": { fee: 20000, time: "2 - 3 ngày" },
-  "Hải Phòng": { fee: 45000, time: "3 - 5 ngày" },
-  "Đà Nẵng": { fee: 30000, time: "2 - 3 ngày" },
-  "Cần Thơ": { fee: 30000, time: "2 - 4 ngày" },
-  "An Giang": { fee: 35000, time: "3 - 4 ngày" },
-  "Bà Rịa - Vũng Tàu": { fee: 25000, time: "2 - 3 ngày" },
-  "Bắc Giang": { fee: 45000, time: "3 - 5 ngày" },
-  "Bắc Kạn": { fee: 50000, time: "4 - 6 ngày" },
-  "Bạc Liêu": { fee: 35000, time: "3 - 4 ngày" },
-  "Bắc Ninh": { fee: 40000, time: "3 - 5 ngày" },
-  "Bến Tre": { fee: 30000, time: "2 - 4 ngày" },
-  "Bình Định": { fee: 25000, time: "2 - 3 ngày" },
-  "Bình Dương": { fee: 20000, time: "2 - 3 ngày" },
-  "Bình Phước": { fee: 20000, time: "2 - 3 ngày" },
-  "Bình Thuận": { fee: 25000, time: "2 - 3 ngày" },
-  "Cà Mau": { fee: 35000, time: "3 - 5 ngày" },
-  "Cao Bằng": { fee: 50000, time: "4 - 6 ngày" },
-  "Đắk Lắk": { fee: 0, time: "Nội tỉnh" },
-  "Đắk Nông": { fee: 15000, time: "1 - 2 ngày" },
-  "Điện Biên": { fee: 50000, time: "4 - 6 ngày" },
-  "Đồng Nai": { fee: 20000, time: "2 - 3 ngày" },
-  "Đồng Tháp": { fee: 30000, time: "3 - 4 ngày" },
-  "Gia Lai": { fee: 15000, time: "1 - 2 ngày" },
-  "Hà Giang": { fee: 50000, time: "4 - 6 ngày" },
-  "Hà Nam": { fee: 45000, time: "3 - 5 ngày" },
-  "Hà Tĩnh": { fee: 35000, time: "3 - 4 ngày" },
-  "Hải Dương": { fee: 45000, time: "3 - 5 ngày" },
-  "Hậu Giang": { fee: 35000, time: "3 - 4 ngày" },
-  "Hòa Bình": { fee: 45000, time: "3 - 5 ngày" },
-  "Hưng Yên": { fee: 40000, time: "3 - 5 ngày" },
-  "Khánh Hòa": { fee: 25000, time: "2 - 3 ngày" },
-  "Kiên Giang": { fee: 35000, time: "3 - 4 ngày" },
-  "Kon Tum": { fee: 15000, time: "1 - 2 ngày" },
-  "Lai Châu": { fee: 50000, time: "4 - 6 ngày" },
-  "Lâm Đồng": { fee: 20000, time: "1 - 2 ngày" },
-  "Lạng Sơn": { fee: 50000, time: "4 - 6 ngày" },
-  "Lào Cai": { fee: 50000, time: "4 - 6 ngày" },
-  "Long An": { fee: 30000, time: "2 - 4 ngày" },
-  "Nam Định": { fee: 45000, time: "3 - 5 ngày" },
-  "Nghệ An": { fee: 35000, time: "3 - 4 ngày" },
-  "Ninh Bình": { fee: 45000, time: "3 - 5 ngày" },
-  "Ninh Thuận": { fee: 25000, time: "2 - 3 ngày" },
-  "Phú Thọ": { fee: 45000, time: "3 - 5 ngày" },
-  "Phú Yên": { fee: 25000, time: "2 - 3 ngày" },
-  "Quảng Bình": { fee: 35000, time: "3 - 4 ngày" },
-  "Quảng Nam": { fee: 25000, time: "2 - 3 ngày" },
-  "Quảng Ngãi": { fee: 25000, time: "2 - 3 ngày" },
-  "Quảng Ninh": { fee: 50000, time: "4 - 6 ngày" },
-  "Quảng Trị": { fee: 30000, time: "3 - 4 ngày" },
-  "Sóc Trăng": { fee: 35000, time: "3 - 4 ngày" },
-  "Sơn La": { fee: 50000, time: "4 - 6 ngày" },
-  "Tây Ninh": { fee: 25000, time: "2 - 3 ngày" },
-  "Thái Bình": { fee: 45000, time: "3 - 5 ngày" },
-  "Thái Nguyên": { fee: 45000, time: "3 - 5 ngày" },
-  "Thanh Hóa": { fee: 40000, time: "3 - 4 ngày" },
-  "Thừa Thiên Huế": { fee: 30000, time: "2 - 3 ngày" },
-  "Tiền Giang": { fee: 30000, time: "2 - 3 ngày" },
-  "Trà Vinh": { fee: 30000, time: "2 - 3 ngày" },
-  "Tuyên Quang": { fee: 50000, time: "4 - 6 ngày" },
-  "Vĩnh Long": { fee: 30000, time: "2 - 3 ngày" },
-  "Vĩnh Phúc": { fee: 45000, time: "3 - 5 ngày" },
-  "Yên Bái": { fee: 50000, time: "4 - 6 ngày" },
-};
 
 const AddressForm = ({
   mode,
@@ -130,6 +91,8 @@ const AddressForm = ({
   isLoadingDistricts,
   isLoadingWards,
   formErrors,
+  shippingFee,
+  isLoadingShippingFee,
 }: {
   mode: Mode;
   diaChi: Partial<DiaChi>;
@@ -148,13 +111,68 @@ const AddressForm = ({
   isLoadingDistricts: boolean;
   isLoadingWards: boolean;
   formErrors: FormErrors;
+  shippingFee: number | null;
+  isLoadingShippingFee: boolean;
 }) => {
   const isViewMode = mode === "view";
   const [formData, setFormData] = useState<Partial<DiaChi>>(diaChi);
+  const [leadTime, setLeadTime] = useState<LeadTimeResponse | null>(null);
+  const [isLoadingLeadTime, setIsLoadingLeadTime] = useState<boolean>(false);
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   useEffect(() => {
     setFormData(diaChi);
   }, [diaChi]);
+
+  useEffect(() => {
+    if (!selectedDistrict?.DistrictID || !selectedWard?.WardCode) {
+      setLeadTime(null);
+      return;
+    }
+
+    const fetchLeadTime = async () => {
+      setIsLoadingLeadTime(true);
+      try {
+        const request = {
+          from_district_id: 1552,
+          from_ward_code: "400103",
+          to_district_id: selectedDistrict.DistrictID,
+          to_ward_code: selectedWard.WardCode,
+          service_id: 53320,
+        };
+        const response = await fetch(`${API_URL}/api/GHN/leadtime`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(request),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data: LeadTimeResponse = await response.json();
+        setLeadTime(data);
+      } catch (error) {
+        console.error("Error fetching lead time:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Không thể tải thời gian giao hàng dự kiến",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          showCloseButton: true,
+        });
+      } finally {
+        setIsLoadingLeadTime(false);
+      }
+    };
+    fetchLeadTime();
+  }, [selectedDistrict, selectedWard, API_URL]);
 
   const handleChange = (field: keyof DiaChi, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -169,10 +187,16 @@ const AddressForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, moTa: shippingFee !== null ? shippingFee.toString() : "" });
   };
 
-  const shippingInfo = selectedProvince ? shippingData[selectedProvince.ProvinceName] : null;
+  const formatDate = (dateString: string) => {
+    const deliveryDate = new Date(dateString);
+    const day = deliveryDate.getDate();
+    const month = deliveryDate.getMonth() + 1;
+    const year = deliveryDate.getFullYear();
+    return `Ngày ${day}, tháng ${month}, năm ${year} nhận hàng`;
+  };
 
   return (
     <div className="space-y-4">
@@ -284,22 +308,28 @@ const AddressForm = ({
           {formErrors.diaChi && <p className="text-red-500 text-sm mt-1">{formErrors.diaChi}</p>}
         </div>
       </div>
-      <div>
-        <Label htmlFor="moTa" className="font-semibold text-gray-800">Mô tả</Label>
-        <textarea
-          id="moTa"
-          value={formData.moTa || ""}
-          onChange={(e) => handleChange("moTa", e.target.value)}
-          disabled={isViewMode}
-          placeholder="Nhập mô tả địa chỉ (tùy chọn)"
-          className="w-full p-2 border border-gray-300 rounded-md text-gray-800"
-          rows={2}
-        />
-      </div>
-      {shippingInfo && selectedWard && (
+      {selectedWard && (
         <div className="mt-4 p-4 bg-gray-50 rounded-md">
-          <p><strong className="font-semibold">Phí giao hàng:</strong> {shippingInfo.fee.toLocaleString()} VND</p>
-          <p><strong className="font-semibold">Thời gian giao hàng:</strong> {shippingInfo.time}</p>
+          <p>
+            <strong className="font-semibold">Phí giao hàng dự kiến:</strong>{" "}
+            {isLoadingShippingFee ? (
+              "Đang tính phí giao hàng..."
+            ) : shippingFee !== null ? (
+              `${shippingFee.toLocaleString()} VND`
+            ) : (
+              "Không thể tải phí giao hàng"
+            )}
+          </p>
+          <p>
+            <strong className="font-semibold">Thời gian giao hàng dự kiến:</strong>{" "}
+            {isLoadingLeadTime ? (
+              "Đang tính thời gian giao hàng..."
+            ) : leadTime ? (
+              formatDate(leadTime.leadtime_order.to_estimate_date)
+            ) : (
+              "Không thể tải thời gian giao hàng"
+            )}
+          </p>
         </div>
       )}
       <div className="flex justify-end space-x-2 mt-4">
@@ -349,10 +379,15 @@ const DiaChi = () => {
   const [isLoadingWards, setIsLoadingWards] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [activeTab, setActiveTab] = useState<"add" | "list">("list");
+  const [leadTimes, setLeadTimes] = useState<{ [key: number]: LeadTimeResponse | null }>({});
+  const [isLoadingLeadTimes, setIsLoadingLeadTimes] = useState<{ [key: number]: boolean }>({});
+  const [shippingFees, setShippingFees] = useState<{ [key: number]: number | null }>({});
+  const [isLoadingShippingFees, setIsLoadingShippingFees] = useState<{ [key: number]: boolean }>({});
+  const [formShippingFee, setFormShippingFee] = useState<number | null>(null);
+  const [isLoadingFormShippingFee, setIsLoadingFormShippingFee] = useState<boolean>(false);
 
   const navigate = useNavigate();
   const addressListRef = useRef<HTMLDivElement>(null);
-
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
 
   const getAuthHeaders = () => {
@@ -396,6 +431,7 @@ const DiaChi = () => {
       setWards([]);
       setSelectedDistrict(null);
       setSelectedWard(null);
+      setFormShippingFee(null);
       return;
     }
 
@@ -413,6 +449,7 @@ const DiaChi = () => {
         setWards([]);
         setSelectedDistrict(null);
         setSelectedWard(null);
+        setFormShippingFee(null);
       } catch (error) {
         console.error("Error fetching districts:", error);
         Swal.fire({
@@ -435,6 +472,7 @@ const DiaChi = () => {
     if (!selectedDistrict?.DistrictID) {
       setWards([]);
       setSelectedWard(null);
+      setFormShippingFee(null);
       return;
     }
 
@@ -450,6 +488,7 @@ const DiaChi = () => {
         }));
         setWards(transformedWards);
         setSelectedWard(null);
+        setFormShippingFee(null);
       } catch (error) {
         console.error("Error fetching wards:", error);
         Swal.fire({
@@ -468,6 +507,59 @@ const DiaChi = () => {
     fetchWards();
   }, [selectedDistrict, API_URL]);
 
+  useEffect(() => {
+    if (!selectedDistrict?.DistrictID || !selectedWard?.WardCode) {
+      setFormShippingFee(null);
+      return;
+    }
+
+    const fetchShippingFee = async () => {
+      setIsLoadingFormShippingFee(true);
+      try {
+        const request = {
+          service_type_id: 2,
+          from_district_id: 1552,
+          from_ward_code: "400103",
+          to_district_id: selectedDistrict.DistrictID,
+          to_ward_code: selectedWard.WardCode,
+          length: 35,
+          width: 25,
+          height: 10,
+          weight: 1000,
+          insurance_value: 0,
+          coupon: null,
+          items: [],
+        };
+        const response = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(request),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data: ShippingFeeResponse = await response.json();
+        setFormShippingFee(data.total);
+      } catch (error) {
+        console.error("Error fetching shipping fee:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Không thể tải phí giao hàng",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          showCloseButton: true,
+        });
+        setFormShippingFee(null);
+      } finally {
+        setIsLoadingFormShippingFee(false);
+      }
+    };
+    fetchShippingFee();
+  }, [selectedDistrict, selectedWard, API_URL]);
+
   const fetchDiaChiList = useCallback(async () => {
     if (!maNguoiDung) return;
     setIsLoading(true);
@@ -477,6 +569,82 @@ const DiaChi = () => {
       const data = await response.json();
       const sortedData = data.sort((a: DiaChi, b: DiaChi) => b.trangThai - a.trangThai);
       setDiaChiList(sortedData);
+
+      const leadTimesData: { [key: number]: LeadTimeResponse | null } = {};
+      const loadingLeadTimes: { [key: number]: boolean } = {};
+      const shippingFeesData: { [key: number]: number | null } = {};
+      const loadingShippingFees: { [key: number]: boolean } = {};
+
+      for (const dc of sortedData) {
+        loadingLeadTimes[dc.maDiaChi] = true;
+        leadTimesData[dc.maDiaChi] = null;
+        loadingShippingFees[dc.maDiaChi] = true;
+        shippingFeesData[dc.maDiaChi] = null;
+
+        const province = provinces.find((p) => p.ProvinceName === dc.tinh);
+        if (province) {
+          try {
+            const districtResponse = await fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() });
+            if (!districtResponse.ok) throw new Error(`HTTP error! status: ${districtResponse.status}`);
+            const districtsData: DistrictResponse[] = await districtResponse.json();
+            const district = districtsData.find((d) => d.districtName === dc.quanHuyen);
+            if (district) {
+              const wardResponse = await fetch(`${API_URL}/api/GHN/wards/${district.districtID}`, { headers: getAuthHeaders() });
+              if (!wardResponse.ok) throw new Error(`HTTP error! status: ${wardResponse.status}`);
+              const wardsData: WardResponse[] = await wardResponse.json();
+              const ward = wardsData.find((w) => w.wardName === dc.phuongXa);
+              if (ward) {
+                const leadTimeRequest = {
+                  from_district_id: 1552,
+                  from_ward_code: "400103",
+                  to_district_id: district.districtID,
+                  to_ward_code: ward.wardCode,
+                  service_id: 53320,
+                };
+                const leadTimeResponse = await fetch(`${API_URL}/api/GHN/leadtime`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                  body: JSON.stringify(leadTimeRequest),
+                });
+                if (!leadTimeResponse.ok) throw new Error(`HTTP error! status: ${leadTimeResponse.status}`);
+                const leadTimeData: LeadTimeResponse = await leadTimeResponse.json();
+                leadTimesData[dc.maDiaChi] = leadTimeData;
+
+                const feeRequest = {
+                  service_type_id: 2,
+                  from_district_id: 1552,
+                  from_ward_code: "400103",
+                  to_district_id: district.districtID,
+                  to_ward_code: ward.wardCode,
+                  length: 35,
+                  width: 25,
+                  height: 10,
+                  weight: 1000,
+                  insurance_value: 0,
+                  coupon: null,
+                  items: [],
+                };
+                const feeResponse = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                  body: JSON.stringify(feeRequest),
+                });
+                if (!feeResponse.ok) throw new Error(`HTTP error! status: ${feeResponse.status}`);
+                const feeData: ShippingFeeResponse = await feeResponse.json();
+                shippingFeesData[dc.maDiaChi] = feeData.total;
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching data for address ${dc.maDiaChi}:`, error);
+          }
+        }
+        loadingLeadTimes[dc.maDiaChi] = false;
+        loadingShippingFees[dc.maDiaChi] = false;
+      }
+      setLeadTimes(leadTimesData);
+      setIsLoadingLeadTimes(loadingLeadTimes);
+      setShippingFees(shippingFeesData);
+      setIsLoadingShippingFees(loadingShippingFees);
     } catch (error) {
       console.error("Error fetching address list:", error);
       Swal.fire({
@@ -491,7 +659,7 @@ const DiaChi = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [maNguoiDung, API_URL]);
+  }, [maNguoiDung, API_URL, provinces]);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -641,6 +809,26 @@ const DiaChi = () => {
       });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       setDiaChiList(diaChiList.filter((dc) => dc.maDiaChi !== deleteMaDiaChi));
+      setLeadTimes((prev) => {
+        const newLeadTimes = { ...prev };
+        delete newLeadTimes[deleteMaDiaChi];
+        return newLeadTimes;
+      });
+      setIsLoadingLeadTimes((prev) => {
+        const newLoadingStates = { ...prev };
+        delete newLoadingStates[deleteMaDiaChi];
+        return newLoadingStates;
+      });
+      setShippingFees((prev) => {
+        const newShippingFees = { ...prev };
+        delete newShippingFees[deleteMaDiaChi];
+        return newShippingFees;
+      });
+      setIsLoadingShippingFees((prev) => {
+        const newLoadingStates = { ...prev };
+        delete newLoadingStates[deleteMaDiaChi];
+        return newLoadingStates;
+      });
       Swal.fire({
         icon: "success",
         title: "Thành công",
@@ -701,6 +889,7 @@ const DiaChi = () => {
       Swal.fire({
         icon: "error",
         title: "Lỗi",
+        text: "Không thể chọn địa chỉ",
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -723,12 +912,14 @@ const DiaChi = () => {
     setDistricts([]);
     setWards([]);
     setFormErrors({});
+    setFormShippingFee(null);
   };
 
   const openEditForm = (diaChi: DiaChi) => {
     setFormMode("edit");
     setEditingDiaChi(diaChi);
     setViewingDiaChi(null);
+    setNewDiaChi(diaChi);
     const province = provinces.find((p) => p.ProvinceName === diaChi.tinh) || null;
     setSelectedProvince(province);
 
@@ -798,6 +989,7 @@ const DiaChi = () => {
     setFormMode("view");
     setViewingDiaChi(diaChi);
     setEditingDiaChi(null);
+    setNewDiaChi(diaChi);
     const province = provinces.find((p) => p.ProvinceName === diaChi.tinh) || null;
     setSelectedProvince(province);
 
@@ -863,12 +1055,18 @@ const DiaChi = () => {
     setShowFormModal(true);
   };
 
+  const formatDate = (dateString: string) => {
+    const deliveryDate = new Date(dateString);
+    const day = deliveryDate.getDate();
+    const month = deliveryDate.getMonth() + 1;
+    const year = deliveryDate.getFullYear();
+    return `Ngày ${day}, tháng ${month}, năm ${year} nhận hàng`;
+  };
+
   return (
     <div className="flex justify-center">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-4xl">
-        {/* Navigation Tabs */}
         <div className="relative flex justify-between items-center mb-8">
-          {/* Nút quay lại giỏ hàng */}
           <button
             onClick={() => window.location.href = "/user/cart"}
             className="flex items-center px-4 py-2 text-sm font-medium text-[#9b87f5] border border-[#9b87f5] rounded-md hover:bg-[#f3effe] transition-colors"
@@ -876,9 +1074,6 @@ const DiaChi = () => {
             <ArrowLeft className="w-5 h-5 mr-2" />
             Quay lại giỏ hàng
           </button>
-
-
-          {/* Thanh tab chuyển đổi */}
           <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg shadow-sm">
             <button
               onClick={() => {
@@ -910,8 +1105,6 @@ const DiaChi = () => {
           </div>
         </div>
 
-
-        {/* Form Section */}
         {activeTab === "add" && (
           <AddressForm
             mode="add"
@@ -931,10 +1124,11 @@ const DiaChi = () => {
             isLoadingDistricts={isLoadingDistricts}
             isLoadingWards={isLoadingWards}
             formErrors={formErrors}
+            shippingFee={formShippingFee}
+            isLoadingShippingFee={isLoadingFormShippingFee}
           />
         )}
 
-        {/* Address List Section */}
         {activeTab === "list" && (
           <div className="space-y-4" ref={addressListRef}>
             {isLoading ? (
@@ -951,7 +1145,7 @@ const DiaChi = () => {
                   <div>
                     <p><strong className="font-semibold text-gray-800">Họ tên:</strong> {dc.hoTen}</p>
                     <p><strong className="font-semibold text-gray-800">Số điện thoại:</strong> {dc.sdt}</p>
-                    <p><strong className="font-semibold text-gray-800">Mô tả:</strong> {dc.moTa || "Không có mô tả"}</p>
+                    <p><strong className="font-semibold text-gray-800">Phí giao hàng dự kiến:</strong> {dc.moTa || "Không có mô tả"} VND</p>
                     <p>
                       <strong className="font-semibold text-gray-800">Địa chỉ:</strong> {dc.diaChi}, {dc.phuongXa},{" "}
                       {dc.quanHuyen}, {dc.tinh}
@@ -960,19 +1154,6 @@ const DiaChi = () => {
                       <strong className="font-semibold text-gray-800">Trạng thái:</strong>{" "}
                       {dc.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}
                     </p>
-                    {shippingData[dc.tinh] ? (
-                      <div className="mt-2 text-sm text-gray-800">
-                        <p>
-                          <strong className="font-semibold">Phí giao hàng:</strong>{" "}
-                          {shippingData[dc.tinh].fee.toLocaleString()} VND
-                        </p>
-                        <p>
-                          <strong className="font-semibold">Thời gian giao hàng:</strong> {shippingData[dc.tinh].time}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-gray-800">Không có thông tin phí và thời gian giao hàng</p>
-                    )}
                   </div>
                   <div className="flex flex-col items-center space-y-2">
                     <input
@@ -1006,94 +1187,96 @@ const DiaChi = () => {
             )}
           </div>
         )}
+
+        {showFormModal && activeTab !== "add" && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  {formMode === "edit" ? "Chỉnh sửa địa chỉ" : "Xem chi tiết địa chỉ"}
+                </h2>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowFormModal(false)}
+                  className="text-gray-800"
+                >
+                  ✕
+                </Button>
+              </div>
+              <AddressForm
+                mode={formMode}
+                diaChi={formMode === "edit" ? editingDiaChi! : viewingDiaChi!}
+                onSubmit={handleFormSubmit}
+                onCancel={() => setShowFormModal(false)}
+                provinces={provinces}
+                districts={districts}
+                wards={wards}
+                selectedProvince={selectedProvince}
+                setSelectedProvince={setSelectedProvince}
+                selectedDistrict={selectedDistrict}
+                setSelectedDistrict={setSelectedDistrict}
+                selectedWard={selectedWard}
+                setSelectedWard={setSelectedWard}
+                isLoadingProvinces={isLoadingProvinces}
+                isLoadingDistricts={isLoadingDistricts}
+                isLoadingWards={isLoadingWards}
+                formErrors={formErrors}
+                shippingFee={formShippingFee}
+                isLoadingShippingFee={isLoadingFormShippingFee}
+              />
+            </div>
+          </div>
+        )}
+
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4 text-gray-800">Xác nhận xóa</h2>
+              <p className="mb-4 text-gray-800">Bạn có chắc chắn muốn xóa địa chỉ này?</p>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex items-center border-gray-300 text-gray-800 hover:bg-gray-100"
+                >
+                  <FaTimes className="mr-2" /> Hủy
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmDelete}
+                  className="flex items-center"
+                >
+                  <FaCheck className="mr-2" /> Xác nhận
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSelectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4 text-gray-800">Xác nhận chọn địa chỉ</h2>
+              <p className="mb-4 text-gray-800">Bạn có muốn đổi qua địa chỉ này không?</p>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSelectModal(false)}
+                  className="flex items-center border-gray-300 text-gray-800 hover:bg-gray-100"
+                >
+                  <FaTimes className="mr-2" /> Hủy
+                </Button>
+                <Button
+                  onClick={confirmSelectDiaChi}
+                  className="bg-[#9b87f5] hover:bg-[#8a76e4] text-white flex items-center"
+                >
+                  <FaCheck className="mr-2" /> Xác nhận
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      {showFormModal && activeTab !== "add" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">
-                {formMode === "edit" ? "Chỉnh sửa địa chỉ" : "Xem chi tiết địa chỉ"}
-              </h2>
-              <Button
-                variant="ghost"
-                onClick={() => setShowFormModal(false)}
-                className="text-gray-800"
-              >
-                ✕
-              </Button>
-            </div>
-            <AddressForm
-              mode={formMode}
-              diaChi={formMode === "edit" ? editingDiaChi! : viewingDiaChi!}
-              onSubmit={handleFormSubmit}
-              onCancel={() => setShowFormModal(false)}
-              provinces={provinces}
-              districts={districts}
-              wards={wards}
-              selectedProvince={selectedProvince}
-              setSelectedProvince={setSelectedProvince}
-              selectedDistrict={selectedDistrict}
-              setSelectedDistrict={setSelectedDistrict}
-              selectedWard={selectedWard}
-              setSelectedWard={setSelectedWard}
-              isLoadingProvinces={isLoadingProvinces}
-              isLoadingDistricts={isLoadingDistricts}
-              isLoadingWards={isLoadingWards}
-              formErrors={formErrors}
-            />
-          </div>
-        </div>
-      )}
-
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Xác nhận xóa</h2>
-            <p className="mb-4 text-gray-800">Bạn có chắc chắn muốn xóa địa chỉ này?</p>
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteModal(false)}
-                className="flex items-center border-gray-300 text-gray-800 hover:bg-gray-100"
-              >
-                <FaTimes className="mr-2" /> Hủy
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmDelete}
-                className="flex items-center"
-              >
-                <FaCheck className="mr-2" /> Xác nhận
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showSelectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Xác nhận chọn địa chỉ</h2>
-            <p className="mb-4 text-gray-800">Bạn có muốn đổi qua địa chỉ này không?</p>
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowSelectModal(false)}
-                className="flex items-center border-gray-300 text-gray-800 hover:bg-gray-100"
-              >
-                <FaTimes className="mr-2" /> Hủy
-              </Button>
-              <Button
-                onClick={confirmSelectDiaChi}
-                className="bg-[#9b87f5] hover:bg-[#8a76e4] text-white flex items-center"
-              >
-                <FaCheck className="mr-2" /> Xác nhận
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,135 +1,81 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-interface Product {
-  id: string;
+interface OrderDetailProduct {
+  maChiTietDh: number;
+  laCombo: boolean;
   tenSanPham: string;
-  maThuongHieu: string;
-  loaiSanPham: string;
-  mauSac: string;
-  moTa: string | null;
-  chatLieu: string;
-  details: { kichThuoc: string; soLuong: number; gia: number }[];
-  hinhAnhs: string[];
-}
-
-interface ComboView {
-  maCombo: number;
-  name: string;
-  hinhAnh: string;
-  moTa: string;
+  soLuong: number;
   gia: number;
-  trangThai: boolean;
-  soLuong: number;
-  ngayTao: string;
-}
-
-const parseMaSanPham = (ma: string | null | undefined) => {
-  if (!ma || !ma.includes('_')) return null;
-  const parts = ma.split('_');
-  if (parts.length !== 3) return null;
-  return {
-    maSanPham: parts[0],
-    maMau: parts[1],
-    kichThuoc: parts[2]
+  thanhTien: number;
+  hinhAnh?: string;
+  mauSac?: string;
+  kichThuoc?: string;
+  combo?: {
+    tenCombo: string;
+    giaCombo: number;
+    sanPhamsTrongCombo: Array<{
+      tenSanPham: string;
+      soLuong: number;
+      gia: number;
+      thanhTien: number;
+      hinhAnh?: string;
+      mauSac?: string;
+      kichThuoc?: string;
+    }>;
   };
-};
-
-const getFirstValidImage = (hinhAnhs: string[]): string | null => {
-  for (const hinhAnh of hinhAnhs) {
-    if (hinhAnh && hinhAnh.trim() && !hinhAnh.includes('MÃ HÓA H')) {
-      return hinhAnh;
-    }
-  }
-  return null;
-};
-
-interface ComboProduct {
-  tenSanPham: string | null;
-  soLuong: number;
-  gia: number | null;
-  thanhTien: number | null;
-  loaiSanPham: string | null;
-  thuongHieu: string | null;
-  maSanPham: string | null;
-  maSanPham1?: string | null;
-  hinhAnh?: string | null;
-}
-
-interface Combo {
-  tenCombo: string;
-  giaCombo: number;
-  sanPhamsTrongCombo: ComboProduct[];
 }
 
 interface OrderDetail {
-  maChiTietDh: number;
-  laCombo: boolean;
-  tenSanPham: string | null;
-  soLuong: number;
-  gia: number | null;
-  thanhTien: number | null;
-  combo: Combo | null;
-  loaiSanPham: string | null;
-  thuongHieu: string | null;
-  hinhAnh?: string | null;
-  maSanPham?: string | null;
-  maCombo?: number | null;
-}
-
-interface UserInfo {
-  tenNguoiNhan: string;
-  diaChi: string;
-  sdt: string;
-  tenNguoiDat: string;
-}
-
-interface OrderInfo {
-  ngayDat: string;
-  trangThai: number;
-  thanhToan: number;
-  hinhThucThanhToan: string;
-}
-
-interface ApiOrder {
   maDonHang: number;
   tenNguoiNhan: string;
-  sanPhams: OrderDetail[];
-  thongTinNguoiDung: UserInfo;
-  thongTinDonHang?: OrderInfo;
   ngayDat: string;
   trangThaiDonHang: number;
   trangThaiThanhToan: number;
   hinhThucThanhToan: string;
-  finalAmount: number;
+  lyDoHuy?: string;
   tongTien: number;
+  finalAmount: number;
+  shippingFee?: number;
+  discountAmount?: number;
+  sanPhams: OrderDetailProduct[];
+  thongTinNguoiDung: {
+    tenNguoiNhan: string;
+    diaChi: string;
+    sdt: string;
+    tenNguoiDat: string;
+  };
+  thongTinDonHang: {
+    ngayDat: string;
+    trangThai: number;
+    thanhToan: number;
+    hinhThucThanhToan: string;
+  };
 }
 
-interface OrderDetailsResponse {
+interface ApiOrderResponse {
   maDonHang: number;
+  maNguoiDung: string;
   tenNguoiNhan: string;
-  sanPhams: OrderDetail[];
-  thongTinNguoiDung: UserInfo;
-  thongTinDonHang: OrderInfo;
-  tongTien: number;
-  finalAmount: number;
+  ngayDat: string;
+  trangThaiDonHang: number;
+  trangThaiThanhToan: number;
+  hinhThucThanhToan: string;
+  lyDoHuy?: string;
+  tongTien?: number;
+  finalAmount?: number;
+  shippingFee?: number;
+  discountAmount?: number;
+  hoTenKhachHang?: string;
+  diaChi?: string;
+  sdt?: string;
+  sanPhams?: OrderDetailProduct[];
+  [key: string]: any;
 }
 
 interface OrderDetailsModalProps {
@@ -138,157 +84,193 @@ interface OrderDetailsModalProps {
 }
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose }) => {
-  const [orderDetails, setOrderDetails] = useState<OrderDetailsResponse | null>(null);
-  const [productDetails, setProductDetails] = useState<Map<string, Product>>(new Map());
-  const [comboDetails, setComboDetails] = useState<Map<number, ComboView>>(new Map());
-  const [loading, setLoading] = useState<boolean>(true);
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
+  // Hàm parse thông tin từ ID sản phẩm
+  const parseProductInfo = (productId: string) => {
+    const parts = productId.split('_');
+    if (parts.length >= 3) {
+      const colorCode = parts[1];
+      const size = parts[2];
+
+      const getColorName = (hex: string) => {
+        const colorMap: { [key: string]: string } = {
+          'ff0000': 'Đỏ',
+          '0000ff': 'Xanh dương',
+          '00ff00': 'Xanh lá',
+          'ffffff': 'Trắng',
+          '000000': 'Đen',
+          'ff00ff': 'Hồng',
+          '0C06F5': 'Xanh navy',
+        };
+        return colorMap[hex.toLowerCase()] || `#${hex}`;
+      };
+
+      const getSizeName = (sizeCode: string) => {
+        const sizeMap: { [key: string]: string } = {
+          'S': 'S',
+          'M': 'M',
+          'L': 'L',
+          'XL': 'XL',
+          'XXL': 'XXL',
+          'SA': 'S',
+          'MA': 'M',
+          'XLA': 'XL',
+          'XXLA': 'XXL',
+        };
+        return sizeMap[sizeCode] || sizeCode;
+      };
+
+      return {
+        mauSac: getColorName(colorCode),
+        kichThuoc: getSizeName(size)
+      };
+    }
+    return { mauSac: '', kichThuoc: '' };
+  };
+
+  // Hàm lấy chi tiết đơn hàng
+  const fetchOrderDetail = async () => {
+    try {
       setLoading(true);
       setError(null);
-      try {
-        const orderRes = await axios.get<ApiOrder[]>(
-          `http://localhost:5261/api/orders/${orderId}`
-        );
 
-        const raw = orderRes.data[0];
-        if (!raw) throw new Error("Không có dữ liệu đơn hàng");
+      const token = localStorage.getItem('token');
 
-        const orderMapped: OrderDetailsResponse = {
-          maDonHang: raw.maDonHang,
-          tenNguoiNhan: raw.tenNguoiNhan,
-          sanPhams: raw.sanPhams ?? [],
-          thongTinNguoiDung: raw.thongTinNguoiDung ?? {
-            tenNguoiNhan: "",
-            diaChi: "",
-            sdt: "",
-            tenNguoiDat: "",
-          },
-          thongTinDonHang: {
-            ngayDat: raw.thongTinDonHang?.ngayDat ?? raw.ngayDat,
-            trangThai: raw.thongTinDonHang?.trangThai ?? raw.trangThaiDonHang ?? 0,
-            thanhToan: raw.thongTinDonHang?.thanhToan ?? raw.trangThaiThanhToan ?? 0,
-            hinhThucThanhToan: raw.thongTinDonHang?.hinhThucThanhToan ?? raw.hinhThucThanhToan ?? "",
-          },
-          tongTien: raw.tongTien,
-          finalAmount: raw.finalAmount,
-        };
-        setOrderDetails(orderMapped);
+      // Gọi API lấy chi tiết đơn hàng
+      const response = await axios.get(`http://localhost:5261/api/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-        // Lấy thông tin sản phẩm đơn lẻ
-        const productPromises = orderMapped.sanPhams
-          .filter(item => !item.laCombo && item.maSanPham)
-          .map(async (item) => {
-            try {
-              const productRes = await axios.get<Product[]>(
-                `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${item.maSanPham}`
-              );
-              const product = productRes.data[0];
-              if (product) {
-                return [item.maSanPham!, product] as [string, Product];
-              }
-            } catch (err) {
-              console.error(`Lỗi khi lấy sản phẩm ${item.maSanPham}:`, err);
-            }
-            return null;
-          });
-
-        // Lấy thông tin sản phẩm trong combo
-        const comboProductPromises = orderMapped.sanPhams
-          .filter(item => item.laCombo && item.combo?.sanPhamsTrongCombo)
-          .flatMap(item => item.combo!.sanPhamsTrongCombo)
-          .filter(sp => sp.maSanPham || sp.maSanPham1)
-          .map(async (sp) => {
-            try {
-              const productId = sp.maSanPham1 || sp.maSanPham;
-              const productRes = await axios.get<Product[]>(
-                `http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${productId}`
-              );
-              const product = productRes.data[0];
-              if (product) {
-                return [productId!, product] as [string, Product];
-              }
-            } catch (err) {
-              console.error(`Lỗi khi lấy sản phẩm combo ${sp.maSanPham1 || sp.maSanPham}:`, err);
-            }
-            return null;
-          });
-
-        const allProductDetails = await Promise.all([...productPromises, ...comboProductPromises]);
-        const productMap = new Map<string, Product>(
-          allProductDetails.filter((p): p is [string, Product] => p !== null)
-        );
-        setProductDetails(productMap);
-
-        // Lấy thông tin combo
-        const comboPromises = orderMapped.sanPhams
-          .filter(item => item.laCombo && item.maCombo)
-          .map(async (item) => {
-            try {
-              const comboRes = await axios.get<ComboView[]>(
-                `http://localhost:5261/api/Combo/ComboSanPhamView?id=${item.maCombo}`
-              );
-              const combo = comboRes.data[0];
-              if (combo) {
-                return [item.maCombo!, combo] as [number, ComboView];
-              }
-            } catch (err) {
-              console.error(`Lỗi khi lấy combo ${item.maCombo}:`, err);
-            }
-            return null;
-          });
-
-        const allComboDetails = await Promise.all(comboPromises);
-        const comboMap = new Map<number, ComboView>(
-          allComboDetails.filter((c): c is [number, ComboView] => c !== null)
-        );
-        setComboDetails(comboMap);
-
-        // Debug log
-        console.log('Product Map:', productMap);
-        console.log('Combo Map:', comboMap);
-        console.log('Order Details:', orderMapped);
-
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Lỗi không xác định";
-        setError(message);
-        console.error('Error fetching order details:', err);
-      } finally {
-        setLoading(false);
+      const allOrders = response.data as ApiOrderResponse[];
+      const foundOrder = allOrders.find((order: ApiOrderResponse) => order.maDonHang === orderId);
+      if (!foundOrder) {
+        throw new Error('Không tìm thấy đơn hàng');
       }
-    };
 
-    fetchOrderDetails();
+      // Parse thông tin màu sắc và kích thước cho sản phẩm và combo
+      const updatedSanPhams = foundOrder.sanPhams?.map(product => ({
+        ...product,
+        mauSac: product.mauSac ? parseProductInfo(product.mauSac).mauSac : undefined,
+        kichThuoc: product.kichThuoc || (product.mauSac ? parseProductInfo(product.mauSac).kichThuoc : undefined),
+        combo: product.combo ? {
+          ...product.combo,
+          sanPhamsTrongCombo: product.combo.sanPhamsTrongCombo.map(comboProduct => ({
+            ...comboProduct,
+            mauSac: comboProduct.mauSac ? parseProductInfo(comboProduct.mauSac).mauSac : undefined,
+            kichThuoc: comboProduct.kichThuoc || (comboProduct.mauSac ? parseProductInfo(comboProduct.mauSac).kichThuoc : undefined)
+          }))
+        } : undefined
+      })) || [];
+      setOrderDetail({
+        maDonHang: foundOrder.maDonHang,
+        tenNguoiNhan: foundOrder.tenNguoiNhan,
+        ngayDat: foundOrder.ngayDat,
+        trangThaiDonHang: foundOrder.trangThaiDonHang,
+        trangThaiThanhToan: foundOrder.trangThaiThanhToan,
+        hinhThucThanhToan: foundOrder.hinhThucThanhToan,
+        lyDoHuy: foundOrder.lyDoHuy,
+        tongTien: foundOrder.tongTien || 0,
+        finalAmount: foundOrder.finalAmount || 0,
+        shippingFee: foundOrder.shippingFee || 0,
+        discountAmount: foundOrder.discountAmount || 0,
+        sanPhams: updatedSanPhams,
+        thongTinNguoiDung: {
+          tenNguoiNhan: foundOrder.tenNguoiNhan,
+          diaChi: foundOrder.diaChi || '',
+          sdt: foundOrder.sdt || '',
+          tenNguoiDat: foundOrder.hoTenKhachHang || ''
+        },
+        thongTinDonHang: {
+          ngayDat: foundOrder.ngayDat,
+          trangThai: foundOrder.trangThaiDonHang,
+          thanhToan: foundOrder.trangThaiThanhToan,
+          hinhThucThanhToan: foundOrder.hinhThucThanhToan
+        }
+      });
+      console.log(orderDetail)
+    } catch (error) {
+      console.error('Error fetching order detail:', error);
+      setError('Không thể tải chi tiết đơn hàng');
+      toast.error('Không thể tải chi tiết đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderDetail();
+    }
   }, [orderId]);
 
-  if (loading || !orderDetails) {
+  const getStatusLabel = (status: number) => {
+    switch (status) {
+      case 0: return 'Chưa xác nhận';
+      case 1: return 'Đang xử lý';
+      case 2: return 'Đang giao hàng';
+      case 3: return 'Hoàn thành';
+      case 4: return 'Đã hủy';
+      default: return 'Không xác định';
+    }
+  };
+
+  const getStatusColor = (status: number) => {
+    switch (status) {
+      case 0: return 'bg-yellow-100 text-yellow-800';
+      case 1: return 'bg-blue-100 text-blue-800';
+      case 2: return 'bg-orange-100 text-orange-800';
+      case 3: return 'bg-green-100 text-green-800';
+      case 4: return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentStatusLabel = (trangThaiThanhToan: number, trangThaiDonHang: number) => {
+    return trangThaiThanhToan === 1 && trangThaiDonHang === 3 ? 'Đã thanh toán' : 'Chưa thanh toán';
+  };
+
+  if (loading) {
     return (
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader className="border-b pb-4">
-            <DialogTitle className="text-xl font-semibold">Chi tiết đơn hàng</DialogTitle>
-            <DialogDescription>Đang tải dữ liệu chi tiết đơn hàng...</DialogDescription>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chi tiết đơn hàng</DialogTitle>
+            <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
           </DialogHeader>
-          <div>Đang tải...</div>
+          <div className="flex justify-center items-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p>Đang tải chi tiết đơn hàng...</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     );
   }
 
-  if (error) {
+  if (error || !orderDetail) {
     return (
       <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader className="border-b pb-4">
-            <DialogTitle className="text-xl font-semibold">Chi tiết đơn hàng</DialogTitle>
-            <DialogDescription>Lỗi khi tải chi tiết đơn hàng</DialogDescription>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chi tiết đơn hàng</DialogTitle>
+            <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
           </DialogHeader>
-          <div className="text-red-500">{error}</div>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>Đóng</Button>
-          </DialogFooter>
+          <div className="flex justify-center items-center py-8">
+            <div className="text-center">
+              <p className="text-red-600">{error || 'Không thể tải chi tiết đơn hàng'}</p>
+              <Button variant="outline" onClick={fetchOrderDetail} className="mt-4">
+                Thử lại
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -297,149 +279,161 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader className="border-b pb-4">
-          <DialogTitle className="text-xl font-semibold">Chi tiết đơn hàng {orderDetails.maDonHang}</DialogTitle>
-          <DialogDescription>Thông tin đơn hàng của {orderDetails.thongTinNguoiDung.tenNguoiDat}</DialogDescription>
+        <DialogHeader>
+          <DialogTitle>Chi tiết đơn hàng #{orderDetail.maDonHang}</DialogTitle>
+          <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b">
-                  <TableHead>ID</TableHead>
-                  <TableHead>Hình ảnh</TableHead>
-                  <TableHead>Tên Sản Phẩm / Combo</TableHead>
-                  <TableHead>Số lượng</TableHead>
-                  <TableHead>Giá</TableHead>
-                  <TableHead>Thành tiền</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orderDetails.sanPhams.length > 0 ? (
-                  orderDetails.sanPhams.map(item => {
-                    const parsedSingle = parseMaSanPham(item.maSanPham);
-                    const product = item.maSanPham ? productDetails.get(item.maSanPham) : null;
-                    const combo = item.maCombo ? comboDetails.get(item.maCombo) : null;
-
-                    return (
-                      <TableRow key={item.maChiTietDh}>
-                        <TableCell>{item.maChiTietDh}</TableCell>
-                        <TableCell>
-                          {item.laCombo && combo && combo.hinhAnh ? (
-                            <img
-                              src={`data:image/jpeg;base64,${combo.hinhAnh}`}
-                              alt={combo.name}
-                              className="w-16 h-16 object-cover"
-                            />
-                          ) : !item.laCombo && product && product.hinhAnhs && getFirstValidImage(product.hinhAnhs) ? (
-                            <img
-                              src={`data:image/jpeg;base64,${getFirstValidImage(product.hinhAnhs)}`}
-                              alt={product.tenSanPham}
-                              className="w-16 h-16 object-cover"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 bg-gray-200 flex items-center justify-center text-gray-500">
-                              Không có hình
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {item.laCombo ? (
-                            <div>
-                              <strong>{combo?.name || item.combo?.tenCombo || "Combo không xác định"}</strong>
-                              {item.combo?.sanPhamsTrongCombo && item.combo.sanPhamsTrongCombo.length > 0 && (
-                                <ul className="pl-4 mt-1 space-y-1">
-                                  {item.combo.sanPhamsTrongCombo.map((sp, index) => {
-                                    const productId = sp.maSanPham1 || sp.maSanPham;
-                                    const parsedCombo = parseMaSanPham(productId);
-                                    const comboProduct = productId ? productDetails.get(productId) : null;
-                                    
-                                    return (
-                                      <li key={index} className="text-sm">
-                                        <strong>{index + 1}. {comboProduct?.tenSanPham || sp.tenSanPham || "Sản phẩm không xác định"}</strong><br />
-                                        {parsedCombo && (
-                                          <span>
-                                            ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedCombo.maMau}` }}></span> ({parsedCombo.maMau})<br />
-                                            ➤ Kích thước: {parsedCombo.kichThuoc}<br />
-                                          </span>
-                                        )}
-                                        Loại Sản Phẩm: {comboProduct?.loaiSanPham || sp.loaiSanPham || "Chưa xác định"}<br />
-                                        Thương hiệu: {comboProduct?.maThuongHieu || sp.thuongHieu || "Chưa xác định"}<br />
-                                        Số lượng: {sp.soLuong}
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              )}
-                            </div>
-                          ) : (
-                            <div>
-                              <strong>{product?.tenSanPham || item.tenSanPham || "Sản phẩm không xác định"}</strong><br />
-                              {parsedSingle && (
-                                <span>
-                                  ➤ Màu: <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: `#${parsedSingle.maMau}` }}></span> ({parsedSingle.maMau})<br />
-                                  ➤ Kích thước: {parsedSingle.kichThuoc}<br />
-                                </span>
-                              )}
-                              Loại Sản Phẩm: {product?.loaiSanPham || item.loaiSanPham || "Chưa xác định"}<br />
-                              Thương hiệu: {product?.maThuongHieu || item.thuongHieu || "Chưa xác định"}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>{item.soLuong}</TableCell>
-                        <TableCell>
-                          {item.gia != null ? `${item.gia.toLocaleString('vi-VN')} VNĐ` : "Chưa xác định"}
-                        </TableCell>
-                        <TableCell>
-                          {item.thanhTien != null ? `${item.thanhTien.toLocaleString('vi-VN')} VNĐ` : "Chưa xác định"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      Không có sản phẩm trong đơn hàng này.
-                    </TableCell>
-                  </TableRow>
+          {/* Thông tin đơn hàng */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-3">Thông tin đơn hàng</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p><strong>Mã đơn hàng:</strong> {orderDetail.maDonHang}</p>
+                <p><strong>Ngày đặt:</strong> {orderDetail.ngayDat}</p>
+                <p><strong>Trạng thái:</strong> 
+                  <Badge className={`ml-2 ${getStatusColor(orderDetail.trangThaiDonHang)}`}>
+                    {getStatusLabel(orderDetail.trangThaiDonHang)}
+                  </Badge>
+                </p>
+              </div>
+              <div>
+                <p><strong>Thanh toán:</strong> {getPaymentStatusLabel(orderDetail.trangThaiThanhToan, orderDetail.trangThaiDonHang)}</p>
+                <p><strong>Hình thức:</strong> {orderDetail.hinhThucThanhToan}</p>
+                {orderDetail.lyDoHuy && (
+                  <p><strong>Lý do hủy:</strong> <span className="text-red-600">{orderDetail.lyDoHuy}</span></p>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Thông tin người dùng</h3>
-              <p><strong>Tên người nhận:</strong> {orderDetails.thongTinNguoiDung.tenNguoiNhan}</p>
-              <p><strong>Địa chỉ:</strong> {orderDetails.thongTinNguoiDung.diaChi}</p>
-              <p><strong>Số điện thoại:</strong> {orderDetails.thongTinNguoiDung.sdt}</p>
-              <p><strong>Tên người đặt:</strong> {orderDetails.thongTinNguoiDung.tenNguoiDat}</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Thông tin đơn hàng</h3>
-              <p><strong>Ngày đặt:</strong> {orderDetails.thongTinDonHang.ngayDat}</p>
-              <p><strong>Trạng thái:</strong> {
-                orderDetails.thongTinDonHang.trangThai === 0 ? 'Chưa xác nhận' :
-                orderDetails.thongTinDonHang.trangThai === 1 ? 'Đang xử lý' :
-                orderDetails.thongTinDonHang.trangThai === 2 ? 'Đang giao hàng' :
-                orderDetails.thongTinDonHang.trangThai === 3 ? 'Hoàn thành' :
-                orderDetails.thongTinDonHang.trangThai === 4 ? 'Đã hủy' : 'Không xác định'
-              }</p>
-              <p><strong>Thanh toán:</strong> {orderDetails.thongTinDonHang.thanhToan === 1 ? 'Đã thanh toán' : 'Chưa thanh toán'}</p>
-              <p><strong>Hình thức thanh toán:</strong> {orderDetails.thongTinDonHang.hinhThucThanhToan || 'Không xác định'}</p>
+              </div>
             </div>
           </div>
 
-          <div className="text-right border-t pt-4">
-            <p><strong>Tổng tiền hàng:</strong> {orderDetails.tongTien.toLocaleString('vi-VN')} VNĐ</p>
-            <p><strong>Thành tiền cuối cùng:</strong> {orderDetails.finalAmount.toLocaleString('vi-VN')} VNĐ</p>
+          {/* Thông tin người nhận */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-3">Thông tin người nhận</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p><strong>Tên người nhận:</strong> {orderDetail.thongTinNguoiDung.tenNguoiNhan}</p>
+                <p><strong>Tên người đặt:</strong> {orderDetail.thongTinNguoiDung.tenNguoiDat}</p>
+              </div>
+              <div>
+                <p><strong>Số điện thoại:</strong> {orderDetail.thongTinNguoiDung.sdt}</p>
+                <p><strong>Địa chỉ:</strong> {orderDetail.thongTinNguoiDung.diaChi}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Chi tiết sản phẩm */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-3">Chi tiết sản phẩm</h3>
+            <div className="space-y-4">
+              {orderDetail.sanPhams && orderDetail.sanPhams.length > 0 ? (
+                orderDetail.sanPhams.map((product, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <div className="flex items-start space-x-4">
+                      {product.hinhAnh && (
+                        <img 
+                          src={product.hinhAnh} 
+                          alt={product.tenSanPham}
+                          className="w-20 h-20 object-cover rounded-md"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-medium">{product.laCombo ? product.tenSanPham : product.tenSanPham.split('_')[0]}</h4>
+                        
+                        {/* Thông tin màu sắc và kích thước */}
+                        {!product.laCombo && (
+                          <div className="flex gap-4 mt-2">
+                            {product.mauSac && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Màu:</span>
+                                <Badge variant="outline" className="text-xs">{product.mauSac}</Badge>
+                              </div>
+                            )}
+                            {product.kichThuoc && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Size:</span>
+                                <Badge variant="outline" className="text-xs">{product.kichThuoc}</Badge>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        <p className="text-sm text-gray-600 mt-2">
+                          Số lượng: {product.soLuong} × {product.gia?.toLocaleString('vi-VN')}đ
+                        </p>
+                        <p className="font-semibold text-blue-600">
+                          Thành tiền: {product.thanhTien?.toLocaleString('vi-VN')}đ
+                        </p>
+                        
+                        {product.combo && (
+                          <div className="mt-3 pl-4 border-l-2 border-blue-200">
+                            <h5 className="font-medium text-blue-700">Sản phẩm trong combo:</h5>
+                            <div className="space-y-2 mt-2">
+                              {product.combo.sanPhamsTrongCombo.map((item, itemIndex) => (
+                                <div key={itemIndex} className="flex items-center space-x-2 text-sm">
+                                  {item.hinhAnh && (
+                                    <img 
+                                      src={item.hinhAnh} 
+                                      alt={item.tenSanPham}
+                                      className="w-8 h-8 object-cover rounded"
+                                    />
+                                  )}
+                                  <span>{item.tenSanPham.split('_')[0]}</span>
+                                  {item.mauSac && <Badge variant="outline" className="text-xs">{item.mauSac}</Badge>}
+                                  {item.kichThuoc && <Badge variant="outline" className="text-xs">{item.kichThuoc}</Badge>}
+                                  <span className="text-gray-500">x{item.soLuong}</span>
+                                  <span className="text-gray-500">{item.gia?.toLocaleString('vi-VN')}đ</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500">Không có thông tin chi tiết sản phẩm</p>
+              )}
+            </div>
+          </div>
+
+          {/* Tính toán chi phí */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-semibold mb-3">Chi tiết thanh toán</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Tổng tiền hàng:</span>
+                <span>{orderDetail.tongTien?.toLocaleString('vi-VN')}đ</span>
+              </div>
+              
+              {orderDetail.shippingFee && orderDetail.shippingFee > 0 && (
+                <div className="flex justify-between">
+                  <span>Phí vận chuyển:</span>
+                  <span>{orderDetail.shippingFee.toLocaleString('vi-VN')}đ</span>
+                </div>
+              )}
+              
+              {orderDetail.discountAmount && orderDetail.discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Giảm giá (Voucher):</span>
+                  <span>-{orderDetail.discountAmount.toLocaleString('vi-VN')}đ</span>
+                </div>
+              )}
+              
+              <hr className="my-2" />
+              <div className="flex justify-between items-center font-bold text-lg">
+                <span>Tổng thanh toán:</span>
+                <span className="text-blue-600">
+                  {orderDetail.finalAmount?.toLocaleString('vi-VN')}đ
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Đóng</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

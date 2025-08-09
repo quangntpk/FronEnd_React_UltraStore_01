@@ -7,9 +7,10 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import GiohangComboSupport from "@/components/user/cart/GioHangComboSupport";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
-
 import Swal from "sweetalert2";
+import { CircleLoader } from "react-spinners";
 import DiaChiCart from "@/components/default/DiaChiCart";
+import DiaChiTime from "@/components/default/DiaChiTime";
 
 interface CartItem {
   idSanPham: string;
@@ -289,9 +290,9 @@ const CartPage = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [shippingFee, setShippingFee] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
+  const [isLoading, setIsLoading] = useState(false); // New state for loading
 
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(() => {
-    // Khôi phục checkoutForm từ localStorage khi component khởi tạo
     const savedForm = localStorage.getItem("checkoutForm");
     return savedForm
       ? JSON.parse(savedForm)
@@ -332,25 +333,17 @@ const CartPage = () => {
     return provinceMapping[normalized] || name.trim();
   };
 
-  // Lưu checkoutForm vào localStorage mỗi khi nó thay đổi
   useEffect(() => {
     localStorage.setItem("checkoutForm", JSON.stringify(checkoutForm));
   }, [checkoutForm]);
 
-  // Xử lý khi quay lại từ /diachi
   useEffect(() => {
     const fetchAddresses = async () => {
-
-      // FIX CỨNG TẠM
-      // const userId = localStorage.getItem("userId");
-      const userId = "KH001"
+      const userId = "KH001"; // FIX CỨNG TẠM
       if (!userId) return;
 
       try {
         const response = await fetch(
-
-
-
           `http://localhost:5261/api/DanhSachDiaChi/maNguoiDung/${userId}`
         );
         const data = await response.json();
@@ -358,7 +351,6 @@ const CartPage = () => {
           data.sort((a: Address, b: Address) => b.trangThai - a.trangThai)
         );
 
-        // Nếu có địa chỉ mới từ /diachi, chọn nó tự động
         if (location.state?.newAddress) {
           handleSelectAddress(location.state.newAddress);
         }
@@ -368,7 +360,6 @@ const CartPage = () => {
       }
     };
 
-    // Khôi phục trạng thái modal và vị trí cuộn
     if (location.state?.fromDiachi) {
       fetchAddresses();
       const savedModalState = localStorage.getItem("showAddressModal");
@@ -384,7 +375,6 @@ const CartPage = () => {
 
   useEffect(() => {
     const fetchCartData = async () => {
-      // FIX CỨNG TẠM
       const userId = localStorage.getItem("userId");
       if (!userId) {
         Swal.fire({
@@ -563,7 +553,6 @@ const CartPage = () => {
         (p) => normalizeName(p.name) === normalizedProvinceName
       );
       if (!province) {
-        // toast.error("Không thể tìm thấy tỉnh/thành phố tương ứng");
         return;
       }
       console.log("Tỉnh được chọn:", province);
@@ -629,7 +618,6 @@ const CartPage = () => {
       setFinalAmount(subtotal - discountAmount + shippingInfo.fee);
 
       setShowAddressModal(false);
-      // toast.success("Đã chọn địa chỉ giao hàng");
     } catch (error) {
       toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
     }
@@ -866,11 +854,14 @@ const CartPage = () => {
         }
       );
 
+      console.log("Response Status:", response.status);
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log("API Response:", result);
       if (result.success) {
         setDiscountApplied(true);
         setDiscountAmount(result.discountAmount);
@@ -885,8 +876,8 @@ const CartPage = () => {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error("Mã giảm giá không hợp hoặc đã hết hạn. ");
-      console.error("Error applying promo:", error);
+      console.error("Error details:", error);
+      toast.error("Mã giảm giá không hợp lệ, không đủ điều kiện hoặc đã hết hạn.");
     }
   };
 
@@ -926,6 +917,10 @@ const CartPage = () => {
     if (emptyFields.length > 0) {
       toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
       return;
+    }
+
+    if (paymentMethod === "cod") {
+      setIsLoading(true); // Set loading state for COD
     }
 
     try {
@@ -991,8 +986,22 @@ const CartPage = () => {
       const selectedProvince = provinces.find(
         (p) => p.code.toString() === checkoutForm.province
       );
+      const selectedDistrict1 = districts.find(
+        (d) => d.code.toString() === checkoutForm.district
+      );
+      const selectedWard1 = wards.find(
+        (w) => w.code.toString() === checkoutForm.ward
+      );
       if (!selectedProvince) {
         toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
+        return;
+      }
+      if (!selectedDistrict1) {
+        toast.error("Vui lòng chọn quận/huyện hợp lệ");
+        return;
+      }
+      if (!selectedWard1) {
+        toast.error("Vui lòng chọn phường/xã hợp lệ");
         return;
       }
       const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
@@ -1075,10 +1084,10 @@ const CartPage = () => {
             action: {
               label: "Xem chi tiết",
               onClick: () =>
-                navigate("/PaymentSuccess", { state: { orderId: result.orderId } }),
+                navigate("/user/orders", { state: { orderId: result.orderId } }),
             },
           });
-          
+
           setCartItems([]);
           setComboItems([]);
           setPromoCode("");
@@ -1086,7 +1095,6 @@ const CartPage = () => {
           setDiscountAmount(0);
           setFinalAmount(0);
           setShowCheckout(false);
-          // Xóa checkoutForm khỏi localStorage sau khi thanh toán thành công
           localStorage.removeItem("checkoutForm");
           localStorage.removeItem("showAddressModal");
           localStorage.removeItem("scrollY");
@@ -1111,16 +1119,17 @@ const CartPage = () => {
     } catch (error) {
       toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
       console.error("Error during checkout:", error);
+    } finally {
+      if (paymentMethod === "cod") {
+        setIsLoading(false); // Reset loading state after request completes
+      }
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-
       <main className="flex-1 py-12 px-6">
         <div className="container mx-auto max-w-6xl my-[50px]">
-
-
           {cartItems.length > 0 || comboItems.length > 0 ? (
             <>
               {!showCheckout ? (
@@ -1292,19 +1301,6 @@ const CartPage = () => {
                           </span>
                         </div>
                       </div>
-
-                      <div className="flex items-center mb-4">
-                        <Input
-                          placeholder="Mã giảm giá (nếu có)"
-                          value={promoCode}
-                          onChange={(e) => setPromoCode(e.target.value)}
-                          className="mr-2"
-                        />
-                        <Button size="sm" onClick={handleApplyPromo}>
-                          Áp Dụng
-                        </Button>
-                      </div>
-
                       <Button
                         className="w-full"
                         onClick={() => setShowCheckout(true)}
@@ -1317,6 +1313,8 @@ const CartPage = () => {
                       >
                         Quay về trang Sản Phẩm
                       </Link>
+                      
+                      <DiaChiTime />
 
                       {qrCodeUrl && (
                         <div className="mt-6">
@@ -1487,24 +1485,47 @@ const CartPage = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row gap-2 mt-6">
+                      <div className="flex flex-col sm:flex-row gap-2 mt-6 relative">
                         <Button
                           type="submit"
                           className="flex-1 sm:order-2"
-                          disabled={!cartId}
+                          disabled={!cartId || (paymentMethod === "cod" && isLoading)}
                         >
-                          {paymentMethod === "cod"
-                            ? "Xác nhận thanh toán COD"
-                            : "Thanh toán qua VNPay"}
+                          {paymentMethod === "cod" ? (
+                            isLoading ? (
+                              <div className="flex items-center justify-center">
+                                <CircleLoader size={20} color="#ffffff" className="mr-2" />
+                                Đang xử lý...
+                              </div>
+                            ) : (
+                              "Xác nhận thanh toán COD"
+                            )
+                          ) : (
+                            "Thanh toán qua VNPay"
+                          )}
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
                           className="flex-1 sm:order-1"
                           onClick={() => setShowCheckout(false)}
+                          disabled={isLoading}
                         >
                           Quay lại giỏ hàng
                         </Button>
+                        {isLoading && paymentMethod === "cod" && (
+                          <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 z-50">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center animate-fade-in max-w-sm w-full">
+                              <CircleLoader size={60} color="#9333ea" className="mb-4" />
+                              <p className="text-lg font-semibold text-gray-800">
+                                Đang xử lý đơn hàng...
+                              </p>
+                              <p className="text-sm text-gray-500 mt-2 text-center">
+                                Vui lòng đợi trong giây lát, đơn hàng của bạn đang được xử lý.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </form>
                   </div>
@@ -1578,6 +1599,18 @@ const CartPage = () => {
                           </span>
                         </div>
                       </div>
+
+                      <div className="flex items-center mb-4">
+                        <Input
+                          placeholder="Mã giảm giá (nếu có)"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          className="mr-2"
+                        />
+                        <Button size="sm" onClick={handleApplyPromo}>
+                          Áp Dụng
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1599,7 +1632,6 @@ const CartPage = () => {
           )}
         </div>
       </main>
-
 
       <Dialog.Root
         open={!!selectedCombo}

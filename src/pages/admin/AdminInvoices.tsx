@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from 'react-icons/fa';
 import {
@@ -27,7 +26,8 @@ import {
   Search,
   Plus,
   RefreshCw,
-  Upload
+  Upload,
+  Calendar
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -51,13 +51,14 @@ interface Coupon {
 interface Voucher {
   maVoucher: number;
   tenVoucher: string;
-  giaTri: number;
+  giaTri: number | null;
   moTa: string | null;
   ngayBatDau: string;
   ngayKetThuc: string;
   hinhAnh: string | null;
   dieuKien: number;
-  soLuong: number;
+  giaTriToiDa: number;
+  loaiVoucher: number;
   trangThai: number;
   coupons: Coupon[];
 }
@@ -65,7 +66,6 @@ interface Voucher {
 // Hàm định dạng ngày giờ
 const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
-  // Bù múi giờ để hiển thị đúng ngày địa phương
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
@@ -102,7 +102,8 @@ const Vouchers = () => {
     ngayBatDau: '',
     ngayKetThuc: '',
     dieuKien: '',
-    soLuong: '',
+    giaTriToiDa: '',
+    loaiVoucher: '0',
     hinhAnh: '',
     trangThai: 0,
   });
@@ -119,9 +120,9 @@ const Vouchers = () => {
       const response = await fetch(`http://localhost:5261/api/Voucher`);
       if (!response.ok) throw new Error('Không thể lấy dữ liệu voucher');
       const data: Voucher[] = await response.json();
-      // Chuyển đổi ngày từ API về định dạng ngày địa phương
       const adjustedData = data.map((voucher) => ({
         ...voucher,
+        giaTri: voucher.giaTri ?? (voucher.loaiVoucher === 2 ? 0 : 0),
         ngayBatDau: new Date(new Date(voucher.ngayBatDau).getTime() - new Date(voucher.ngayBatDau).getTimezoneOffset() * 60000).toISOString().split('T')[0],
         ngayKetThuc: new Date(new Date(voucher.ngayKetThuc).getTime() - new Date(voucher.ngayKetThuc).getTimezoneOffset() * 60000).toISOString().split('T')[0],
       }));
@@ -134,16 +135,14 @@ const Vouchers = () => {
     }
   };
 
-  // Hàm xử lý làm mới
   const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault(); // Ngăn chặn hành vi mặc định (reload trang)
-    console.log('Refresh clicked'); // Log để debug
-    setSearchTerm(''); // Reset bộ lọc tìm kiếm
-    setFilterStatus('all'); // Reset bộ lọc trạng thái
-    setFilterStartDate(''); // Reset ngày bắt đầu
-    setFilterEndDate(''); // Reset ngày kết thúc
-    setCurrentPage(1); // Reset về trang đầu
-    fetchVouchers(); // Gọi lại API để lấy danh sách voucher
+    e.preventDefault();
+    setSearchTerm('');
+    setFilterStatus('all');
+    setFilterStartDate('');
+    setFilterEndDate('');
+    setCurrentPage(1);
+    fetchVouchers();
   };
 
   const deleteVoucher = async () => {
@@ -163,7 +162,7 @@ const Vouchers = () => {
       } else {
         throw new Error('Không thể xóa voucher');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi xóa voucher:', error);
       toast.error(error.message || "Có lỗi xảy ra khi xóa voucher.");
     }
@@ -179,8 +178,11 @@ const Vouchers = () => {
       toast.error("Ngày kết thúc không được trước ngày bắt đầu!");
       return;
     }
-
-    if (!newVoucher.tenVoucher || !newVoucher.giaTri || !newVoucher.ngayBatDau || !newVoucher.ngayKetThuc || !newVoucher.dieuKien || !newVoucher.soLuong) {
+    if (newVoucher.loaiVoucher !== '2' && parseFloat(newVoucher.giaTriToiDa) <= parseFloat(newVoucher.dieuKien)) {
+      toast.error("Giá trị tối đa phải lớn hơn điều kiện!");
+      return;
+    }
+    if (!newVoucher.tenVoucher || !newVoucher.ngayBatDau || !newVoucher.ngayKetThuc || !newVoucher.dieuKien || (newVoucher.loaiVoucher !== '2' && !newVoucher.giaTriToiDa) || newVoucher.loaiVoucher === undefined || (newVoucher.loaiVoucher !== '2' && !newVoucher.giaTri)) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
       return;
     }
@@ -191,12 +193,13 @@ const Vouchers = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenVoucher: newVoucher.tenVoucher,
-          giaTri: parseInt(newVoucher.giaTri),
+          giaTri: newVoucher.loaiVoucher === '2' ? 0 : parseInt(newVoucher.giaTri, 10),
           moTa: newVoucher.moTa || null,
-          ngayBatDau: newVoucher.ngayBatDau, // Gửi trực tiếp chuỗi YYYY-MM-DD
-          ngayKetThuc: newVoucher.ngayKetThuc, // Gửi trực tiếp chuỗi YYYY-MM-DD
+          ngayBatDau: newVoucher.ngayBatDau,
+          ngayKetThuc: newVoucher.ngayKetThuc,
           dieuKien: parseFloat(newVoucher.dieuKien),
-          soLuong: parseInt(newVoucher.soLuong),
+          giaTriToiDa: newVoucher.loaiVoucher === '2' ? 0 : parseFloat(newVoucher.giaTriToiDa),
+          loaiVoucher: parseInt(newVoucher.loaiVoucher, 10),
           hinhAnh: newVoucher.hinhAnh || null,
           trangThai: newVoucher.trangThai,
         }),
@@ -216,63 +219,87 @@ const Vouchers = () => {
         ngayBatDau: '',
         ngayKetThuc: '',
         dieuKien: '',
-        soLuong: '',
+        giaTriToiDa: '',
+        loaiVoucher: '0',
         hinhAnh: '',
         trangThai: 0,
       });
       toast.success("Thêm voucher thành công!");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi thêm voucher:', error);
       toast.error(error.message || "Có lỗi xảy ra khi thêm voucher.");
     }
   };
 
   const editVoucherSubmit = async () => {
-    if (!editVoucher) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    if (editVoucher.ngayBatDau < today && editVoucher.ngayBatDau !== today) {
-      toast.error("Ngày bắt đầu không được trước ngày hôm nay!");
+    if (!editVoucher) {
+      toast.error("Không có voucher để sửa!");
       return;
     }
+
+    // Validation
     if (editVoucher.ngayKetThuc < editVoucher.ngayBatDau) {
       toast.error("Ngày kết thúc không được trước ngày bắt đầu!");
       return;
     }
-
-    if (!editVoucher.tenVoucher || !editVoucher.giaTri || !editVoucher.ngayBatDau || !editVoucher.ngayKetThuc || !editVoucher.dieuKien || !editVoucher.soLuong) {
+    if (editVoucher.loaiVoucher !== 2 && editVoucher.giaTriToiDa <= editVoucher.dieuKien) {
+      toast.error("Giá trị tối đa phải lớn hơn điều kiện!");
+      return;
+    }
+    if (
+      !editVoucher.tenVoucher ||
+      !editVoucher.ngayBatDau ||
+      !editVoucher.ngayKetThuc ||
+      !editVoucher.dieuKien ||
+      (editVoucher.loaiVoucher !== 2 && (!editVoucher.giaTri || !editVoucher.giaTriToiDa)) ||
+      editVoucher.loaiVoucher === undefined
+    ) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
       return;
     }
 
+    // Prepare payload
+    const payload = {
+      maVoucher: editVoucher.maVoucher,
+      tenVoucher: editVoucher.tenVoucher,
+      giaTri: editVoucher.loaiVoucher === 2 ? 0 : editVoucher.giaTri ?? 0,
+      moTa: editVoucher.moTa || null,
+      ngayBatDau: editVoucher.ngayBatDau,
+      ngayKetThuc: editVoucher.ngayKetThuc,
+      dieuKien: editVoucher.dieuKien,
+      giaTriToiDa: editVoucher.loaiVoucher === 2 ? 0 : editVoucher.giaTriToiDa ?? 0,
+      loaiVoucher: editVoucher.loaiVoucher,
+      trangThai: editVoucher.trangThai,
+      hinhAnh: editVoucher.hinhAnh || null,
+    };
+
     try {
+      console.log("Sending payload to update voucher:", JSON.stringify(payload, null, 2)); // Debug payload
+
       const response = await fetch(`http://localhost:5261/api/Voucher`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          maVoucher: editVoucher.maVoucher,
-          tenVoucher: editVoucher.tenVoucher,
-          giaTri: parseInt(editVoucher.giaTri.toString()),
-          moTa: editVoucher.moTa || null,
-          ngayBatDau: editVoucher.ngayBatDau, // Gửi trực tiếp chuỗi YYYY-MM-DD
-          ngayKetThuc: editVoucher.ngayKetThuc, // Gửi trực tiếp chuỗi YYYY-MM-DD
-          dieuKien: parseFloat(editVoucher.dieuKien.toString()),
-          soLuong: parseInt(editVoucher.soLuong.toString()),
-          trangThai: editVoucher.trangThai,
-          hinhAnh: editVoucher.hinhAnh || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Không thể sửa voucher');
+        let errorMessage = "Không thể sửa voucher";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          const text = await response.text();
+          console.error("Non-JSON response from server:", text);
+          errorMessage = text || "Lỗi server không xác định";
+        }
+        throw new Error(errorMessage);
       }
 
       await fetchVouchers();
       setOpenEditModal(false);
       setEditVoucher(null);
       toast.success("Sửa voucher thành công!");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi sửa voucher:', error);
       toast.error(error.message || "Có lỗi xảy ra khi sửa voucher.");
     }
@@ -325,17 +352,106 @@ const Vouchers = () => {
     setOpenEditModal(true);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewVoucher({ ...newVoucher, [name]: value });
+  // Handlers for create modal
+  const handleTenVoucherChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewVoucher({ ...newVoucher, tenVoucher: e.target.value });
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditVoucher({ ...editVoucher!, [name]: value });
+  const handleGiaTriChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (newVoucher.loaiVoucher === '0') {
+      if (value === '') {
+        setNewVoucher({ ...newVoucher, giaTri: value });
+      } else {
+        const parsedValue = parseInt(value, 10);
+        if (parsedValue >= 1 && parsedValue <= 99) {
+          setNewVoucher({ ...newVoucher, giaTri: value });
+        } else {
+          toast.error("Giá trị phần trăm phải từ 1 đến 99!");
+        }
+      }
+    } else {
+      setNewVoucher({ ...newVoucher, giaTri: value });
+    }
   };
 
-  // Xử lý kéo thả cho modal thêm
+  const handleMoTaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewVoucher({ ...newVoucher, moTa: e.target.value });
+  };
+
+  const handleNgayBatDauChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewVoucher({ ...newVoucher, ngayBatDau: e.target.value });
+  };
+
+  const handleNgayKetThucChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewVoucher({ ...newVoucher, ngayKetThuc: e.target.value });
+  };
+
+  const handleDieuKienChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewVoucher({ ...newVoucher, dieuKien: e.target.value });
+  };
+
+  const handleGiaTriToiDaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewVoucher({ ...newVoucher, giaTriToiDa: e.target.value });
+  };
+
+  // Handlers for edit modal
+  const handleEditTenVoucherChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      setEditVoucher({ ...editVoucher, tenVoucher: e.target.value });
+    }
+  };
+
+  const handleEditGiaTriChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      const value = e.target.value;
+      if (editVoucher.loaiVoucher === 0) {
+        if (value === '') {
+          setEditVoucher({ ...editVoucher, giaTri: null });
+        } else {
+          const parsedValue = parseInt(value, 10);
+          if (parsedValue >= 1 && parsedValue <= 99) {
+            setEditVoucher({ ...editVoucher, giaTri: parsedValue });
+          } else {
+            toast.error("Giá trị phần trăm phải từ 1 đến 99!");
+          }
+        }
+      } else {
+        setEditVoucher({ ...editVoucher, giaTri: value === '' ? null : parseInt(value, 10) });
+      }
+    }
+  };
+
+  const handleEditMoTaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      setEditVoucher({ ...editVoucher, moTa: e.target.value || null });
+    }
+  };
+
+  const handleEditNgayBatDauChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      setEditVoucher({ ...editVoucher, ngayBatDau: e.target.value });
+    }
+  };
+
+  const handleEditNgayKetThucChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      setEditVoucher({ ...editVoucher, ngayKetThuc: e.target.value });
+    }
+  };
+
+  const handleEditDieuKienChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      setEditVoucher({ ...editVoucher, dieuKien: parseFloat(e.target.value) || 0 });
+    }
+  };
+
+  const handleEditGiaTriToiDaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editVoucher) {
+      setEditVoucher({ ...editVoucher, giaTriToiDa: parseFloat(e.target.value) || 0 });
+    }
+  };
+
   const handleDragOverCreate = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingCreate(true);
@@ -379,7 +495,6 @@ const Vouchers = () => {
     }
   };
 
-  // Xử lý kéo thả cho modal sửa
   const handleDragOverEdit = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingEdit(true);
@@ -444,6 +559,19 @@ const Vouchers = () => {
     return pageNumbers;
   };
 
+  const getVoucherTypeLabel = (loaiVoucher: number) => {
+    switch (loaiVoucher) {
+      case 0:
+        return "Giảm giá theo phần trăm";
+      case 1:
+        return "Giảm giá theo số tiền";
+      case 2:
+        return "Miễn phí vận chuyển";
+      default:
+        return "Không xác định";
+    }
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -461,7 +589,7 @@ const Vouchers = () => {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Danh Sách Voucher</CardTitle>
+          <CardTitle>Danh sách voucher</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 mb-6">
@@ -483,13 +611,14 @@ const Vouchers = () => {
                 </Button>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <div className="w-full sm:w-48">
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="w-full sm:w-48 space-y-1">
+                <Label htmlFor="filterStatus" className="text-sm font-medium text-gray-700">Trạng Thái</Label>
                 <Select
                   value={filterStatus}
                   onValueChange={setFilterStatus}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="filterStatus">
                     <SelectValue placeholder="Trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
@@ -499,9 +628,10 @@ const Vouchers = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <div className="w-full sm:w-48 space-y-1">
-                  <Label htmlFor="filterStartDate" className="text-sm font-medium text-gray-700">Ngày Bắt Đầu</Label>
+              <div className="w-full sm:w-48 space-y-1">
+                <Label htmlFor="filterStartDate" className="text-sm font-medium text-gray-700">Ngày Bắt Đầu</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="filterStartDate"
                     type="date"
@@ -509,11 +639,14 @@ const Vouchers = () => {
                     value={filterStartDate}
                     onChange={(e) => setFilterStartDate(e.target.value)}
                     max={filterEndDate || undefined}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
+                    className="pl-8 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
                   />
                 </div>
-                <div className="w-full sm:w-48 space-y-1">
-                  <Label htmlFor="filterEndDate" className="text-sm font-medium text-gray-700">Ngày Kết Thúc</Label>
+              </div>
+              <div className="w-full sm:w-48 space-y-1">
+                <Label htmlFor="filterEndDate" className="text-sm font-medium text-gray-700">Ngày Kết Thúc</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="filterEndDate"
                     type="date"
@@ -521,7 +654,7 @@ const Vouchers = () => {
                     value={filterEndDate}
                     onChange={(e) => setFilterEndDate(e.target.value)}
                     min={filterStartDate || undefined}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
+                    className="pl-8 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md"
                   />
                 </div>
               </div>
@@ -546,7 +679,12 @@ const Vouchers = () => {
                       />
                     )}
                     <div><strong>ID:</strong> {item.maVoucher}</div>
-                    <div><strong>Giá trị:</strong> {item.giaTri} %</div>
+                    <div>
+                      <strong>Giá trị: </strong>
+                      {item.loaiVoucher === 0 ? `${item.giaTri ?? 0}%` :
+                       item.loaiVoucher === 1 ? `${item.giaTri != null ? item.giaTri.toLocaleString('vi-VN') : '0'} VND` :
+                       "Miễn phí vận chuyển"}
+                    </div>
                     <div><strong>Hết hạn:</strong> {formatDateTime(item.ngayKetThuc)}</div>
                     <div>
                       <strong>Trạng thái:</strong>
@@ -568,25 +706,25 @@ const Vouchers = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={() => handleDetailClick(item)} 
+                          <DropdownMenuItem
+                            onClick={() => handleDetailClick(item)}
                             className="flex items-center text-gray-700 hover:text-blue-600"
                           >
-                            <FaEye className="mr-2 h-4 w-4" /> 
+                            <FaEye className="mr-2 h-4 w-4" />
                             <span>Chi Tiết</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleEditClick(item)} 
+                          <DropdownMenuItem
+                            onClick={() => handleEditClick(item)}
                             className="flex items-center text-gray-700 hover:text-green-600"
                           >
-                            <FaEdit className="mr-2 h-4 w-4 text-green-500" /> 
+                            <FaEdit className="mr-2 h-4 w-4 text-green-500" />
                             <span>Sửa</span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteClick(item)} 
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(item)}
                             className="flex items-center text-gray-700 hover:text-red-600"
                           >
-                            <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> 
+                            <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
                             <span>Xóa</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -654,7 +792,9 @@ const Vouchers = () => {
       </Card>
 
       {/* Modal xác nhận xóa */}
-      <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
+      <Dialog open={openDeleteModal} onOpenChange={(open) => {
+        if (!open) setOpenDeleteModal(false);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Xác nhận xóa voucher</DialogTitle>
@@ -674,14 +814,16 @@ const Vouchers = () => {
       </Dialog>
 
       {/* Modal chi tiết voucher */}
-      <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent className="max-w-5xl">
+      <Dialog open={openDetailModal} onOpenChange={(open) => {
+        if (!open) setOpenDetailModal(false);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chi Tiết Voucher</DialogTitle>
           </DialogHeader>
           {selectedVoucher && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-4">
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Mã Voucher</label>
                   <Input value={selectedVoucher.maVoucher || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
@@ -692,10 +834,16 @@ const Vouchers = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Giá Trị</label>
-                  <Input value={selectedVoucher.giaTri ? `${selectedVoucher.giaTri} %` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                  <Input
+                    value={selectedVoucher.loaiVoucher === 0 ? `${selectedVoucher.giaTri ?? 0}%` :
+                           selectedVoucher.loaiVoucher === 1 ? `${selectedVoucher.giaTri != null ? selectedVoucher.giaTri.toLocaleString('vi-VN') : '0'} VND` :
+                           "Miễn phí vận chuyển"}
+                    disabled
+                    className="mt-1 bg-gray-50"
+                  />
                 </div>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
                   <Input value={selectedVoucher.ngayBatDau ? formatDateTime(selectedVoucher.ngayBatDau) : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
@@ -709,10 +857,14 @@ const Vouchers = () => {
                   <Input value={selectedVoucher.dieuKien ? `${selectedVoucher.dieuKien.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
                 </div>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Số Lượng</label>
-                  <Input value={selectedVoucher.soLuong || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
+                  <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
+                  <Input value={getVoucherTypeLabel(selectedVoucher.loaiVoucher)} disabled className="mt-1 bg-gray-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa</label>
+                  <Input value={selectedVoucher.giaTriToiDa ? `${selectedVoucher.giaTriToiDa.toLocaleString('vi-VN')} VND` : "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Trạng Thái</label>
@@ -731,7 +883,7 @@ const Vouchers = () => {
                   )}
                 </div>
               </div>
-              <div className="md:col-span-3 space-y-4">
+              <div className="md:col-span-3 space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Mô Tả</label>
                   <Input value={selectedVoucher.moTa || "Chưa cập nhật"} disabled className="mt-1 bg-gray-50" />
@@ -739,7 +891,7 @@ const Vouchers = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Mã Coupon</label>
                   {selectedVoucher.coupons && selectedVoucher.coupons.length > 0 ? (
-                    <ul className="list-disc pl-5 mt-1 space-y-1 max-h-26 overflow-y-auto border rounded p-2 bg-gray-50">
+                    <ul className="list-disc pl-5 mt-1 space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
                       {selectedVoucher.coupons.map((coupon) => (
                         <li key={coupon.id} className={coupon.trangThai === 1 ? "line-through text-gray-500" : "text-gray-800"}>
                           {coupon.maNhap}
@@ -762,7 +914,9 @@ const Vouchers = () => {
       </Dialog>
 
       {/* Modal thêm voucher */}
-      <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
+      <Dialog open={openCreateModal} onOpenChange={(open) => {
+        if (!open) setOpenCreateModal(false);
+      }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Thêm Voucher Mới</DialogTitle>
@@ -771,41 +925,105 @@ const Vouchers = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
-                <Input name="tenVoucher" placeholder="Tên Voucher" value={newVoucher.tenVoucher} onChange={handleInputChange} required />
+                <Input
+                  placeholder="Tên Voucher"
+                  value={newVoucher.tenVoucher}
+                  onChange={handleTenVoucherChange}
+                  required
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Giá trị (%)</label>
-                <Input name="giaTri" type="number" placeholder="Giá trị (%)" value={newVoucher.giaTri} onChange={handleInputChange} required />
-              </div>
+              {newVoucher.loaiVoucher !== '2' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Giá trị {newVoucher.loaiVoucher === '0' ? '(%)' : '(VND)'}
+                  </label>
+                  <Input
+                    type="number"
+                    placeholder={`Giá trị ${newVoucher.loaiVoucher === '0' ? '(%)' : '(VND)'}`}
+                    value={newVoucher.giaTri}
+                    onChange={handleGiaTriChange}
+                    required
+                    {...(newVoucher.loaiVoucher === '0' ? { min: 1, max: 99 } : {})}
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Mô tả</label>
-                <Input name="moTa" placeholder="Mô tả" value={newVoucher.moTa} onChange={handleInputChange} />
+                <Input
+                  placeholder="Mô tả"
+                  value={newVoucher.moTa}
+                  onChange={handleMoTaChange}
+                />
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
-                <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={newVoucher.ngayBatDau} onChange={handleInputChange} min={today} required />
+                <Input
+                  type="date"
+                  placeholder="Ngày bắt đầu"
+                  value={newVoucher.ngayBatDau}
+                  onChange={handleNgayBatDauChange}
+                  min={today}
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
-                <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={newVoucher.ngayKetThuc} onChange={handleInputChange} min={newVoucher.ngayBatDau || today} required />
+                <Input
+                  type="date"
+                  placeholder="Ngày kết thúc"
+                  value={newVoucher.ngayKetThuc}
+                  onChange={handleNgayKetThucChange}
+                  min={newVoucher.ngayBatDau || today}
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Điều Kiện (VND)</label>
-                <Input name="dieuKien" type="number" placeholder="Điều kiện (VND)" value={newVoucher.dieuKien} onChange={handleInputChange} required />
+                <Input
+                  type="number"
+                  placeholder="Điều kiện (VND)"
+                  value={newVoucher.dieuKien}
+                  onChange={handleDieuKienChange}
+                  required
+                />
               </div>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Số Lượng</label>
-                <Input name="soLuong" type="number" placeholder="Số lượng" value={newVoucher.soLuong} onChange={handleInputChange} required />
+                <Label>Loại Voucher</Label>
+                <Select
+                  value={newVoucher.loaiVoucher}
+                  onValueChange={(value) => setNewVoucher({ ...newVoucher, loaiVoucher: value, giaTri: value === '2' ? '' : newVoucher.giaTri, giaTriToiDa: value === '2' ? '' : newVoucher.giaTriToiDa })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Loại voucher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Giảm giá theo phần trăm</SelectItem>
+                    <SelectItem value="1">Giảm giá theo số tiền</SelectItem>
+                    <SelectItem value="2">Miễn phí vận chuyển</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              {newVoucher.loaiVoucher !== '2' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa (VND)</label>
+                  <Input
+                    type="number"
+                    placeholder="Giá trị tối đa (VND)"
+                    value={newVoucher.giaTriToiDa}
+                    onChange={handleGiaTriToiDaChange}
+                    required
+                  />
+                </div>
+              )}
               <div>
                 <Label>Trạng Thái</Label>
                 <RadioGroup
                   value={newVoucher.trangThai.toString()}
-                  onValueChange={(value) => setNewVoucher({ ...newVoucher, trangThai: parseInt(value) })}
+                  onValueChange={(value) => setNewVoucher({ ...newVoucher, trangThai: parseInt(value, 10) })}
                   className="flex space-x-4 mt-2"
                 >
                   <div className="flex items-center space-x-2">
@@ -873,7 +1091,9 @@ const Vouchers = () => {
       </Dialog>
 
       {/* Modal sửa voucher */}
-      <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
+      <Dialog open={openEditModal} onOpenChange={(open) => {
+        if (!open) setOpenEditModal(false);
+      }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Sửa Voucher</DialogTitle>
@@ -883,41 +1103,104 @@ const Vouchers = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Tên Voucher</label>
-                  <Input name="tenVoucher" placeholder="Tên Voucher" value={editVoucher.tenVoucher} onChange={handleEditInputChange} required />
+                  <Input
+                    placeholder="Tên Voucher"
+                    value={editVoucher.tenVoucher}
+                    onChange={handleEditTenVoucherChange}
+                    required
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Giá trị (%)</label>
-                  <Input name="giaTri" type="number" placeholder="Giá trị (%)" value={editVoucher.giaTri} onChange={handleEditInputChange} required />
-                </div>
+                {editVoucher.loaiVoucher !== 2 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Giá trị {editVoucher.loaiVoucher === 0 ? '(%)' : '(VND)'}
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder={`Giá trị ${editVoucher.loaiVoucher === 0 ? '(%)' : '(VND)'}`}
+                      value={editVoucher.giaTri ?? ''}
+                      onChange={handleEditGiaTriChange}
+                      required
+                      {...(editVoucher.loaiVoucher === 0 ? { min: 1, max: 99 } : {})}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Mô tả</label>
-                  <Input name="moTa" placeholder="Mô tả" value={editVoucher.moTa || ''} onChange={handleEditInputChange} />
+                  <Input
+                    placeholder="Mô tả"
+                    value={editVoucher.moTa || ''}
+                    onChange={handleEditMoTaChange}
+                  />
                 </div>
               </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ngày Bắt Đầu</label>
-                  <Input name="ngayBatDau" type="date" placeholder="Ngày bắt đầu" value={editVoucher.ngayBatDau} onChange={handleEditInputChange} min={today} required />
+                  <Input
+                    type="date"
+                    placeholder="Ngày bắt đầu"
+                    value={editVoucher.ngayBatDau}
+                    onChange={handleEditNgayBatDauChange}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ngày Kết Thúc</label>
-                  <Input name="ngayKetThuc" type="date" placeholder="Ngày kết thúc" value={editVoucher.ngayKetThuc} onChange={handleEditInputChange} min={editVoucher.ngayBatDau || today} required />
+                  <Input
+                    type="date"
+                    placeholder="Ngày kết thúc"
+                    value={editVoucher.ngayKetThuc}
+                    onChange={handleEditNgayKetThucChange}
+                    min={editVoucher.ngayBatDau}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Điều Kiện (VND)</label>
-                  <Input name="dieuKien" type="number" placeholder="Điều kiện (VND)" value={editVoucher.dieuKien} onChange={handleEditInputChange} required />
+                  <Input
+                    type="number"
+                    placeholder="Điều kiện (VND)"
+                    value={editVoucher.dieuKien}
+                    onChange={handleEditDieuKienChange}
+                    required
+                  />
                 </div>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Số Lượng</label>
-                  <Input name="soLuong" type="number" placeholder="Số lượng" value={editVoucher.soLuong} onChange={handleEditInputChange} required />
+                  <Label>Loại Voucher</Label>
+                  <Select
+                    value={editVoucher.loaiVoucher.toString()}
+                    onValueChange={(value) => setEditVoucher({ ...editVoucher, loaiVoucher: parseInt(value, 10), giaTri: value === '2' ? 0 : editVoucher.giaTri, giaTriToiDa: value === '2' ? 0 : editVoucher.giaTriToiDa })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Loại voucher" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Giảm giá theo phần trăm</SelectItem>
+                      <SelectItem value="1">Giảm giá theo số tiền</SelectItem>
+                      <SelectItem value="2">Miễn phí vận chuyển</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                {editVoucher.loaiVoucher !== 2 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Giá Trị Tối Đa (VND)</label>
+                    <Input
+                      type="number"
+                      placeholder="Giá trị tối đa (VND)"
+                      value={editVoucher.giaTriToiDa}
+                      onChange={handleEditGiaTriToiDaChange}
+                      required
+                    />
+                  </div>
+                )}
                 <div>
                   <Label>Trạng Thái</Label>
                   <RadioGroup
                     value={editVoucher.trangThai.toString()}
-                    onValueChange={(value) => setEditVoucher({ ...editVoucher, trangThai: parseInt(value) })}
+                    onValueChange={(value) => setEditVoucher({ ...editVoucher, trangThai: parseInt(value, 10) })}
                     className="flex space-x-4 mt-2"
                   >
                     <div className="flex items-center space-x-2">

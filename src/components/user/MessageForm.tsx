@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,10 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Paperclip, Smile, Heart, X } from "lucide-react";
 
-// Emoji danh sách mẫu
 const emojiList = ["😊", "😂", "❤️", "👍", "😍", "😢", "😡", "🎉", "🔥", "💯"];
 
-// Định nghĩa schema xác thực tin nhắn
 const messageSchema = z.object({
   message: z.string().max(1000, "Tin nhắn không được vượt quá 1000 ký tự"),
 });
@@ -28,6 +26,10 @@ interface MessageFormProps {
   recipientName: string;
   initialMessage?: string;
   onSuccess?: (message: string, file?: File) => void;
+}
+
+interface ApiResponse {
+  tepDinhKemUrl?: string;
 }
 
 export const MessageForm: React.FC<MessageFormProps> = ({
@@ -47,6 +49,26 @@ export const MessageForm: React.FC<MessageFormProps> = ({
     defaultValues: { message: initialMessage },
   });
 
+  useEffect(() => {
+    const savedState = localStorage.getItem(`messageForm_${recipientId}`);
+    if (savedState) {
+      const { selectedFileData, previewUrlData } = JSON.parse(savedState);
+      if (selectedFileData) setSelectedFile(new File([], selectedFileData.name, { type: selectedFileData.type }));
+      if (previewUrlData) setPreviewUrl(previewUrlData);
+    }
+  }, [recipientId]);
+
+  useEffect(() => {
+    if (selectedFile || previewUrl) {
+      localStorage.setItem(`messageForm_${recipientId}`, JSON.stringify({
+        selectedFileData: selectedFile ? { name: selectedFile.name, type: selectedFile.type } : null,
+        previewUrlData: previewUrl,
+      }));
+    } else {
+      localStorage.removeItem(`messageForm_${recipientId}`);
+    }
+  }, [selectedFile, previewUrl, recipientId]);
+
   const sendMessage = async (
     content: string,
     isEmoji = false,
@@ -61,6 +83,10 @@ export const MessageForm: React.FC<MessageFormProps> = ({
 
       if (!token || !senderId) {
         throw new Error("Vui lòng đăng nhập để gửi tin nhắn.");
+      }
+
+      if (file && file.size > 10 * 1024 * 1024) {
+        throw new Error("Dung lượng tệp không được vượt quá 10MB.");
       }
 
       const formData = new FormData();
@@ -81,11 +107,12 @@ export const MessageForm: React.FC<MessageFormProps> = ({
         throw new Error(errText || "Gửi tin nhắn thất bại");
       }
 
+      const responseData: ApiResponse = await res.json();
       form.reset();
       setSelectedFile(null);
       setPreviewUrl(null);
-      onSuccess?.(content, file || undefined);
-    } catch (err: any) {
+      onSuccess?.(content, file);
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gửi thất bại";
       form.setError("message", { type: "manual", message: msg });
       console.error("Lỗi gửi tin nhắn:", err);
@@ -97,6 +124,10 @@ export const MessageForm: React.FC<MessageFormProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        form.setError("message", { type: "manual", message: "Dung lượng tệp không được vượt quá 10MB." });
+        return;
+      }
       setSelectedFile(file);
       if (file.type.startsWith("image/")) {
         setPreviewUrl(URL.createObjectURL(file));
@@ -131,10 +162,9 @@ export const MessageForm: React.FC<MessageFormProps> = ({
           name="message"
           render={({ field }) => (
             <FormItem>
-              {/* Hiển thị preview tệp */}
               {(selectedFile || previewUrl) && (
                 <div className="relative mb-2">
-                  {previewUrl ? (
+                  {previewUrl && selectedFile?.type.startsWith("image/") ? (
                     <img
                       src={previewUrl}
                       alt="Preview"
@@ -155,14 +185,13 @@ export const MessageForm: React.FC<MessageFormProps> = ({
                 </div>
               )}
 
-              {/* Picker emoji */}
               {showEmojiPicker && (
-                <div className="flex flex-wrap gap-2 p-2 mb-2 border rounded-md bg-white border-[#9b87f5]">
+                <div className="flex flex-wrap gap-2 p-2 mb-2 border rounded-md bg-white border-[#c083fc]">
                   {emojiList.map((emoji) => (
                     <Button
                       key={emoji}
                       type="button"
-                      className="text-2xl bg-transparent hover:bg-[#9b87f5]/10"
+                      className="text-2xl bg-transparent hover:bg-[#c083fc]/10"
                       onClick={() => handleEmojiSend(emoji)}
                     >
                       {emoji}
@@ -172,12 +201,11 @@ export const MessageForm: React.FC<MessageFormProps> = ({
               )}
 
               <div className="flex items-center gap-2">
-                {/* Chọn tệp và emoji */}
                 <div className="flex items-center gap-1">
                   <Button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 bg-[#f5f0ff] text-[#9b87f5] rounded-full hover:bg-[#9b87f5]/20"
+                    className="p-2 bg-[#f5f0ff] text-[#c083fc] rounded-full hover:bg-[#c083fc]/20"
                   >
                     <Paperclip className="w-5 h-5" />
                   </Button>
@@ -191,29 +219,27 @@ export const MessageForm: React.FC<MessageFormProps> = ({
                   <Button
                     type="button"
                     onClick={() => setShowEmojiPicker((prev) => !prev)}
-                    className="p-2 bg-[#f5f0ff] text-[#9b87f5] rounded-full hover:bg-[#9b87f5]/20"
+                    className="p-2 bg-[#f5f0ff] text-[#c083fc] rounded-full hover:bg-[#c083fc]/20"
                   >
                     <Smile className="w-5 h-5" />
                   </Button>
                 </div>
 
-                {/* Textarea nhập nội dung */}
                 <FormControl className="flex-1">
                   <Textarea
                     {...field}
                     placeholder={`Nhập tin nhắn đến ${recipientName}...`}
-                    className="min-h-[40px] max-h-[120px] h-[40px] resize-none overflow-y-auto border-2 border-[#9b87f5] bg-[#f5f0ff] focus:ring-[#9b87f5] rounded-full px-4 py-2 text-sm"
+                    className="min-h-[40px] max-h-[120px] h-[40px] resize-none overflow-y-auto border-2 border-[#c083fc] bg-[#f5f0ff] focus:ring-[#c083fc] rounded-full px-4 py-2 text-sm"
                     onChange={field.onChange}
                     onKeyDown={handleKeyDown}
                   />
                 </FormControl>
 
-                {/* Nút gửi */}
                 {form.watch("message")?.trim() ? (
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="p-2 rounded-full text-white bg-[#9b87f5] hover:bg-[#8a77e0]"
+                    className="p-2 rounded-full text-white bg-[#c083fc] hover:bg-[#b072e8]"
                   >
                     <Send className="w-5 h-5" />
                   </Button>
@@ -222,7 +248,7 @@ export const MessageForm: React.FC<MessageFormProps> = ({
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleHeartSend}
-                    className="p-2 rounded-full text-red-500 bg-[#f5f0ff] hover:bg-red-500/20"
+                    className="p-2 rounded-full text-[#00c2cb] bg-[#f5f0ff] hover:bg-[#00c2cb]/20"
                   >
                     <Heart className="w-5 h-5" />
                   </Button>

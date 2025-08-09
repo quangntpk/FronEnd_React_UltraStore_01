@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Heart, ShoppingCart, Printer } from "lucide-react";
+import { Heart, ShoppingCart, Printer, Zap, CreditCard } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -13,15 +13,17 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import Swal from "sweetalert2";
-import Comments from "./Comments"; // If you actually need Comments component
+import Comments from "./Comments";
 import Testing from "@/components/default/Testing";
 import SelectSize from "@/components/default/SelectSize";
-
+import SanPhamLienQuan from "@/pages/products/ProductShowcase"
+import MoTaSanPham from './MoTaSanPham';
 // ---------- Types ---------- //
 interface ProductDetail {
   kichThuoc: string;
   soLuong: number;
   gia: number;
+  hinhAnh: string;
 }
 
 interface Product {
@@ -35,59 +37,6 @@ interface Product {
   details: ProductDetail[];
   hinhAnhs: string[];
 }
-
-// ---------- Mock Data (remove when API is ready) ---------- //
-const mockReviews = [
-  {
-    id: 1,
-    user: "Emma S.",
-    date: "March 15, 2025",
-    rating: 5,
-    comment: "Absolutely love this product! The quality is amazing.",
-  },
-  {
-    id: 2,
-    user: "Sophia T.",
-    date: "March 10, 2025",
-    rating: 4,
-    comment: "Great fit, very comfortable.",
-  },
-  {
-    id: 3,
-    user: "Olivia R.",
-    date: "March 5, 2025",
-    rating: 5,
-    comment: "Perfect for my needs, highly recommend!",
-  },
-];
-
-const mockRelatedProducts = [
-  {
-    id: "A00002",
-    name: "Áo thun S Đen",
-    price: 29.99,
-    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-    rating: 4.8,
-    isFavorite: true,
-  },
-  {
-    id: "A00003",
-    name: "Áo thun M Trắng",
-    price: 39.99,
-    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
-    rating: 4.2,
-    isFavorite: false,
-  },
-  {
-    id: "A00004",
-    name: "Áo thun L Đen",
-    price: 129.99,
-    image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
-    rating: 4.9,
-    isFavorite: false,
-  },
-];
-
 // ---------- Helpers ---------- //
 const showNotification = (message: string, type: "success" | "error") => {
   Swal.fire({
@@ -125,6 +74,7 @@ const handlePrint = () => {
 // ---------- Component ---------- //
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   // ---- State ---- //
   const [products, setProducts] = useState<Product[]>([]);
@@ -156,7 +106,7 @@ const ProductDetail = () => {
         if (data.length === 0) throw new Error("No products found");
 
         setProducts(data);
-
+        console.log(data);
         // Pick exact variant or first item
         const product = data.find((p) => p.id === id) || data[0];
         setSelectedProduct(product);
@@ -200,7 +150,7 @@ const ProductDetail = () => {
     setSelectedColor(color);
     setSelectedSize(product.details[0]?.kichThuoc || "");
     setMainImage(
-      product.hinhAnhs[0] ? `data:image/jpeg;base64,${product.hinhAnhs[0]}` : ""
+      product.details[0]?.hinhAnh ? `data:image/jpeg;base64,${product.details[0].hinhAnh}` : ""
     );
     setStock(product.details[0]?.soLuong || 0);
     setQuantity(1);
@@ -210,6 +160,9 @@ const ProductDetail = () => {
     if (!selectedProduct) return;
     setSelectedSize(size);
     const detail = selectedProduct.details.find((d) => d.kichThuoc === size);
+    setMainImage(
+      detail?.hinhAnh ? `data:image/jpeg;base64,${detail.hinhAnh}` : ""
+    );
     setStock(detail?.soLuong || 0);
   };
 
@@ -236,7 +189,7 @@ const ProductDetail = () => {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        if (!res.ok) throw new Error("Failed to remove favorite");
+        if (!v) throw new Error("Failed to remove favorite");
         setIsLiked(false);
         setLikedId(null);
         showNotification("Đã xóa sản phẩm khỏi danh sách yêu thích!", "success");
@@ -258,8 +211,7 @@ const ProductDetail = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            Authorization: `Bearer ${localStorage.getItem("token")}` },
           body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Failed to add favorite");
@@ -304,8 +256,7 @@ const ProductDetail = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            Authorization: `Bearer ${localStorage.getItem("token")}` },
           body: JSON.stringify(cartData),
         }
       );
@@ -316,10 +267,55 @@ const ProductDetail = () => {
     }
   };
 
+  const handleBuyNow = () => {
+    if (!selectedProduct) return;
+
+    if (!selectedSize) {
+      showNotification("Vui lòng chọn kích thước trước khi mua!", "error");
+      return;
+    }
+
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const maNguoiDung = userData?.maNguoiDung;
+
+    if (!maNguoiDung) {
+      showNotification("Vui lòng đăng nhập để mua sản phẩm!", "error");
+      return;
+    }
+
+    // Prepare data to save
+    const cartData = {
+      IDNguoiDung: maNguoiDung,
+      IDSanPham: selectedProduct.id.split("_")[0],
+      MauSac: selectedProduct.mauSac,
+      KichThuoc: selectedSize,
+      SoLuong: quantity,
+      TenSanPham: selectedProduct.tenSanPham,
+      Gia: selectedProduct.details.find((d) => d.kichThuoc === selectedSize)?.gia || 0,
+      NgayMua: new Date().toISOString(),
+    };
+
+    try {
+      const existingData = JSON.parse(localStorage.getItem("InstantBuy") || "[]");
+      existingData.length = 0; 
+      existingData.push(cartData);
+      localStorage.setItem("InstantBuy", JSON.stringify(existingData, null, 2));
+      // Redirect to checkout
+      navigate("/user/CheckOutInstant");
+      showNotification("Đang chuyển đến trang thanh toán!", "success");
+    } catch {
+      showNotification("Có lỗi xảy ra khi mua sản phẩm!", "error");
+    }
+  };
+
   // ---- Render ---- //
   if (loading) return <div className="container mx-auto py-8">Loading...</div>;
   if (error || !selectedProduct)
     return <div className="container mx-auto py-8">{error || "Product not found."}</div>;
+
+  // Get the price for the selected size
+  const selectedDetail = selectedProduct.details.find((d) => d.kichThuoc === selectedSize);
+  const price = selectedDetail ? selectedDetail.gia : selectedProduct.details[0]?.gia || 0;
 
   return (
     <div className="container mx-auto py-8">
@@ -342,24 +338,45 @@ const ProductDetail = () => {
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            {selectedProduct.hinhAnhs.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() =>
-                  setMainImage(`data:image/jpeg;base64,${img}`)
-                }
-                className={`aspect-square rounded-md overflow-hidden ${mainImage === `data:image/jpeg;base64,${img}`
-                    ? "ring-2 ring-crocus-500"
-                    : "opacity-70"
-                  }`}
-              >
-                <img
-                  src={`data:image/jpeg;base64,${img}`}
-                  alt={`thumb-${idx}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+            <button
+                  key={products[0].tenSanPham.substring(0,6)}
+                  onClick={() => setMainImage(
+                    products[0].hinhAnhs[0] ? `data:image/jpeg;base64,${products[0].hinhAnhs[0]}` : ""
+                  )}
+                  className={`aspect-square rounded-md overflow-hidden 
+                      ? "ring-2 ring-crocus-500"
+                      : "opacity-70"
+                    }`}
+                >
+                  <img
+                    src={products[0].hinhAnhs[0] ? `data:image/jpeg;base64,${products[0].hinhAnhs[0]}` : ""}
+                    alt={`${products[0].tenSanPham.substring(0,6)}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+            {products
+              .filter(product => product.details[0]?.hinhAnh) 
+              .map((product, idx) => ({
+                image: `data:image/jpeg;base64,${product.details[0].hinhAnh}`,
+                productId: product.id
+              }))
+              .filter(item => item.image !== 'data:image/jpeg;base64,') 
+              .map((item, idx) => (
+                <button
+                  key={`${item.productId}-${idx}`}
+                  onClick={() => setMainImage(item.image)}
+                  className={`aspect-square rounded-md overflow-hidden ${mainImage === item.image
+                      ? "ring-2 ring-crocus-500"
+                      : "opacity-70"
+                    }`}
+                >
+                  <img
+                    src={item.image}
+                    alt={`thumb-${item.productId}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
           </div>
         </div>
 
@@ -369,7 +386,7 @@ const ProductDetail = () => {
           <div>
             <h1 className="text-3xl font-bold">{selectedProduct.tenSanPham}</h1>
             <p className="text-2xl font-bold text-crocus-600 mt-2">
-              {(selectedProduct.details[0].gia / 1000).toFixed(3)} VND
+              {(price / 1000).toFixed(3)} VND
             </p>
           </div>
 
@@ -447,45 +464,96 @@ const ProductDetail = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
-            <Button
-              onClick={handleAddToCart}
-              className="flex-1 bg-crocus-600 hover:bg-crocus-700"
-              disabled={stock === 0}
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" /> Thêm Vào Giỏ Hàng
-            </Button>
-            <Button variant="outline" onClick={toggleFavorite} className="w-12">
-              <Heart
-                className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
-              />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handlePrint}
-              className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-            >
-              <Printer className="mr-2 h-4 w-4" /> In
-            </Button>
+          <div className="space-y-4">
+            {/* Main Action Buttons */}
+            <div className="flex gap-3">
+              {/* Add to Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                disabled={stock === 0}
+                className="flex-1 relative overflow-hidden group bg-gradient-to-r from-[#0E5AF0] to-[#EF00D6] text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
+                style={{
+                  background: stock === 0 ? '#gray' : 'linear-gradient(to right, #0E5AF0, #EF00D6)',
+                }}
+                onMouseEnter={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = '#EF00D6';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = 'linear-gradient(to right, #0E5AF0, #EF00D6)';
+                  }
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>Thêm Vào Giỏ Hàng</span>
+                </div>
+              </button>
+
+              {/* Buy Now Button */}
+              <button
+                onClick={handleBuyNow}
+                disabled={stock === 0}
+                className="flex-1 relative overflow-hidden group bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
+                style={{
+                  background: stock === 0 ? '#gray' : 'linear-gradient(to right, #FF6B35, #F7931E)',
+                }}
+                onMouseEnter={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = '#F7931E';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (stock > 0) {
+                    e.currentTarget.style.background = 'linear-gradient(to right, #FF6B35, #F7931E)';
+                  }
+                }}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  <span>Mua Ngay</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Secondary Action Buttons */}
+            <div className="flex gap-3">
+              {/* Favorite Button */}
+              <button
+                onClick={toggleFavorite}
+                className="flex-1 bg-white border-2 border-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium transition-all duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-600 flex items-center justify-center gap-2"
+              >
+                <Heart
+                  className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
+                />
+                <span>{isLiked ? "Đã Yêu Thích" : "Yêu Thích"}</span>
+              </button>
+            </div>
           </div>
 
           {/* Barcode */}
-          <div className="text-center flex justify-center">
-            <img
-              alt="Barcode"
-              src={`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
-                selectedProduct.id
-              )}&translate-esc=on`}
-            />
+          <div className="text-center flex justify-center pt-6">
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <img
+                alt="Barcode"
+                src={`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
+                  `${selectedProduct.id.split("_")[0]}_${selectedProduct.mauSac}_${selectedSize}`
+                )}&translate-esc=on`}
+                className="mx-auto"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-
       <Testing />
+      <MoTaSanPham product={selectedProduct} />
       {/* Comments Section */}
       <Comments productId={id} />
 
+      <SanPhamLienQuan productId={id}/>
     </div>
   );
 };

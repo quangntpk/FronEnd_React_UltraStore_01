@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from "react-icons/fa";
+import { IoAddCircleOutline, IoSearch, IoFilter, IoGrid, IoList, IoClose } from "react-icons/io5";
+import { MdUpload } from "react-icons/md";
 import {
   Card,
   CardContent,
@@ -22,41 +24,77 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, RefreshCw, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import toast, { Toaster } from "react-hot-toast";
+import Swal from "sweetalert2";
+import ReactQuill from "react-quill";
+import 'react-quill/dist/quill.snow.css';
 
-// Định nghĩa interface cho Blog
+interface NguoiDung {
+  maNguoiDung: string | number;
+  hoTen: string;
+}
+
 interface Blog {
-  maBlog: number | null;
+  maBlog: string | number | null;
   maNguoiDung: string;
   hoTen?: string | null;
   ngayTao: string;
   ngayCapNhat?: string;
   tieuDe: string;
   noiDung: string;
-  slug?: string;
+  slug?: string | null;
   metaTitle?: string;
   metaDescription?: string;
   hinhAnh?: string | null;
   moTaHinhAnh?: string;
+  chuDe?: string;
   isPublished: boolean;
   tags?: string[];
 }
 
-// Hàm định dạng ngày giờ
 const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  try {
+    return new Date(dateString).toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch {
+    return "Không xác định";
+  }
 };
 
-const Blogs = () => {
+const generateSlug = (title: string, existingSlugs: string[]): string => {
+  const slug = title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  let newSlug = slug;
+  let counter = 1;
+
+  while (existingSlugs.includes(newSlug)) {
+    newSlug = `${slug}-${counter}`;
+    counter++;
+  }
+
+  return newSlug;
+};
+
+const generateMoTaHinhAnh = (title: string): string => {
+  return `Hình ảnh cho bài viết: ${title}`;
+};
+
+const AdminBlog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<"title-asc" | "title-desc" | "date-asc" | "date-desc" | "">("");
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
   const [openDetailModal, setOpenDetailModal] = useState(false);
@@ -74,6 +112,7 @@ const Blogs = () => {
     metaDescription: "",
     hinhAnh: "",
     moTaHinhAnh: "",
+    chuDe: "",
     isPublished: false,
     tags: [],
   });
@@ -81,30 +120,68 @@ const Blogs = () => {
   const [isDraggingCreate, setIsDraggingCreate] = useState(false);
   const [isDraggingEdit, setIsDraggingEdit] = useState(false);
   const [maNguoiDung, setMaNguoiDung] = useState<string | null>(null);
-
   const [currentPage, setCurrentPage] = useState(1);
+  const [nguoiDungs, setNguoiDungs] = useState<{ [key: string]: NguoiDung | null }>({});
   const blogsPerPage = 8;
 
-  // Lấy maNguoiDung từ localStorage khi component mount
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (userId) {
       setMaNguoiDung(userId);
+      setNewBlog((prev) => ({ ...prev, maNguoiDung: userId }));
     } else {
-      toast.error("Không tìm thấy mã người dùng. Vui lòng đăng nhập lại.");
+      setError("Không tìm thấy mã người dùng. Vui lòng đăng nhập lại.");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Không tìm thấy mã người dùng. Vui lòng đăng nhập lại.",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     }
   }, []);
 
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog`);
-      if (!response.ok) throw new Error("Không thể lấy dữ liệu blog");
+      setError(null);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data: Blog[] = await response.json();
-      setBlogs(data);
+      setBlogs(data || []);
+
+      // Fetch user data
+      const uniqueMaNguoiDungs = [...new Set(data.map(blog => blog.maNguoiDung))];
+      const nguoiDungPromises = uniqueMaNguoiDungs.map(maNguoiDung =>
+        fetch(`${import.meta.env.VITE_API_URL}/api/NguoiDung/${maNguoiDung}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }).then(res => res.ok ? res.json() : null).catch(() => null)
+      );
+      const nguoiDungResponses = await Promise.all(nguoiDungPromises);
+      const nguoiDungMap = uniqueMaNguoiDungs.reduce((acc, maNguoiDung, index) => {
+        acc[maNguoiDung] = nguoiDungResponses[index] || null;
+        return acc;
+      }, {} as { [key: string]: NguoiDung | null });
+      setNguoiDungs(nguoiDungMap);
     } catch (error) {
-      console.error("Lỗi khi lấy danh sách blog:", error);
-      toast.error("Có lỗi xảy ra khi tải danh sách blog.");
+      console.error("Error fetching blogs:", error);
+      setError("Có lỗi xảy ra khi tải danh sách blog.");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Có lỗi xảy ra khi tải danh sách blog.",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+      setBlogs([]);
     } finally {
       setLoading(false);
     }
@@ -118,52 +195,81 @@ const Blogs = () => {
         `${import.meta.env.VITE_API_URL}/api/Blog/${blogToDelete.maBlog}`,
         {
           method: "DELETE",
+          headers: { "Content-Type": "application/json" },
         }
       );
       if (response.status === 204) {
         setBlogs(blogs.filter((blog) => blog.maBlog !== blogToDelete.maBlog));
         setOpenDeleteModal(false);
         setBlogToDelete(null);
-        toast.success("Xóa blog thành công!");
-      } else if (response.status === 404) {
-        throw new Error("Blog không tồn tại");
+        Swal.fire({
+          icon: "success",
+          title: "Thành công",
+          text: "Xóa blog thành công!",
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          showCloseButton: true,
+        });
       } else {
-        throw new Error("Không thể xóa blog");
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error("Lỗi khi xóa blog:", error);
-      toast.error("Có lỗi xảy ra khi xóa blog.");
+      console.error("Error deleting blog:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Có lỗi xảy ra khi xóa blog.",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     }
   };
 
   const createBlog = async () => {
     if (!maNguoiDung) {
-      toast.error("Không tìm thấy mã người dùng.");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Không tìm thấy mã người dùng.",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
       return;
     }
-    if (!newBlog.tieuDe || !newBlog.noiDung) {
-      toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
+    if (!newBlog.tieuDe || !newBlog.noiDung || !newBlog.chuDe) {
+      Swal.fire({
+        icon: "warning",
+        title: "Cảnh báo",
+        text: "Vui lòng điền tiêu đề, nội dung và chủ đề!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
       return;
     }
 
     try {
+      const existingSlugs = blogs.map((blog) => blog.slug || "");
+      const newSlug = generateSlug(newBlog.tieuDe, existingSlugs);
+      const newMoTaHinhAnh = generateMoTaHinhAnh(newBlog.tieuDe);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog/CreateBlog`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          maNguoiDung: maNguoiDung,
-          tieuDe: newBlog.tieuDe,
-          noiDung: newBlog.noiDung,
-          ngayTao: newBlog.ngayTao
-            ? new Date(newBlog.ngayTao).toISOString()
-            : new Date().toISOString(),
-          slug: newBlog.slug,
-          metaTitle: newBlog.metaTitle,
-          metaDescription: newBlog.metaDescription,
+          ...newBlog,
+          maNguoiDung,
+          ngayTao: new Date(newBlog.ngayTao).toISOString(),
           hinhAnh: newBlog.hinhAnh || null,
-          moTaHinhAnh: newBlog.moTaHinhAnh,
-          isPublished: newBlog.isPublished,
-          tags: newBlog.tags,
+          slug: newSlug,
+          moTaHinhAnh: newMoTaHinhAnh,
+          chuDe: newBlog.chuDe,
         }),
       });
 
@@ -176,7 +282,7 @@ const Blogs = () => {
       setOpenCreateModal(false);
       setNewBlog({
         maBlog: null,
-        maNguoiDung: "",
+        maNguoiDung: maNguoiDung || "",
         tieuDe: "",
         noiDung: "",
         ngayTao: new Date().toISOString().split("T")[0],
@@ -185,43 +291,66 @@ const Blogs = () => {
         metaDescription: "",
         hinhAnh: "",
         moTaHinhAnh: "",
+        chuDe: "",
         isPublished: false,
         tags: [],
       });
-      toast.success("Thêm blog thành công!");
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Thêm blog thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     } catch (error) {
-      console.error("Lỗi khi thêm blog:", error);
-      toast.error("Có lỗi xảy ra khi thêm blog.");
+      console.error("Error creating blog:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Có lỗi xảy ra khi thêm blog.",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     }
   };
 
   const editBlogSubmit = async () => {
-    if (!editBlog) return;
-
-    if (!editBlog.tieuDe || !editBlog.noiDung) {
-      toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
+    if (!editBlog || !editBlog.tieuDe || !editBlog.noiDung || !editBlog.chuDe) {
+      Swal.fire({
+        icon: "warning",
+        title: "Cảnh báo",
+        text: "Vui lòng điền tiêu đề, nội dung và chủ đề!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
       return;
     }
 
     try {
+      const existingSlugs = blogs
+        .filter((blog) => blog.maBlog !== editBlog.maBlog)
+        .map((blog) => blog.slug || "");
+      const newSlug = generateSlug(editBlog.tieuDe, existingSlugs);
+      const newMoTaHinhAnh = generateMoTaHinhAnh(editBlog.tieuDe);
+
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/Blog/${editBlog.maBlog}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            maBlog: editBlog.maBlog,
-            maNguoiDung: editBlog.maNguoiDung,
-            tieuDe: editBlog.tieuDe,
-            noiDung: editBlog.noiDung,
+            ...editBlog,
             ngayTao: new Date(editBlog.ngayTao).toISOString(),
-            slug: editBlog.slug,
-            metaTitle: editBlog.metaTitle,
-            metaDescription: editBlog.metaDescription,
             hinhAnh: editBlog.hinhAnh || null,
-            moTaHinhAnh: editBlog.moTaHinhAnh,
-            isPublished: editBlog.isPublished,
-            tags: editBlog.tags,
+            slug: newSlug,
+            moTaHinhAnh: newMoTaHinhAnh,
+            chuDe: editBlog.chuDe,
           }),
         }
       );
@@ -234,10 +363,26 @@ const Blogs = () => {
       await fetchBlogs();
       setOpenEditModal(false);
       setEditBlog(null);
-      toast.success("Sửa blog thành công!");
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Sửa blog thành công!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     } catch (error) {
-      console.error("Lỗi khi sửa blog:", error);
-      toast.error("Có lỗi xảy ra khi sửa blog.");
+      console.error("Error updating blog:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Có lỗi xảy ra khi sửa blog.",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
     }
   };
 
@@ -245,14 +390,29 @@ const Blogs = () => {
     fetchBlogs();
   }, []);
 
-  const filteredBlogs = blogs.filter((item) =>
-    item.tieuDe.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const sortedAndFilteredBlogs = useMemo(() => {
+    const filtered = blogs.filter((item) =>
+      item.tieuDe.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    switch (sortBy) {
+      case "title-asc":
+        return [...filtered].sort((a, b) => (a.tieuDe || "").localeCompare(b.tieuDe || ""));
+      case "title-desc":
+        return [...filtered].sort((a, b) => (b.tieuDe || "").localeCompare(a.tieuDe || ""));
+      case "date-asc":
+        return [...filtered].sort((a, b) => new Date(a.ngayTao).getTime() - new Date(b.ngayTao).getTime());
+      case "date-desc":
+        return [...filtered].sort((a, b) => new Date(b.ngayTao).getTime() - new Date(a.ngayTao).getTime());
+      default:
+        return filtered;
+    }
+  }, [blogs, searchTerm, sortBy]);
 
   const indexOfLastBlog = currentPage * blogsPerPage;
   const indexOfFirstBlog = indexOfLastBlog - blogsPerPage;
-  const currentBlogs = filteredBlogs.slice(indexOfFirstBlog, indexOfLastBlog);
-  const totalPages = Math.ceil(filteredBlogs.length / blogsPerPage);
+  const currentBlogs = sortedAndFilteredBlogs.slice(indexOfFirstBlog, indexOfLastBlog);
+  const totalPages = Math.ceil(sortedAndFilteredBlogs.length / blogsPerPage);
 
   const handleDeleteClick = (blog: Blog) => {
     setBlogToDelete(blog);
@@ -272,6 +432,7 @@ const Blogs = () => {
       metaTitle: blog.metaTitle || "",
       metaDescription: blog.metaDescription || "",
       moTaHinhAnh: blog.moTaHinhAnh || "",
+      chuDe: blog.chuDe || "",
       tags: blog.tags || [],
     });
     setOpenEditModal(true);
@@ -291,96 +452,74 @@ const Blogs = () => {
     setEditBlog({ ...editBlog!, [name]: value });
   };
 
-  // Xử lý kéo thả cho modal thêm
-  const handleDragOverCreate = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingCreate(true);
-  };
-
-  const handleDragLeaveCreate = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingCreate(false);
-  };
-
-  const handleDropCreate = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingCreate(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChangeCreate(file);
-    } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
+  const handleImageChange = (file: File, isEdit: boolean) => {
+    if (!file.type.startsWith("image/")) {
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Vui lòng chọn một tệp hình ảnh!",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+      return;
     }
-  };
-
-  const handleImageChangeCreate = (file: File) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === "string") {
         const base64String = reader.result.split(",")[1];
-        setNewBlog({ ...newBlog, hinhAnh: base64String });
+        if (isEdit) {
+          setEditBlog({ ...editBlog!, hinhAnh: base64String });
+        } else {
+          setNewBlog({ ...newBlog, hinhAnh: base64String });
+        }
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleFileInputChangeCreate = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChangeCreate(file);
+  const handleDragOver = (e: React.DragEvent, isEdit: boolean) => {
+    e.preventDefault();
+    if (isEdit) {
+      setIsDraggingEdit(true);
     } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
+      setIsDraggingCreate(true);
     }
   };
 
-  // Xử lý kéo thả cho modal sửa
-  const handleDragOverEdit = (e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent, isEdit: boolean) => {
     e.preventDefault();
-    setIsDraggingEdit(true);
+    if (isEdit) {
+      setIsDraggingEdit(false);
+    } else {
+      setIsDraggingCreate(false);
+    }
   };
 
-  const handleDragLeaveEdit = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, isEdit: boolean) => {
     e.preventDefault();
-    setIsDraggingEdit(false);
-  };
+    if (isEdit) {
+      setIsDraggingEdit(false);
+    } else {
+      setIsDraggingCreate(false);
+    }
 
-  const handleDropEdit = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingEdit(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChangeEdit(file);
-    } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
+    if (file) {
+      handleImageChange(file, isEdit);
     }
   };
 
-  const handleImageChangeEdit = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === "string") {
-        const base64String = reader.result.split(",")[1];
-        setEditBlog({ ...editBlog!, hinhAnh: base64String });
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleFileInputChangeEdit = (
-    e: React.ChangeEvent<HTMLInputElement>
+  const handleFileInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isEdit: boolean
   ) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      handleImageChangeEdit(file);
-    } else {
-      toast.error("Vui lòng chọn một tệp hình ảnh!");
-    }
+    if (file) handleImageChange(file, isEdit);
   };
 
   const getPageNumbers = () => {
-    const pageNumbers = [];
     const maxPagesToShow = 5;
     const half = Math.floor(maxPagesToShow / 2);
     let startPage = Math.max(1, currentPage - half);
@@ -394,136 +533,257 @@ const Blogs = () => {
       }
     }
 
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(i);
-    }
-    return pageNumbers;
+    return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      ['blockquote', 'code-block'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      [{ 'script': 'sub' }, { 'script': 'super' }],
+      [{ 'indent': '-1' }, { 'indent': '+1' }],
+      [{ 'direction': 'rtl' }],
+      [{ 'size': ['small', 'normal', 'large', 'huge'] }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'font': [] }],
+      [{ 'align': [] }],
+      ['clean'],
+      ['link', 'image']
+    ]
+  };
 
   return (
     <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
-      <Toaster position="top-right" />
-
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">
-          Quản lý bài viết
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-800">Quản lý bài viết</h1>
+        </div>
         <Button
-         className="bg-purple-400 hover:bg-purple-500 text-white"
+          className="bg-purple-400 hover:bg-purple-500 text-white"
           size="lg"
           onClick={() => setOpenCreateModal(true)}
         >
-          <Plus className="h-5 w-5 mr-2" /> Thêm Blog
+          <IoAddCircleOutline className="h-5 w-5 mr-2" /> Thêm Blog
         </Button>
       </div>
 
       <Card className="shadow-lg rounded-xl bg-white">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-800">
-            Danh Sách Blog
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-800">Danh sách bài viết</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-between items-start sm:items-center">
             <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <IoSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
                 type="search"
-                placeholder="Tìm kiếm blog theo tiêu đề..."
-                className="pl-10 w-full bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Tìm kiếm..."
+                className="pl-10 w-full bg-gray-50 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
-              onClick={fetchBlogs}
-            >
-              <RefreshCw className="h-5 w-5 mr-2" />
-              Làm Mới
-            </Button>
+            <div className="flex gap-2 self-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-gray-300 text-gray-700 hover:bg-gray-100"
+                  >
+                    <IoFilter className="h-4 w-4 mr-2" />
+                    {sortBy === ""
+                      ? "Sắp xếp"
+                      : sortBy === "title-asc"
+                        ? "Tiêu đề: A - Z"
+                        : sortBy === "title-desc"
+                          ? "Tiêu đề: Z - A"
+                          : sortBy === "date-asc"
+                            ? "Cũ nhất"
+                            : "Mới nhất"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="rounded-lg shadow-lg">
+                  <DropdownMenuItem onClick={() => setSortBy("")}>Mặc định</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("title-asc")}>Tiêu đề: A - Z</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("title-desc")}>Tiêu đề: Z - A</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("date-asc")}>Cũ nhất</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("date-desc")}>Mới nhất</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <div className="flex border rounded-md">
+                <Button
+                  variant={view === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-9 rounded-r-none"
+                  onClick={() => setView("grid")}
+                  aria-label="Chuyển sang chế độ lưới"
+                >
+                  <IoGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={view === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-9 rounded-l-none"
+                  onClick={() => setView("list")}
+                  aria-label="Chuyển sang chế độ danh sách"
+                >
+                  <IoList className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
+          {error && (
+            <div className="text-center py-4 text-red-600 text-lg">{error}</div>
+          )}
+
           {loading ? (
-            <div className="text-center py-8 text-gray-500 text-lg">
-              Đang tải...
-            </div>
+            <div className="text-center py-8 text-gray-500 text-lg">Đang tải...</div>
           ) : currentBlogs.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {currentBlogs.map((item) => (
-                <Card
-                  key={item.maBlog}
-                  className="hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden bg-white"
-                >
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-lg font-semibold text-gray-800 truncate">
-                      {item.tieuDe}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 space-y-3">
-                    {item.hinhAnh && (
-                      <img
-                        src={`data:image/jpeg;base64,${item.hinhAnh}`}
-                        alt={item.tieuDe}
-                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                      />
-                    )}
-                    <div className="text-sm text-gray-600">
-                      <strong>ID:</strong> {item.maBlog}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <strong>Người tạo:</strong> {item.maNguoiDung}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <strong>Ngày tạo:</strong> {formatDateTime(item.ngayTao)}
-                    </div>
-                    <div className="flex justify-end mt-4">
+            view === "grid" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {currentBlogs.map((item) => {
+                  const displayName = nguoiDungs[item.maNguoiDung]?.hoTen || item.hoTen || item.maNguoiDung.replace(/\d+$/, '').trim() || "Không xác định";
+                  return (
+                    <Card
+                      key={item.maBlog}
+                      className="hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden bg-white group"
+                    >
+                      <div className="max-h-48 bg-purple-50 flex items-center justify-center overflow-hidden">
+                        {item.hinhAnh ? (
+                          <img
+                            src={`data:image/jpeg;base64,${item.hinhAnh}`}
+                            alt={item.moTaHinhAnh || item.tieuDe}
+                            className="w-full max-h-48 object-contain"
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-sm">Không có hình</div>
+                        )}
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-gray-800 whitespace-normal break-words">{item.tieuDe}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Người tạo: {displayName}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Ngày tạo: {formatDateTime(item.ngayTao)}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Chủ đề: {item.chuDe || "Chưa xác định"}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <FaEllipsisV className="h-4 w-4 text-gray-600" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
+                              <DropdownMenuItem
+                                onClick={() => handleDetailClick(item)}
+                                className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                              >
+                                <FaEye className="mr-2 h-4 w-4 text-blue-500" />
+                                Chi tiết
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEditClick(item)}
+                                className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600"
+                              >
+                                <FaEdit className="mr-2 h-4 w-4 text-green-500" />
+                                Sửa
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteClick(item)}
+                                className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
+                                Xóa
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="border rounded-md divide-y">
+                {currentBlogs.map((item) => {
+                  const displayName = nguoiDungs[item.maNguoiDung]?.hoTen || item.hoTen || item.maNguoiDung.replace(/\d+$/, '').trim() || "Không xác định";
+                  return (
+                    <div
+                      key={item.maBlog}
+                      className="p-4 flex items-center gap-4 hover:bg-muted/50"
+                    >
+                      <div className="max-w-20 max-h-20 bg-purple-50 rounded-md flex items-center justify-center overflow-hidden">
+                        {item.hinhAnh ? (
+                          <img
+                            src={`data:image/jpeg;base64,${item.hinhAnh}`}
+                            alt={item.moTaHinhAnh || item.tieuDe}
+                            className="max-w-full max-h-full object-contain rounded-md"
+                          />
+                        ) : (
+                          <div className="text-gray-400 text-xs">Không có hình</div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800 whitespace-normal break-words">{item.tieuDe}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Người tạo: {displayName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Ngày tạo: {formatDateTime(item.ngayTao)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Chủ đề: {item.chuDe || "Chưa xác định"}
+                        </p>
+                      </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-gray-320 rounded-lg"
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <FaEllipsisV className="h-4 w-4 text-gray-600" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="rounded-lg shadow-lg"
-                        >
+                        <DropdownMenuContent align="end" className="rounded-lg shadow-lg">
                           <DropdownMenuItem
                             onClick={() => handleDetailClick(item)}
-                            className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md"
+                            className="flex items-center text-gray-700 hover:bg-blue-50 hover:text-blue-600"
                           >
-                            <FaEye className="mr-2 h-4 w-4" />
-                            <span>Chi Tiết</span>
+                            <FaEye className="mr-2 h-4 w-4 text-blue-500" />
+                            Chi tiết
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleEditClick(item)}
-                            className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600 rounded-md"
+                            className="flex items-center text-gray-700 hover:bg-green-50 hover:text-green-600"
                           >
                             <FaEdit className="mr-2 h-4 w-4 text-green-500" />
-                            <span>Sửa</span>
+                            Sửa
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDeleteClick(item)}
-                            className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-md"
+                            className="flex items-center text-gray-700 hover:bg-red-50 hover:text-red-600"
                           >
                             <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" />
-                            <span>Xóa</span>
+                            Xóa
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )
           ) : (
             <div className="text-center py-8 text-gray-500 text-lg">
               Không tìm thấy blog nào phù hợp với tìm kiếm của bạn.
@@ -538,6 +798,7 @@ const Blogs = () => {
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
+                aria-label="First page"
               >
                 Đầu
               </Button>
@@ -545,8 +806,9 @@ const Blogs = () => {
                 variant="outline"
                 size="sm"
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
+                aria-label="Previous page"
               >
                 Trước
               </Button>
@@ -555,12 +817,12 @@ const Blogs = () => {
                   key={page}
                   variant={currentPage === page ? "default" : "outline"}
                   size="sm"
-                  className={`${
-                    currentPage === page
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                  } rounded-lg`}
+                  className={`${currentPage === page
+                    ? "bg-purple-400 hover:bg-purple-500 text-white"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                    } rounded-lg`}
                   onClick={() => setCurrentPage(page)}
+                  aria-label={`Page ${page}`}
                 >
                   {page}
                 </Button>
@@ -569,10 +831,9 @@ const Blogs = () => {
                 variant="outline"
                 size="sm"
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
-                onClick={() =>
-                  setCurrentPage(Math.min(totalPages, currentPage + 1))
-                }
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
+                aria-label="Next page"
               >
                 Sau
               </Button>
@@ -582,6 +843,7 @@ const Blogs = () => {
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
+                aria-label="Last page"
               >
                 Cuối
               </Button>
@@ -590,7 +852,6 @@ const Blogs = () => {
         </CardContent>
       </Card>
 
-      {/* Modal xác nhận xóa */}
       <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
         <DialogContent className="rounded-lg shadow-xl">
           <DialogHeader>
@@ -598,8 +859,7 @@ const Blogs = () => {
               Xác nhận xóa blog
             </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Bạn có chắc chắn muốn xóa blog này không? Hành động này không thể
-              hoàn tác.
+              Bạn có chắc chắn muốn xóa blog "{blogToDelete?.tieuDe}"? Hành động này không thể hoàn tác.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6">
@@ -607,45 +867,42 @@ const Blogs = () => {
               variant="outline"
               className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
               onClick={() => setOpenDeleteModal(false)}
+              aria-label="Cancel delete blog"
             >
-              Hủy
+              <IoClose className="h-4 w-4 mr-2" /> Hủy
             </Button>
             <Button
               variant="destructive"
               className="bg-red-600 hover:bg-red-700 text-white rounded-lg"
               onClick={deleteBlog}
+              aria-label="Confirm delete blog"
             >
-              Xóa
+              <FaTrashAlt className="h-4 w-4 mr-2" /> Xóa
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal chi tiết blog */}
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
         <DialogContent className="max-w-5xl rounded-lg shadow-xl bg-white overflow-y-auto max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-800">
-              Chi Tiết Blog
+              Chi tiết blog {selectedBlog?.maBlog}
             </DialogTitle>
           </DialogHeader>
           {selectedBlog && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Mã Blog
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Mã Blog</Label>
                   <Input
-                    value={selectedBlog.maBlog || "Chưa cập nhật"}
+                    value={selectedBlog.maBlog ?? "Chưa cập nhật"}
                     disabled
                     className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Tiêu Đề
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Tiêu đề</Label>
                   <Input
                     value={selectedBlog.tieuDe || "Chưa cập nhật"}
                     disabled
@@ -653,19 +910,23 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Người Tạo
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Người tạo</Label>
                   <Input
-                    value={selectedBlog.maNguoiDung || "Chưa cập nhật"}
+                    value={nguoiDungs[selectedBlog.maNguoiDung]?.hoTen || selectedBlog.hoTen || selectedBlog.maNguoiDung.replace(/\d+$/, '').trim() || "Chưa cập nhật"}
                     disabled
                     className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Slug
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Chủ đề</Label>
+                  <Input
+                    value={selectedBlog.chuDe || "Chưa cập nhật"}
+                    disabled
+                    className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-sm font-semibold text-gray-700">Slug</Label>
                   <Input
                     value={selectedBlog.slug || "Chưa cập nhật"}
                     disabled
@@ -675,28 +936,20 @@ const Blogs = () => {
               </div>
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Ngày Tạo
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Ngày tạo</Label>
                   <Input
-                    value={
-                      selectedBlog.ngayTao
-                        ? formatDateTime(selectedBlog.ngayTao)
-                        : "Chưa cập nhật"
-                    }
+                    value={selectedBlog.ngayTao ? formatDateTime(selectedBlog.ngayTao) : "Chưa cập nhật"}
                     disabled
                     className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Hình Ảnh
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Hình ảnh</Label>
                   {selectedBlog.hinhAnh ? (
                     <img
                       src={`data:image/jpeg;base64,${selectedBlog.hinhAnh}`}
-                      alt={selectedBlog.tieuDe}
-                      className="w-32 h-32 object-cover rounded-lg mt-1 border border-gray-200"
+                      alt={selectedBlog.moTaHinhAnh || selectedBlog.tieuDe}
+                      className="max-w-full max-h-64 object-contain rounded-lg mt-1 border border-gray-200"
                     />
                   ) : (
                     <Input
@@ -707,9 +960,7 @@ const Blogs = () => {
                   )}
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Mô tả hình ảnh (ALT)
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Mô tả hình ảnh (ALT)</Label>
                   <Input
                     value={selectedBlog.moTaHinhAnh || "Chưa cập nhật"}
                     disabled
@@ -719,19 +970,7 @@ const Blogs = () => {
               </div>
               <div className="md:col-span-2 space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Nội Dung
-                  </Label>
-                  <textarea
-                    value={selectedBlog.noiDung || "Chưa cập nhật"}
-                    disabled
-                    className="mt-1 w-full h-40 bg-gray-100 border-gray-300 rounded-lg p-3"
-                  />
-                </div>
-                <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Meta Title
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
                   <Input
                     value={selectedBlog.metaTitle || "Chưa cập nhật"}
                     disabled
@@ -739,9 +978,7 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Meta Description
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Meta Description</Label>
                   <Input
                     value={selectedBlog.metaDescription || "Chưa cập nhật"}
                     disabled
@@ -749,9 +986,7 @@ const Blogs = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Tags
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Tags</Label>
                   <Input
                     value={selectedBlog.tags?.join(", ") || "Chưa cập nhật"}
                     disabled
@@ -764,14 +999,18 @@ const Blogs = () => {
                     id="isPublishedDetail"
                     checked={selectedBlog.isPublished}
                     disabled
-                    className="h-5 w-5 text-blue-600 border-gray-300 rounded"
+                    className="h-5 w-5 text-purple-400 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <Label
-                    htmlFor="isPublishedDetail"
-                    className="text-sm font-semibold text-gray-700"
-                  >
+                  <Label htmlFor="isPublishedDetail" className="text-sm font-semibold text-gray-700">
                     Công khai?
                   </Label>
+                </div>
+                <div>
+                  <Label className="block text-sm font-semibold text-gray-700">Nội dung</Label>
+                  <div
+                    className="mt-1 w-full border border-gray-300 p-3"
+                    dangerouslySetInnerHTML={{ __html: selectedBlog.noiDung || "Chưa cập nhật" }}
+                  />
                 </div>
               </div>
             </div>
@@ -781,83 +1020,81 @@ const Blogs = () => {
               variant="outline"
               className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
               onClick={() => setOpenDetailModal(false)}
+              aria-label="Đóng chi tiết blog"
             >
-              Đóng
+              <IoClose className="h-4 w-4 mr-2" /> Đóng
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal thêm blog */}
       <Dialog open={openCreateModal} onOpenChange={setOpenCreateModal}>
         <DialogContent className="max-w-5xl rounded-lg shadow-xl bg-white overflow-y-auto max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-800">
-              Thêm Blog Mới
-            </DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800">Thêm blog mới</DialogTitle>
           </DialogHeader>
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Tiêu Đề
-                </Label>
+                <Label className="block text-sm font-semibold text-gray-700">Tiêu đề</Label>
                 <Input
                   name="tieuDe"
                   placeholder="Tiêu đề"
                   value={newBlog.tieuDe}
                   onChange={handleInputChange}
                   required
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Slug
-                </Label>
+                <Label className="block text-sm font-semibold text-gray-700">Chủ đề</Label>
                 <Input
-                  name="slug"
-                  placeholder="slug-url"
-                  value={newBlog.slug}
+                  name="chuDe"
+                  placeholder="Chủ đề"
+                  value={newBlog.chuDe}
                   onChange={handleInputChange}
-                  className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
+                  required
+                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
+                <Input
+                  name="metaTitle"
+                  placeholder="Tiêu đề SEO"
+                  value={newBlog.metaTitle}
+                  onChange={handleInputChange}
+                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
             </div>
             <div className="space-y-4">
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Ngày Tạo
-                </Label>
-                <Input
-                  value={formatDateTime(newBlog.ngayTao)}
-                  disabled
-                  className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Hình Ảnh
-                </Label>
+                <Label className="block text-sm font-semibold text-gray-700">Hình ảnh</Label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
-                    isDraggingCreate
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-300 bg-gray-50"
-                  }`}
-                  onDragOver={handleDragOverCreate}
-                  onDragLeave={handleDragLeaveCreate}
-                  onDrop={handleDropCreate}
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${isDraggingCreate ? "border-purple-500 bg-purple-50" : "border-gray-300 bg-gray-50"
+                    }`}
+                  onDragOver={(e) => handleDragOver(e, false)}
+                  onDragLeave={(e) => handleDragLeave(e, false)}
+                  onDrop={(e) => handleDrop(e, false)}
                 >
                   {newBlog.hinhAnh ? (
-                    <img
-                      src={`data:image/jpeg;base64,${newBlog.hinhAnh}`}
-                      alt="Preview"
-                      className="h-24 w-24 mx-auto object-cover rounded-lg border border-gray-200"
-                    />
+                    <div className="relative inline-block">
+                      <img
+                        src={`data:image/jpeg;base64,${newBlog.hinhAnh}`}
+                        alt={newBlog.moTaHinhAnh || newBlog.tieuDe}
+                        className="max-w-full max-h-48 object-contain rounded-lg border border-gray-200"
+                      />
+                      <button
+                        className="absolute top-0 right-0 -mt-2 -mr-2 bg-white rounded-full p-1 shadow-md hover:bg-red-100"
+                        onClick={() => setNewBlog({ ...newBlog, hinhAnh: "" })}
+                      >
+                        <IoClose className="h-4 w-4 text-red-600" />
+                      </button>
+                    </div>
                   ) : (
                     <div>
-                      <Upload className="h-10 w-10 mx-auto text-gray-400" />
+                      <MdUpload className="h-10 w-10 mx-auto text-gray-400" />
                       <p className="mt-2 text-sm text-gray-600">
                         Kéo và thả hình ảnh vào đây hoặc nhấp để chọn
                       </p>
@@ -866,102 +1103,28 @@ const Blogs = () => {
                         accept="image/*"
                         className="hidden"
                         id="fileInputCreate"
-                        onChange={handleFileInputChangeCreate}
+                        onChange={(e) => handleFileInputChange(e, false)}
                       />
                       <label
                         htmlFor="fileInputCreate"
-                        className="cursor-pointer text-blue-600 hover:text-blue-700 font-semibold"
+                        className="cursor-pointer text-purple-600 hover:text-purple-700 font-semibold"
                       >
                         Chọn tệp
                       </label>
                     </div>
                   )}
                 </div>
-                {newBlog.hinhAnh && (
-                  <Button
-                    variant="outline"
-                    className="w-full mt-2 border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
-                    onClick={() => setNewBlog({ ...newBlog, hinhAnh: "" })}
-                  >
-                    Xóa hình ảnh
-                  </Button>
-                )}
-              </div>
-              <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Mô tả hình ảnh (ALT)
-                </Label>
-                <Input
-                  name="moTaHinhAnh"
-                  placeholder="Mô tả hình ảnh"
-                  value={newBlog.moTaHinhAnh}
-                  onChange={handleInputChange}
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
               </div>
             </div>
             <div className="md:col-span-2 space-y-4">
               <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Nội Dung
-                </Label>
-                <div className="flex items-center gap-3 mb-2">
-                  <select
-                    aria-label="Chọn kiểu định dạng nội dung"
-                    className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "paragraph") {
-                        setNewBlog({
-                          ...newBlog,
-                          noiDung: `<p>${newBlog.noiDung}</p>`,
-                        });
-                      } else if (value) {
-                        setNewBlog({
-                          ...newBlog,
-                          noiDung: `<${value}>${newBlog.noiDung}</${value}>`,
-                        });
-                      }
-                    }}
-                  >
-                    <option value="">Chọn kiểu</option>
-                    <option value="h1">Heading 1</option>
-                    <option value="h2">Heading 2</option>
-                    <option value="h3">Heading 3</option>
-                    <option value="paragraph">Paragraph</option>
-                  </select>
-                </div>
-                <textarea
-                  name="noiDung"
-                  placeholder="Nội dung"
-                  value={newBlog.noiDung}
-                  onChange={handleInputChange}
-                  className="w-full h-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Meta Title
-                </Label>
-                <Input
-                  name="metaTitle"
-                  placeholder="Tiêu đề SEO"
-                  value={newBlog.metaTitle}
-                  onChange={handleInputChange}
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <Label className="block text-sm font-semibold text-gray-700">
-                  Meta Description
-                </Label>
+                <Label className="block text-sm font-semibold text-gray-700">Meta Description</Label>
                 <Input
                   name="metaDescription"
                   placeholder="Mô tả SEO"
                   value={newBlog.metaDescription}
                   onChange={handleInputChange}
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
               <div>
@@ -977,14 +1140,12 @@ const Blogs = () => {
                       ...newBlog,
                       tags: e.target.value
                         .split(",")
-                        .map((tag) => {
-                          const trimmedTag = tag.trim();
-                          return trimmedTag ? `#${trimmedTag}` : trimmedTag;
-                        })
-                        .filter((tag) => tag !== "#"),
+                        .map((tag) => tag.trim())
+                        .filter((tag) => tag)
+                        .map((tag) => `#${tag}`),
                     })
                   }
-                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -992,17 +1153,21 @@ const Blogs = () => {
                   type="checkbox"
                   id="isPublished"
                   checked={newBlog.isPublished}
-                  onChange={(e) =>
-                    setNewBlog({ ...newBlog, isPublished: e.target.checked })
-                  }
-                  className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  onChange={(e) => setNewBlog({ ...newBlog, isPublished: e.target.checked })}
+                  className="h-5 w-5 text-purple-400 border-gray-300 rounded focus:ring-purple-500"
                 />
-                <Label
-                  htmlFor="isPublished"
-                  className="text-sm font-semibold text-gray-700"
-                >
+                <Label htmlFor="isPublished" className="text-sm font-semibold text-gray-700">
                   Công khai?
                 </Label>
+              </div>
+              <div>
+                <Label className="block text-sm font-semibold text-gray-700">Nội dung</Label>
+                <ReactQuill
+                  value={newBlog.noiDung}
+                  onChange={(content) => setNewBlog({ ...newBlog, noiDung: content })}
+                  modules={quillModules}
+                  className="h-48 border rounded-lg mb-10"
+                />
               </div>
             </div>
           </div>
@@ -1011,104 +1176,100 @@ const Blogs = () => {
               variant="outline"
               className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
               onClick={() => setOpenCreateModal(false)}
+              aria-label="Hủy thêm blog"
             >
-              Hủy
+              <IoClose className="h-4 w-4 mr-2" /> Hủy
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              className="bg-purple-400 hover:bg-purple-500 text-white rounded-lg"
               onClick={createBlog}
+              aria-label="Thêm blog"
             >
-              Thêm
+              <IoAddCircleOutline className="h-4 w-4 mr-2" /> Thêm
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal sửa blog */}
       <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
         <DialogContent className="max-w-5xl rounded-lg shadow-xl bg-white overflow-y-auto max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-800">
-              Sửa Blog #{editBlog?.maBlog}
+              Sửa blog {editBlog?.maBlog}
             </DialogTitle>
           </DialogHeader>
           {editBlog && (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Mã Người Dùng
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Mã người dùng</Label>
                   <Input
-                    value={editBlog.maNguoiDung}
+                    value={nguoiDungs[editBlog.maNguoiDung]?.hoTen || editBlog.maNguoiDung.replace(/\d+$/, '').trim() || "Chưa cập nhật"}
                     disabled
                     className="mt-1 bg-gray-100 border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Tiêu Đề
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Tiêu đề</Label>
                   <Input
                     name="tieuDe"
                     placeholder="Tiêu đề"
                     value={editBlog.tieuDe}
                     onChange={handleEditInputChange}
                     required
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Slug
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Chủ đề</Label>
+                  <Input
+                    name="chuDe"
+                    placeholder="Chủ đề"
+                    value={editBlog.chuDe}
+                    onChange={handleEditInputChange}
+                    required
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-sm font-semibold text-gray-700">Slug</Label>
                   <Input
                     name="slug"
                     placeholder="slug-url"
                     value={editBlog.slug}
                     onChange={handleEditInputChange}
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
               </div>
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Ngày Tạo
-                  </Label>
-                  <Input
-                    name="ngayTao"
-                    type="date"
-                    placeholder="Ngày tạo"
-                    value={editBlog.ngayTao}
-                    onChange={handleEditInputChange}
-                    min={today}
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-                <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Hình Ảnh
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Hình ảnh</Label>
                   <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
-                      isDraggingEdit
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-300 bg-gray-50"
-                    }`}
-                    onDragOver={handleDragOverEdit}
-                    onDragLeave={handleDragLeaveEdit}
-                    onDrop={handleDropEdit}
+                    className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${isDraggingEdit ? "border-purple-500 bg-purple-50" : "border-gray-300 bg-gray-50"
+                      }`}
+                    onDragOver={(e) => handleDragOver(e, true)}
+                    onDragLeave={(e) => handleDragLeave(e, true)}
+                    onDrop={(e) => handleDrop(e, true)}
                   >
                     {editBlog.hinhAnh ? (
-                      <img
-                        src={`data:image/jpeg;base64,${editBlog.hinhAnh}`}
-                        alt="Preview"
-                        className="h-24 w-24 mx-auto object-cover rounded-lg border border-gray-200"
-                      />
+                      <div className="relative inline-block">
+                        <img
+                          src={`data:image/jpeg;base64,${editBlog.hinhAnh}`}
+                          alt={editBlog.moTaHinhAnh || editBlog.tieuDe}
+                          className="max-w-full max-h-48 object-contain rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md hover:bg-red-100"
+                          onClick={() => setEditBlog({ ...editBlog, hinhAnh: "" })}
+                        >
+                          <IoClose className="h-4 w-4 text-red-600" />
+                        </button>
+                      </div>
                     ) : (
                       <div>
-                        <Upload className="h-10 w-10 mx-auto text-gray-400" />
+                        <MdUpload className="h-10 w-10 mx-auto text-gray-400" />
                         <p className="mt-2 text-sm text-gray-600">
                           Kéo và thả hình ảnh vào đây hoặc nhấp để chọn
                         </p>
@@ -1117,102 +1278,48 @@ const Blogs = () => {
                           accept="image/*"
                           className="hidden"
                           id="fileInputEdit"
-                          onChange={handleFileInputChangeEdit}
+                          onChange={(e) => handleFileInputChange(e, true)}
                         />
                         <label
                           htmlFor="fileInputEdit"
-                          className="cursor-pointer text-green-600 hover:text-green-700 font-semibold"
+                          className="cursor-pointer text-purple-600 hover:text-purple-700 font-semibold"
                         >
                           Chọn tệp
                         </label>
                       </div>
                     )}
                   </div>
-                  {editBlog.hinhAnh && (
-                    <Button
-                      variant="outline"
-                      className="w-full mt-2 border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
-                      onClick={() => setEditBlog({ ...editBlog, hinhAnh: "" })}
-                    >
-                      Xóa hình ảnh
-                    </Button>
-                  )}
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Mô tả hình ảnh (ALT)
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Mô tả hình ảnh (ALT)</Label>
                   <Input
                     name="moTaHinhAnh"
                     placeholder="Mô tả hình ảnh"
                     value={editBlog.moTaHinhAnh}
                     onChange={handleEditInputChange}
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
               </div>
               <div className="md:col-span-2 space-y-4">
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Nội Dung
-                  </Label>
-                  <div className="flex items-center gap-3 mb-2">
-                    <select
-                      aria-label="Chọn kiểu định dạng nội dung"
-                      className="border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500"
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "paragraph") {
-                          setEditBlog({
-                            ...editBlog,
-                            noiDung: `<p>${editBlog.noiDung}</p>`,
-                          });
-                        } else if (value) {
-                          setEditBlog({
-                            ...editBlog,
-                            noiDung: `<${value}>${editBlog.noiDung}</${value}>`,
-                          });
-                        }
-                      }}
-                    >
-                      <option value="">Chọn kiểu</option>
-                      <option value="h1">Heading 1</option>
-                      <option value="h2">Heading 2</option>
-                      <option value="h3">Heading 3</option>
-                      <option value="paragraph">Paragraph</option>
-                    </select>
-                  </div>
-                  <textarea
-                    name="noiDung"
-                    placeholder="Nội dung"
-                    value={editBlog.noiDung}
-                    onChange={handleEditInputChange}
-                    className="w-full h-48 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Meta Title
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Meta Title</Label>
                   <Input
                     name="metaTitle"
                     placeholder="Tiêu đề SEO"
                     value={editBlog.metaTitle}
                     onChange={handleEditInputChange}
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-semibold text-gray-700">
-                    Meta Description
-                  </Label>
+                  <Label className="block text-sm font-semibold text-gray-700">Meta Description</Label>
                   <Input
                     name="metaDescription"
                     placeholder="Mô tả SEO"
                     value={editBlog.metaDescription}
                     onChange={handleEditInputChange}
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
                 <div>
@@ -1228,14 +1335,12 @@ const Blogs = () => {
                         ...editBlog,
                         tags: e.target.value
                           .split(",")
-                          .map((tag) => {
-                            const trimmedTag = tag.trim();
-                            return trimmedTag ? `#${trimmedTag}` : trimmedTag;
-                          })
-                          .filter((tag) => tag !== "#"),
+                          .map((tag) => tag.trim())
+                          .filter((tag) => tag)
+                          .map((tag) => `#${tag}`),
                       })
                     }
-                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
                 <div className="flex items-center gap-3">
@@ -1243,20 +1348,21 @@ const Blogs = () => {
                     type="checkbox"
                     id="isPublishedEdit"
                     checked={editBlog.isPublished}
-                    onChange={(e) =>
-                      setEditBlog({
-                        ...editBlog,
-                        isPublished: e.target.checked,
-                      })
-                    }
-                    className="h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    onChange={(e) => setEditBlog({ ...editBlog, isPublished: e.target.checked })}
+                    className="h-5 w-5 text-purple-400 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <Label
-                    htmlFor="isPublishedEdit"
-                    className="text-sm font-semibold text-gray-700"
-                  >
+                  <Label htmlFor="isPublishedEdit" className="text-sm font-semibold text-gray-700">
                     Công khai?
                   </Label>
+                </div>
+                <div>
+                  <Label className="block text-sm font-semibold text-gray-700">Nội dung</Label>
+                  <ReactQuill
+                    value={editBlog.noiDung}
+                    onChange={(content) => setEditBlog({ ...editBlog, noiDung: content })}
+                    modules={quillModules}
+                    className="h-48 border rounded-lg mb-10"
+                  />
                 </div>
               </div>
             </div>
@@ -1266,14 +1372,16 @@ const Blogs = () => {
               variant="outline"
               className="border-gray-300 text-gray-700 hover:bg-gray-100 rounded-lg"
               onClick={() => setOpenEditModal(false)}
+              aria-label="Hủy sửa blog"
             >
-              Hủy
+              <IoClose className="h-4 w-4 mr-2" /> Hủy
             </Button>
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white rounded-lg"
+              className="bg-purple-400 hover:bg-purple-500 text-white rounded-lg"
               onClick={editBlogSubmit}
+              aria-label="Lưu blog"
             >
-              Lưu
+              <FaEdit className="h-4 w-4 mr-2" /> Lưu
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1282,4 +1390,4 @@ const Blogs = () => {
   );
 };
 
-export default Blogs;
+export default AdminBlog;

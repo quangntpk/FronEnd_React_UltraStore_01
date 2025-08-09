@@ -17,6 +17,7 @@ import ComboDetail from "./pages/combos/ComboDetail";
 import BlogsList from "./pages/blogs/BlogsList";
 import BlogDetail from "./pages/blogs/BlogDetail";
 import FavoritesList from "./pages/favorites/FavoritesList";
+import PersonalpromotionsList from "./pages/personalpromotions/PersonalpromotionsList"
 import Contact from "./pages/contact/Contact";
 import About from "./pages/about/About";
 import Login from "./pages/auth/Login";
@@ -53,6 +54,7 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminCombos from "./pages/admin/AdminCombos";
 import AdminThuongHieu from "./pages/admin/AdminThuongHieu";
 import AdminLoaiSanPham from "./pages/admin/AdminLoaiSanPham";
+import AdminHashTag from "./pages/admin/AdminHashTag";
 import VoucherUser from "./components/layout/voucher/VoucherUser";
 import PaymentSuccess from "./pages/user/PaymentSuccess";
 import PaymentFail from "./pages/user/PaymentFail";
@@ -70,6 +72,14 @@ import { AuthProvider } from "@/components/auth/AuthContext";
 import { useAuth } from "@/components/auth/AuthContext";
 import { useRef } from "react";
 import AdminProfile from "./pages/admin/AdminProfile";
+import CheckOutInstant from "./pages/user/InstantCheckout";
+import Security from "./components/default/Security";
+import Guarantee from "./components/default/Guarantee";
+import AdminMessages from "./pages/admin/AdminMessages";
+import Search from "./components/default/Search";
+import CmtForm from "@/pages/products/CmtForm"
+import DiaChiTime from "./components/default/DiaChiTime";
+
 
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
@@ -137,6 +147,7 @@ const App = () => (
           <AppShell>
             <GoogleCallbackHandler />
             <Routes>
+              <Route path="buy" element={<AdminBuy />} />
               <Route path="/" element={<UserLayout />}>
                 <Route index element={<Index />} />
                 <Route path="products" element={<ProductList />} />
@@ -147,6 +158,7 @@ const App = () => (
                 <Route path="blogs/:slug" element={<BlogDetailComponent />} />
                 <Route path="voucher/*" element={<VoucherUser />} />
                 <Route path="favorites" element={<FavoritesList />} />
+                 <Route path="personalpromotions" element={<PersonalpromotionsList />} />
                 <Route path="contact" element={<Contact />} />
                 <Route path="about" element={<About />} />
                 <Route path="auth/login" element={<Login />} />
@@ -168,6 +180,12 @@ const App = () => (
                 <Route path="testing" element={<Testing />} />
                 <Route path="/user/hoadon/:orderId" element={<OrderEmailPage />} />
                 <Route path="/user/hoadon" element={<HoaDon />} />
+                <Route path="/user/CheckOutInstant" element={<CheckOutInstant/>}/>
+                <Route path="security" element={<Security />} />
+                <Route path="guarantee" element={<Guarantee />} />
+                <Route path="search" element={<Search />} />
+                <Route path="diachitime" element={<DiaChiTime />} />
+
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
@@ -188,7 +206,7 @@ const App = () => (
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="settings" element={<AdminSettings />} />
-                <Route path="buy" element={<AdminBuy />} />
+                
 
                 <Route path="orders" element={<StaffOrders />} />
 
@@ -200,6 +218,7 @@ const App = () => (
                 <Route path="combos" element={<AdminCombos />} />
                 <Route path="thuonghieu" element={<AdminThuongHieu />} />
                 <Route path="loaisanpham" element={<AdminLoaiSanPham />} />
+                <Route path="hashtag" element={<AdminHashTag />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
                 <Route path="products/form" element={<ProductsForm />} />
@@ -207,6 +226,7 @@ const App = () => (
                 <Route path="orders/form" element={<OrdersForm />} />
                 <Route path="invoice/form" element={<InvoiceForm />} />
                 <Route path="contact" element={<AdminContact />} />
+                <Route path="messages" element={<AdminMessages />} />
 
 
                 <Route path="*" element={<NotFound />} />

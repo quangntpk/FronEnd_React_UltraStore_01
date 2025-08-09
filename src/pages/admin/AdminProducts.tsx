@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { FaPlus, FaEdit, FaTrashAlt, FaEye,FaDoorOpen } from "react-icons/fa";
+import { FaFilePdf, FaPlus, FaEdit, FaTrashAlt, FaEye, FaDoorOpen, FaFileExcel, FaCheck } from "react-icons/fa";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +11,79 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Filter, Grid2X2, List, MoreVertical, Tag } from "lucide-react";
+import { Search, Plus, Filter, Grid2X2, List, MoreVertical, Tag, Download, CheckSquare, Square } from "lucide-react";
 import EditProductModal from "@/components/admin/SanPhamAdmin/EditProductModal";
 import CreateSanPhamModal from "@/components/admin/SanPhamAdmin/CreateSanPhamModal";
 import DetailSanPhamModal from "@/components/admin/SanPhamAdmin/DetailSanPhamModal";
 import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
+import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin/ProductPrintUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import ProductReportGenerator from "@/components/admin/SanPhamAdmin/ProductReportGenerator";
+
+const DateRangeModal = ({ isOpen, onClose, onSubmit, selectedProductIds }) => {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const handleSubmit = () => {
+    if (!startDate || !endDate) {
+      Swal.fire({
+        title: "Lỗi",
+        text: "Vui lòng chọn cả ngày bắt đầu và ngày kết thúc",
+        icon: "error",
+      });
+      return;
+    }
+
+    const dateObject = {
+      batDau: startDate,
+      ketThuc: endDate,
+      id: Array.from(selectedProductIds)
+    };
+
+    onSubmit(dateObject);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Chọn khoảng thời gian báo cáo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Ngày bắt đầu</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="endDate">Ngày kết thúc</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Hủy
+          </Button>
+          <Button onClick={handleSubmit}>
+            Tạo báo cáo
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -24,11 +93,14 @@ const Products = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDateRangeModalOpen, setIsDateRangeModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productEdit, setProductEdit] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
-  const [sortBy, setSortBy] = useState(""); // Sắp xếp: "" | "price-asc" | "price-desc" | "name-asc" | "name-desc"
+  const [sortBy, setSortBy] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const productsPerPage = 12;
 
   const fetchProducts = async () => {
@@ -60,6 +132,7 @@ const Products = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log(data)
         setProductEdit(data || null);
       } else {
         console.error("Lỗi khi lấy chi tiết sản phẩm:", response.status);
@@ -106,6 +179,161 @@ const Products = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleSelectProduct = (productId) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProducts.size === currentProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      const allCurrentIds = new Set(currentProducts.map(product => product.id));
+      setSelectedProducts(allCurrentIds);
+    }
+  };
+
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedProducts(new Set());
+  };
+
+  const handleGenerateReport = async (dateRange) => {
+    if (dateRange.id.length === 0) {
+      Swal.fire({
+        title: "Thông báo",
+        text: "Vui lòng chọn ít nhất một sản phẩm để xuất báo cáo.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5261/api/SanPham/ReportByDate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batDau: dateRange.batDau,
+          ketThuc: dateRange.ketThuc,
+          id: dateRange.id
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `BaoCaoVatTu_${dateRange.batDau}_to_${dateRange.ketThuc}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        Swal.fire({
+          title: "Thành công!",
+          text: "Đã tạo báo cáo vật tư thành công!",
+          icon: "success",
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error("Lỗi khi tạo báo cáo từ server");
+      }
+    } catch (error) {
+      Swal.fire({
+        title: "Lỗi",
+        text: `Không thể tạo báo cáo: ${error.message}`,
+        icon: "error",
+      });
+    }
+  };
+
+  const exportToExcel = async () => {
+    if (selectedProducts.size === 0) {
+      Swal.fire({
+        title: "Thông báo",
+        text: "Vui lòng chọn ít nhất một sản phẩm để xuất Excel.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      const selectedProductsData = [];
+      for (const productId of selectedProducts) {
+        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
+        if (!response.ok) {
+          throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
+        }
+        const data = await response.json();
+        selectedProductsData.push(...data);
+      }
+      const excelData = selectedProductsData.map((product, index) => {
+        const [baseId, color, size] = product.maSanPham.split("_");
+        const productRemain = product.soLuongDaBan != null 
+          ? product.soLuong - product.soLuongDaBan 
+          : product.soLuong;
+        return {
+          "STT": index + 1,
+          "Mã sản phẩm": baseId || "N/A",
+          "Tên sản phẩm": product.tenSanPham || "Không có tên",
+          "Loại sản phẩm": product.thuongHieu,
+          "Thương hiệu": product.loaiSanPham,
+          "Chất liệu": product.chatLieu || "N/A",
+          "Màu Sắc": color || "N/A",
+          "Kích Thước": size?.trim() || "N/A",
+          "Đơn giá nhập (VND)": product.giaNhap || 0,
+          "Đơn giá bán (VND)": product.gia || 0,
+          "Số lượng Còn lại": productRemain,
+          "Số Lượng Đã bán": product.soLuongDaBan || 0,
+          "Trạng thái": product.trangThai === 0 ? "Tạm ngừng bán" : "Đang bán",
+          "Mô tả": product.moTa || "Không có mô tả",
+        };
+      });
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      const colWidths = [];
+      const headers = Object.keys(excelData[0] || {});
+      headers.forEach((header, index) => {
+        const maxLength = Math.max(
+          header.length,
+          ...excelData.map((row) => String(row[header] || "").length)
+        );
+        colWidths[index] = { width: Math.min(maxLength + 2, 50) };
+      });
+      ws["!cols"] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, "Danh sách sản phẩm");
+      const fileName = `SanPham_${new Date().toISOString().split("T")[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      Swal.fire({
+        title: "Thành công!",
+        text: `Đã xuất ${selectedProducts.size} sản phẩm ra file Excel thành công!`,
+        icon: "success",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire({
+        title: "Lỗi",
+        text: `Không thể xuất Excel: ${error.message}`,
+        icon: "error",
+      });
+    }
   };
 
   const handleEditProduct = (product) => {
@@ -224,24 +452,87 @@ const Products = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Sản phẩm</h1>
-          <p className="text-muted-foreground mt-1">Quản lý sản phẩm trong cửa hàng của bạn</p>
         </div>
-      <Button
- className="bg-purple-400 hover:bg-purple-500 text-white" 
-  onClick={() => {
-    console.log("Nút Thêm Sản Phẩm Mới được nhấn");
-    setIsAddModalOpen(true);
-  }}
->
-  <Plus className="h-4 w-4 mr-2" />
-  Thêm Sản Phẩm Mới
-</Button>
-
+        <div className="flex gap-2">
+          <Button
+            variant={selectMode ? "secondary" : "outline"}
+            onClick={toggleSelectMode}
+            className="flex items-center gap-2"
+          >
+            {selectMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+            {selectMode ? "Thoát chế độ chọn" : "Chọn sản phẩm"}
+          </Button>
+          {selectMode && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                    disabled={selectedProducts.size === 0}
+                  >
+                    <FaFilePdf className="h-4 w-4" />
+                    Tùy Chọn ({selectedProducts.size})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setIsDateRangeModalOpen(true)}>
+                    <FaFilePdf className="mr-2 h-4 w-4" />
+                    Báo cáo vật tư
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToExcel} disabled={selectedProducts.size === 0}>
+                    <FaFileExcel className="mr-2 h-4 w-4" />
+                    Xuất Excel 
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => previewProductCards(selectedProducts)}>
+                    <FaEye className="mr-2 h-4 w-4" />
+                    Xem trước File PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => printToPDF(selectedProducts)}>
+                    <FaFilePdf className="mr-2 h-4 w-4" />
+                    In Thành PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+          <Button
+            className="bg-purple-400 hover:bg-purple-500 text-white"
+            onClick={() => {
+              console.log("Nút Thêm Sản Phẩm Mới được nhấn");
+              setIsAddModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm Sản Phẩm Mới
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Tất cả sản phẩm</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Tất cả sản phẩm</CardTitle>
+            {selectMode && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="flex items-center gap-2"
+                >
+                  {selectedProducts.size === currentProducts.length ? (
+                    <><FaCheck className="h-3 w-3" /> Bỏ chọn tất cả</>
+                  ) : (
+                    <><CheckSquare className="h-3 w-3" /> Chọn tất cả</>
+                  )}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Đã chọn: {selectedProducts.size} sản phẩm
+                </span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-start sm:items-center">
@@ -308,8 +599,17 @@ const Products = () => {
           {view === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {currentProducts.map((product) => (
-                <Card key={product.id} className="hover-scale overflow-hidden group">
-                  <div className="h-40 bg-purple-light flex items-center justify-center">
+                <Card key={product.id} className="hover-scale overflow-hidden group relative">
+                  {selectMode && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <Checkbox
+                        checked={selectedProducts.has(product.id)}
+                        onCheckedChange={() => handleSelectProduct(product.id)}
+                        className="bg-white border-2 border-gray-300 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                      />
+                    </div>
+                  )}
+                  <div className="aspect-square bg-purple-light flex items-center justify-center">
                     <img
                       src={
                         product.hinh && product.hinh[0]
@@ -317,7 +617,7 @@ const Products = () => {
                           : "/placeholder-image.jpg"
                       }
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <CardContent className="p-4">
@@ -328,51 +628,59 @@ const Products = () => {
                           Thương hiệu: {product.thuongHieu || "Không xác định"}
                         </p>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                            <FaEdit className="mr-2 h-4 w-4 text-blue-500" /> Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
-                            <FaEye className="mr-2 h-4 w-4 text-green-500" /> Chi tiết
-                          </DropdownMenuItem>
-                          {product.trangThai === 0 ? (
-                            <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
-                               <FaDoorOpen className="mr-2 h-4 w-4 text-green-500" /> Mở bán
+                      {!selectMode && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                              <FaEdit className="mr-2 h-4 w-4 text-blue-500" /> Chỉnh sửa
                             </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
-                              <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Ngừng Bán
+                            <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
+                              <FaEye className="mr-2 h-4 w-4 text-green-500" /> Chi tiết
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            {product.trangThai === 0 ? (
+                              <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
+                                <FaDoorOpen className="mr-2 h-4 w-4 text-green-500" /> Mở bán
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
+                                <FaTrashAlt className="mr-2 h-4 w-4 text-red-500" /> Ngừng Bán
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Badge variant="outline" className="bg-secondary text-white border-0">
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge className="bg-blue-500 text-white hover:bg-blue-600">
                         <Tag className="h-3 w-3 mr-1" /> {product.loaiSanPham || "N/A"}
                       </Badge>
-                      <Badge variant="outline" className="bg-secondary text-white border-0">
+                      <Badge className="bg-green-500 text-white hover:bg-green-600">
                         <Tag className="h-3 w-3 mr-1" /> {product.chatLieu || "N/A"}
                       </Badge>
                       <Badge
-                        variant={product.soLuong > 0 ? "default" : "destructive"}
-                        className="flex flex-col justify-center items-center text-center h-full px-2"
+                        className={product.trangThai === 0 ? "bg-red-500 text-white" : "bg-teal-500 text-white"}
                       >
                         {product.trangThai === 0 ? "Tạm Ngưng Bán" : "Đang Bán"}
                       </Badge>
                     </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(product.listHashTag || []).slice(0, 3).map((hashtag) => (
+                        <Badge key={hashtag.id} className="bg-purple-500 text-white hover:bg-purple-600">
+                          <Tag className="h-3 w-3 mr-1" /> #{hashtag.name}
+                        </Badge>
+                      ))}
+                    </div>
                     <div className="flex justify-between items-center mt-3">
-                      <span className="font-bold text-purple">
+                      <span className="font-bold text-purple-600">
                         {(product.donGia/1000)?.toFixed(3) || "0"} VND
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -390,7 +698,14 @@ const Products = () => {
                   key={product.id}
                   className="p-4 flex items-center gap-4 hover:bg-muted/50"
                 >
-                  <div className="h-12 w-12 bg-purple-light rounded-md flex items-center justify-center">
+                  {selectMode && (
+                    <Checkbox
+                      checked={selectedProducts.has(product.id)}
+                      onCheckedChange={() => handleSelectProduct(product.id)}
+                      className="data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                    />
+                  )}
+                  <div className="h-20 w-20 bg-purple-light rounded-md flex items-center justify-center">
                     <img
                       src={
                         product.hinh && product.hinh[0]
@@ -398,52 +713,66 @@ const Products = () => {
                           : "/placeholder-image.jpg"
                       }
                       alt={product.name}
-                      className="w-full h-full object-cover rounded-md"
+                      className="w-full h-full object-contain rounded-md"
                     />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.name || "Không có tên"}</h3>
-                    <p className="text-sm text-white line-clamp-1">
+                    <p className="text-sm text-muted-foreground line-clamp-1">
                       Thương hiệu: {product.thuongHieu || "Không xác định"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-secondary text-white border-0">
-                      {product.loaiSanPham || "N/A"}
-                    </Badge>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className="bg-blue-500 text-white hover:bg-blue-600">
+                        <Tag className="h-3 w-3 mr-1" /> {product.loaiSanPham || "N/A"}
+                      </Badge>
+                      <Badge className="bg-green-500 text-white hover:bg-green-600">
+                        <Tag className="h-3 w-3 mr-1" /> {product.chatLieu || "N/A"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(product.listHashTag || []).slice(0, 3).map((hashtag) => (
+                        <Badge key={hashtag.id} className="bg-purple-500 text-white hover:bg-purple-600">
+                          <Tag className="h-3 w-3 mr-1" /> #{hashtag.name}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-purple">
+                    <div className="font-bold text-purple-600">
                       {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
-                     Số lượng: {product.soLuong || 0} 
+                      Số lượng: {product.soLuong || 0}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                        Chỉnh Sửa
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
-                        Chi Tiết
-                      </DropdownMenuItem>
-                      {product.trangThai === 0 ? (
-                        <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
-                          Mở Bán
+                  {!selectMode && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                          Chỉnh Sửa
                         </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
-                          Ngừng Bán
+                        <DropdownMenuItem onClick={() => handleViewDetails(product.id)}>
+                          Chi Tiết
                         </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {product.trangThai === 0 ? (
+                          <DropdownMenuItem onClick={() => handleActiveProduct(product)} className="text-green-600">
+                            Mở Bán
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleDeleteProduct(product)} className="text-red-600">
+                            Ngừng Bán
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               ))}
             </div>
@@ -503,6 +832,11 @@ const Products = () => {
         productId={selectedProductId}
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
+      />
+      <ProductReportGenerator
+        isOpen={isDateRangeModalOpen}
+        onClose={() => setIsDateRangeModalOpen(false)}
+        selectedProductIds={selectedProducts}
       />
     </div>
   );
