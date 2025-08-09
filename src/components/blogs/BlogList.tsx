@@ -9,13 +9,15 @@ import { Loader2 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import { Link } from "react-router-dom";
 
+// Interface for NguoiDung
 export interface NguoiDung {
   maNguoiDung: string | number;
   hoTen: string;
   vaiTro: string;
 }
 
-interface Blog {
+// Interface for Blog
+export interface Blog {
   maBlog: number;
   maNguoiDung: string;
   hoTen?: string | null;
@@ -35,12 +37,14 @@ interface Blog {
   userLikes: string[];
 }
 
+// Interface for BlogCardProps
 interface BlogCardProps {
   post: Blog;
   nguoiDung: NguoiDung | null;
 }
 
-const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
+// BlogCard Component
+export const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
   const isMobile = useIsMobile();
   const excerpt = post.metaDescription
     ? post.metaDescription.length > 100
@@ -130,6 +134,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
   );
 };
 
+// BlogList Component
 export const BlogList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -365,3 +370,5 @@ export const BlogList = () => {
     </div>
   );
 };
+
+export default BlogList;

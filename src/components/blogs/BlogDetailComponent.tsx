@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, memo } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Loader2, Heart, Trash2, MessageCircle, ChevronDown, Eye, Calendar, User } from "lucide-react";
+import { Loader2, Heart, MessageCircle, ChevronDown, Eye, Calendar, User, Trash2 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Helmet } from "react-helmet";
@@ -10,33 +10,10 @@ import { cn } from "@/lib/utils";
 import DOMPurify from "dompurify";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { BlogCard, NguoiDung, Blog } from "./BlogList";
 
-// Interfaces
-export interface NguoiDung {
-  maNguoiDung: string;
-  hoTen: string;
-  vaiTro: number;
-  hinhAnh: string | null;
-}
-
-export interface Blog {
-  maBlog: number;
-  maNguoiDung: string;
-  ngayTao: string;
-  tieuDe: string;
-  noiDung: string;
-  slug: string | null;
-  metaTitle: string | null;
-  metaDescription: string | null;
-  hinhAnh: string | null;
-  moTaHinhAnh: string | null;
-  isPublished: boolean;
-  tags: string[] | null;
-  likes: number;
-  userLikes: string[] | null;
-}
-
-export interface Comment {
+// Interfaces (reused from BlogList)
+interface Comment {
   maBinhLuan: number;
   maBlog?: number;
   maSanPham?: string;
@@ -561,6 +538,8 @@ export const BlogDetailComponent = () => {
   const { slug } = useParams<{ slug: string }>();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [nguoiDung, setNguoiDung] = useState<NguoiDung | null>(null);
+  const [relatedBlogs, setRelatedBlogs] = useState<Blog[]>([]);
+  const [nguoiDungs, setNguoiDungs] = useState<{ [key: string]: NguoiDung | null }>({});
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
@@ -568,7 +547,7 @@ export const BlogDetailComponent = () => {
   const isMobile = useIsMobile();
   const currentUserId = JSON.parse(localStorage.getItem("user") || "{}")?.maNguoiDung;
 
-  const fetchBlog = useCallback(async () => {
+  const fetchBlogAndRelated = useCallback(async () => {
     if (!slug) {
       toast.error("Slug không hợp lệ!");
       setLoading(false);
@@ -577,20 +556,39 @@ export const BlogDetailComponent = () => {
 
     try {
       setLoading(true);
+      // Fetch the main blog
       const blogResponse = await axios.get<Blog>(`${import.meta.env.VITE_API_URL}/api/Blog/slug/${slug}`);
       const fetchedBlog = blogResponse.data;
       setBlog(fetchedBlog);
       setLikesCount(fetchedBlog.likes || 0);
       setIsLiked(currentUserId && fetchedBlog.userLikes ? fetchedBlog.userLikes.includes(currentUserId) : false);
 
+      // Fetch user info for the main blog
       let nguoiDungResponse = null;
       if (fetchedBlog.maNguoiDung) {
         nguoiDungResponse = await axios.get<NguoiDung>(`${import.meta.env.VITE_API_URL}/api/NguoiDung/${fetchedBlog.maNguoiDung}`).catch(() => null);
       }
       setNguoiDung(nguoiDungResponse?.data || null);
+
+      // Fetch all blogs to find related ones
+      const allBlogsResponse = await axios.get<Blog[]>(`${import.meta.env.VITE_API_URL}/api/Blog`);
+      const allBlogs = allBlogsResponse.data.filter(b => b.isPublished && b.maBlog !== fetchedBlog.maBlog && b.chuDe === fetchedBlog.chuDe);
+      setRelatedBlogs(allBlogs.slice(0, 5)); // Limit to 5 related blogs
+
+      // Fetch user info for related blogs
+      const uniqueMaNguoiDungs = [...new Set(allBlogs.map(blog => blog.maNguoiDung))];
+      const nguoiDungPromises = uniqueMaNguoiDungs.map(maNguoiDung =>
+        axios.get<NguoiDung>(`${import.meta.env.VITE_API_URL}/api/NguoiDung/${maNguoiDung}`).catch(() => null)
+      );
+      const nguoiDungResponses = await Promise.all(nguoiDungPromises);
+      const nguoiDungMap = uniqueMaNguoiDungs.reduce((acc, maNguoiDung, index) => {
+        acc[maNguoiDung] = nguoiDungResponses[index]?.data || null;
+        return acc;
+      }, {} as { [key: string]: NguoiDung | null });
+      setNguoiDungs(nguoiDungMap);
     } catch (error) {
-      console.error("Lỗi khi tải bài viết:", error);
-      toast.error("Không thể tải bài viết. Vui lòng thử lại sau.");
+      console.error("Lỗi khi tải dữ liệu:", error);
+      toast.error("Không thể tải bài viết hoặc bài viết liên quan. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -632,8 +630,8 @@ export const BlogDetailComponent = () => {
   }, [currentUserId, isLiked, blog]);
 
   useEffect(() => {
-    fetchBlog();
-  }, [fetchBlog]);
+    fetchBlogAndRelated();
+  }, [fetchBlogAndRelated]);
 
   if (loading) {
     return (
@@ -689,101 +687,126 @@ export const BlogDetailComponent = () => {
 
       <Toaster position="top-right" />
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <article className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-8">
-          {/* Blog Title */}
-          <div className="p-6 sm:p-8 border-b border-gray-100">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 leading-tight">
-              {blog.tieuDe}
-            </h1>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Blog Content */}
+          <div className="lg:col-span-2">
+            <article className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+              {/* Blog Title */}
+              <div className="p-6 sm:p-8 border-b border-gray-100">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 leading-tight">
+                  {blog.tieuDe}
+                </h1>
+              </div>
 
-          {/* Featured Image */}
-          {blog.hinhAnh && (
-            <div className="relative">
-              <img
-                src={`data:image/jpeg;base64,${blog.hinhAnh}`}
-                alt={blog.moTaHinhAnh || blog.tieuDe}
-                className="w-full h-auto max-h-96 object-contain"
-                onError={(e: React.SyntheticEvent<HTMLImageElement>) => (e.currentTarget.src = defaultImageUrl)}
-              />
-            </div>
-          )}
-
-          {/* Content */}
-          <div className="p-6 sm:p-8">
-            <div
-              className="prose prose-sm sm:prose lg:prose-lg max-w-none ql-editor blog-content"
-              dangerouslySetInnerHTML={{ 
-                __html: DOMPurify.sanitize(blog.noiDung, { ADD_ATTR: ["style", "src"] }) 
-              }}
-            />
-          </div>
-
-          {/* Blog Info (Author, Date, Tags, Like Button) */}
-          <div className="p-6 sm:p-8 border-t border-gray-100">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">
-                      {nguoiDung?.hoTen || blog.maNguoiDung}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-500">{formattedDate}</span>
-                    </div>
-                  </div>
+              {/* Featured Image */}
+              {blog.hinhAnh && (
+                <div className="relative">
+                  <img
+                    src={`data:image/jpeg;base64,${blog.hinhAnh}`}
+                    alt={blog.moTaHinhAnh || blog.tieuDe}
+                    className="w-full h-auto max-h-96 object-contain"
+                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => (e.currentTarget.src = defaultImageUrl)}
+                  />
                 </div>
-                {nguoiDung?.vaiTro !== undefined && (
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleBackground} ${roleTextColor}`}>
-                    {roleText}
-                  </span>
-                )}
+              )}
+
+              {/* Content */}
+              <div className="p-6 sm:p-8">
+                <div
+                  className="prose prose-sm sm:prose lg:prose-lg max-w-none ql-editor blog-content"
+                  dangerouslySetInnerHTML={{ 
+                    __html: DOMPurify.sanitize(blog.noiDung, { ADD_ATTR: ["style", "src"] }) 
+                  }}
+                />
               </div>
 
-              <button
-                onClick={handleLike}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md",
-                  isLiked 
-                    ? "bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600" 
-                    : "bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700"
-                )}
-                aria-label={isLiked ? "Bỏ thích bài viết" : "Thích bài viết"}
-                disabled={isLikeLoading}
-              >
-                {isLikeLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Heart className={cn("w-5 h-5", isLiked ? "fill-current" : "")} />
-                )}
-                <span>{isLiked ? "Đã thích" : "Thích"}</span>
-                <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-sm">
-                  {likesCount}
-                </span>
-              </button>
-            </div>
+              {/* Blog Info (Author, Date, Tags, Like Button) */}
+              <div className="p-6 sm:p-8 border-t border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {nguoiDung?.hoTen || blog.maNguoiDung}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-500">{formattedDate}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {nguoiDung?.vaiTro !== undefined && (
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleBackground} ${roleTextColor}`}>
+                        {roleText}
+                      </span>
+                    )}
+                  </div>
 
-            {blog.tags && blog.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {blog.tags.map((tag, index) => (
-                  <span 
-                    key={index} 
-                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
+                  <button
+                    onClick={handleLike}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md",
+                      isLiked 
+                        ? "bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600" 
+                        : "bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700"
+                    )}
+                    aria-label={isLiked ? "Bỏ thích bài viết" : "Thích bài viết"}
+                    disabled={isLikeLoading}
                   >
-                    #{tagMap[tag] || tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </article>
+                    {isLikeLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Heart className={cn("w-5 h-5", isLiked ? "fill-current" : "")} />
+                    )}
+                    <span>{isLiked ? "Đã thích" : "Thích"}</span>
+                    <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-sm">
+                      {likesCount}
+                    </span>
+                  </button>
+                </div>
 
-        <Comments entityId={blog.maBlog} type="blog" />
+                {blog.tags && blog.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {blog.tags.map((tag, index) => (
+                      <span 
+                        key={index} 
+                        className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
+                      >
+                        #{tagMap[tag] || tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+
+            <Comments entityId={blog.maBlog} type="blog" />
+          </div>
+
+          {/* Related Blogs Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-4">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Bài viết liên quan</h2>
+              {relatedBlogs.length === 0 ? (
+                <p className="text-gray-500 text-sm">Không có bài viết liên quan.</p>
+              ) : (
+                <div className="space-y-4 max-h-[calc(100vh-8rem)] overflow-y-auto">
+                  {relatedBlogs.map((relatedBlog) => (
+                    <BlogCard
+                      key={relatedBlog.maBlog}
+                      post={relatedBlog}
+                      nguoiDung={nguoiDungs[relatedBlog.maNguoiDung] || null}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <style>{`
