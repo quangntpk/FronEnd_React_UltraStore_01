@@ -10,6 +10,7 @@ import HeroSection from "@/components/default/HeroSection";
 import Newsletter from "@/components/default/Newsletter";
 import Features from "@/components/default/Features";
 import CategoryView from "@/components/default/CategoryView";
+import VoucherUser from "@/components/layout/voucher/VoucherUser";
 import {
   Carousel,
   CarouselContent,
@@ -383,20 +384,17 @@ const ProductCard = ({
           )}
 
           {/* Favorite Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute top-2 right-2 w-10 h-10 rounded-full bg-white/80 hover:bg-white z-10"
-            onClick={() => toggleFavorite(product.id)}
-            aria-label={product.isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
-            style={{
-              right: product.discountPercent > 0 ? '90px' : '8px'
-            }}
-          >
-            <Heart
-              className={`h-5 w-5 ${product.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
-            />
-          </Button>
+         <Button
+  variant="outline"
+  size="icon"
+  className="absolute top-2 left-2 w-10 h-10 rounded-full bg-white/80 hover:bg-white z-10"
+  onClick={() => toggleFavorite(product.id)}
+  aria-label={product.isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+>
+  <Heart
+    className={`h-5 w-5 ${product.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+  />
+</Button>
         </div>
 
         <CardContent className="p-4">
@@ -939,7 +937,7 @@ const Index = () => {
 
       if (!userId) {
         showNotification("Vui lòng đăng nhập để thêm combo vào danh sách yêu thích!", "warning").then(() => {
-          navigate("/login");
+          navigate("/auth/login");
         });
         return;
       }
@@ -1005,6 +1003,7 @@ const Index = () => {
       <CategoryView />
       {/* Features */}
       <Features />
+        <VoucherUser />
 
       {/* Featured Products */}
       <section>

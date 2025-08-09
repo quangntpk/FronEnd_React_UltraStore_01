@@ -76,35 +76,19 @@ const UserLayout = () => {
       return;
     }
 
-    const userData = JSON.parse(localStorage.getItem("user") || "null");
-    const userId = userData?.maNguoiDung || null;
-    const token = localStorage.getItem("token");
-
-    if (!userId || !token) {
-      console.warn("No userId or token found for cart");
+    const userID = localStorage.getItem("userId");
+    if (!userID) {
+      console.warn("No userID found in localStorage");
       setCartQuantity(0);
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng đăng nhập lại để tải giỏ hàng.",
-        variant: "destructive",
-        duration: 3000,
-      });
       return;
     }
 
-    console.log("Fetching cart for userId:", userId);
     try {
-      const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userId}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Cache-Control": "no-cache",
-        },
-      });
+      const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userID}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log("Cart data:", data);
       const ctghSanPhamView = data.ctghSanPhamView;
       const ctghComboView = data.ctghComboView;
 
@@ -135,56 +119,61 @@ const UserLayout = () => {
       return;
     }
 
-    const userData = JSON.parse(localStorage.getItem("userId") || "null");
-    const userId = userData?.maNguoiDung || null;
-    const token = localStorage.getItem("token");
-
-    if (!userId || !token) {
-      console.warn("No userId or token found for favorites");
+    const userID = localStorage.getItem("userId");
+    if (!userID) {
+      console.warn("No userID found in localStorage");
       setFavoritesQuantity(0);
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng đăng nhập lại để tải danh sách yêu thích.",
-        variant: "destructive",
-        duration: 3000,
-      });
       return;
     }
 
-    console.log("Fetching favorites for userId:", userId);
     try {
-      const response = await fetch(`http://localhost:5261/api/YeuThich?maNguoiDung=${userId}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Cache-Control": "no-cache",
-        },
+      const response = await fetch(`http://localhost:5261/api/YeuThich?maNguoiDung=${userID}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log("Favorites data:", data);
 
-      // API returns an array of favorite items
-      const favoritesCount = Array.isArray(data) ? data.length : 0;
-      setFavoritesQuantity(favoritesCount);
+      // Filter favorites for the current user
+      const userFavorites = Array.isArray(data)
+        ? data.filter((item) => item.maNguoiDung === userID)
+        : [];
+
+      // Calculate total favorites (products + combos) for the current user
+      const productFavorites = userFavorites.filter((item) => item.maSanPham).length;
+      const comboFavorites = userFavorites.filter((item) => item.maCombo).length;
+
+      setFavoritesQuantity(productFavorites + comboFavorites);
     } catch (error) {
       console.error("Error fetching favorites data:", error);
       setFavoritesQuantity(0);
       toast({
         title: "Lỗi",
-        description: "Không thể tải dữ liệu danh sách yêu thích.",
+        description: "Không thể tải dữ liệu yêu thích.",
         variant: "destructive",
         duration: 3000,
       });
     }
   }, [isLoggedIn, toast]);
 
+  // Refresh favorites count when "favorites-updated" event is triggered
+  useEffect(() => {
+    const handleFavoritesUpdated = () => {
+      fetchFavoritesData();
+    };
+
+    window.addEventListener("favorites-updated", handleFavoritesUpdated);
+    return () => {
+      window.removeEventListener("favorites-updated", handleFavoritesUpdated);
+    };
+  }, [fetchFavoritesData]);
+
   // Fetch cart and favorites data on login status change
   useEffect(() => {
     fetchCartData();
     fetchFavoritesData();
-  }, [fetchCartData, fetchFavoritesData]);
+  }, [fetchCartData, fetchFavoritesData, isLoggedIn]);
 
   // Handle click outside user menu
   useEffect(() => {
@@ -206,8 +195,6 @@ const UserLayout = () => {
 
     try {
       await logout();
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
       toast({
         title: "Đăng xuất thành công 🎉",
         description: "Bạn đã đăng xuất khỏi tài khoản.",
@@ -385,7 +372,7 @@ const UserLayout = () => {
             {/* Logged in user icons */}
             {isLoggedIn && (
               <>
-                {/* Favorites with quantity badge */}
+                {/* Favorites */}
                 <Link
                   to="/favorites"
                   className={cn(

@@ -285,7 +285,7 @@ const ComboDetail = () => {
 
     if (!userId) {
       showNotification("Vui lòng đăng nhập để thêm combo vào danh sách yêu thích!", "warning").then(() => {
-        navigate("/login");
+        navigate("/auth/login");
       });
       return;
     }
