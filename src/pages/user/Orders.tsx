@@ -188,6 +188,8 @@ const NotificationComponent = ({ notification, onClose }: {
 };
 
 // OrderItem Component
+// ...existing code...
+
 const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentStates, setCommentStates] = useState<{ [key: number]: CommentState }>({});
@@ -1689,9 +1691,10 @@ const OrderHistory = () => {
               </div>
             </div>
           </div>
-
-          <DialogFooter>
+          
+          <DialogFooter className="flex gap-3 sm:gap-0">
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 setShowCancelModal(false);
@@ -1699,9 +1702,10 @@ const OrderHistory = () => {
                 setCancelOrderId(null);
               }}
             >
-              Hủy bỏ
+              Không hủy
             </Button>
             <Button
+              type="button"
               variant="destructive"
               onClick={handleCancel}
               disabled={!cancelReason.trim()}
