@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/components/ui/use-toast";
-import axios from "axios";
 import { useAuth } from "../auth/AuthContext";
 import SupportChat from "@/components/default/SupportChat";
 import Translate from "@/components/default/Translate";
@@ -52,6 +51,7 @@ import {
 const UserLayout = () => {
   const { isLoggedIn, userName, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [cartQuantity, setCartQuantity] = useState(0);
   const menuRef = useRef(null);
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -68,6 +68,57 @@ const UserLayout = () => {
     { title: "LIÊN HỆ", path: "/contact", icon: <Mail className="h-5 w-5" /> },
   ];
 
+  // Fetch cart data function
+  const fetchCartData = useCallback(async () => {
+    if (!isLoggedIn) {
+      setCartQuantity(0);
+      return;
+    }
+
+    const userID = localStorage.getItem("userId");
+    if (!userID) {
+      console.warn("No userID found in localStorage");
+      setCartQuantity(0);
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userID}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log(data)
+      const ctghSanPhamView = data.ctghSanPhamView;
+      const ctghComboView = data.ctghComboView;
+
+      // Calculate total quantity
+      const sanPhamQuantity = Array.isArray(ctghSanPhamView)
+        ? ctghSanPhamView.reduce((sum, item) => sum + (item.soLuong || 0), 0)
+        : 0;
+      const comboQuantity = Array.isArray(ctghComboView)
+        ? ctghComboView.reduce((sum, item) => sum + (item.soLuong || 0), 0)
+        : 0;
+
+      setCartQuantity(sanPhamQuantity + comboQuantity);
+    } catch (error) {
+      console.error("Error fetching cart data:", error);
+      setCartQuantity(0);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải dữ liệu giỏ hàng.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  }, [isLoggedIn, toast]);
+
+  // Fetch cart data on login status change
+  useEffect(() => {
+    fetchCartData();
+  }, [fetchCartData]);
+
+  // Handle click outside user menu
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -78,6 +129,7 @@ const UserLayout = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle logout
   const handleLogout = useCallback(async () => {
     if (logoutInProgress.current) return;
 
@@ -97,6 +149,7 @@ const UserLayout = () => {
           </Button>
         ),
       });
+      setCartQuantity(0); // Reset cart quantity on logout
       setTimeout(() => {
         navigate("/auth/login", { replace: true });
       }, 500);
@@ -111,7 +164,7 @@ const UserLayout = () => {
 
   return (
     <>
-      {/* Thanh header trên cùng */}
+      {/* Top header bar */}
       <div className="bg-gray-800 text-white py-2">
         <div className="container mx-auto px-4 flex flex-wrap justify-between items-center">
           <div className="flex items-center space-x-4">
@@ -130,32 +183,35 @@ const UserLayout = () => {
           </div>
           <div className="flex items-center space-x-4 mt-2 sm:mt-0">
             <a href="https://zalo.me/0383777823" target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="h-5 w-5" />
+              <MessageCircle className="h-5 w-5 hover:text-gray-300 transition-colors" />
             </a>
             <a href="https://t.me/miyaru2k5" target="_blank" rel="noopener noreferrer">
-              <Send className="h-5 w-5" />
+              <Send className="h-5 w-5 hover:text-gray-300 transition-colors" />
             </a>
             <a href="https://facebook.com/ultrastore" target="_blank" rel="noopener noreferrer">
-              <Facebook className="h-5 w-5" />
+              <Facebook className="h-5 w-5 hover:text-gray-300 transition-colors" />
             </a>
             <a href="https://instagram.com/ultrastore" target="_blank" rel="noopener noreferrer">
-              <Instagram className="h-5 w-5" />
+              <Instagram className="h-5 w-5 hover:text-gray-300 transition-colors" />
             </a>
             <a href="https://twitter.com/ultrastore" target="_blank" rel="noopener noreferrer">
-              <Twitter className="h-5 w-5" />
+              <Twitter className="h-5 w-5 hover:text-gray-300 transition-colors" />
             </a>
           </div>
         </div>
       </div>
 
-      {/* Header chính */}
+      {/* Main header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex h-16 items-center justify-between">
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <Link to="/" className="flex items-center gap-2">
               <img src="/logo.gif" alt="FashionHub" className="h-32 w-auto max-w-[150px]" />
             </Link>
           </div>
+
+          {/* Desktop Navigation */}
           <nav className="hidden md:block">
             <NavigationMenu>
               <NavigationMenuList>
@@ -179,7 +235,10 @@ const UserLayout = () => {
               </NavigationMenuList>
             </NavigationMenu>
           </nav>
+
+          {/* Right side icons and menu */}
           <div className="flex items-center gap-4">
+            {/* Mobile menu drawer */}
             <Drawer>
               <DrawerTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon">
@@ -197,7 +256,7 @@ const UserLayout = () => {
                             "flex items-center gap-2 px-4 py-3 rounded-md",
                             location.pathname === link.path
                               ? "bg-crocus-100 text-crocus-700 font-medium"
-                              : "text-gray-600"
+                              : "text-gray-600 hover:bg-gray-100"
                           )}
                         >
                           {link.icon}
@@ -214,7 +273,7 @@ const UserLayout = () => {
                               "flex items-center gap-2 px-4 py-3 rounded-md",
                               location.pathname === "/user/profile"
                                 ? "bg-crocus-100 text-crocus-700 font-medium"
-                                : "text-gray-600"
+                                : "text-gray-600 hover:bg-gray-100"
                             )}
                           >
                             <UserCircle className="h-5 w-5" />
@@ -226,11 +285,9 @@ const UserLayout = () => {
                             to="/user/orders"
                             className={cn(
                               "flex items-center gap-2 px-4 py-3 rounded-md",
-                              location.pathname ===
-
- "/user/orders"
+                              location.pathname === "/user/orders"
                                 ? "bg-crocus-100 text-crocus-700 font-medium"
-                                : "text-gray-600"
+                                : "text-gray-600 hover:bg-gray-100"
                             )}
                           >
                             <Package className="h-5 w-5" />
@@ -240,7 +297,7 @@ const UserLayout = () => {
                         <DrawerClose asChild>
                           <Button
                             variant="ghost"
-                            className="flex items-center gap-2 px-4 py-3 text-red-600"
+                            className="flex items-center gap-2 px-4 py-3 text-red-600 justify-start hover:bg-red-50"
                             onClick={handleLogout}
                           >
                             <LogOut className="h-5 w-5" />
@@ -253,8 +310,11 @@ const UserLayout = () => {
                 </div>
               </DrawerContent>
             </Drawer>
+
+            {/* Logged in user icons */}
             {isLoggedIn && (
               <>
+                {/* Favorites */}
                 <Link
                   to="/favorites"
                   className={cn(
@@ -264,14 +324,19 @@ const UserLayout = () => {
                 >
                   <Heart className="h-5 w-5" />
                 </Link>
-                {/* <Link
+
+                {/* Personal promotions */}
+                <Link
                   to="/personalpromotions"
                   className={cn(
                     "relative hover:text-crocus-600 transition-colors",
                     location.pathname === "/personalpromotions" ? "text-crocus-600" : "text-gray-600"
                   )}
-                ><Ticket className="h-5 w-5" />
-                </Link> */}
+                >
+                  <Ticket className="h-5 w-5" />
+                </Link>
+
+                {/* Shopping cart with quantity badge */}
                 <Link
                   to="/user/cart"
                   className={cn(
@@ -280,16 +345,25 @@ const UserLayout = () => {
                   )}
                 >
                   <ShoppingCart className="h-5 w-5" />
+                  {cartQuantity > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold shadow-md">
+                      {cartQuantity > 99 ? "99+" : cartQuantity}
+                    </span>
+                  )}
                 </Link>
+
+                {/* Messages */}
                 <Link
                   to="/user/messages"
                   className={cn(
                     "relative hover:text-crocus-600 transition-colors",
-                    location.pathname === "/messages" ? "text-crocus-600" : "text-gray-600"
+                    location.pathname === "/user/messages" ? "text-crocus-600" : "text-gray-600"
                   )}
                 >
                   <MessageSquare className="h-5 w-5" />
                 </Link>
+
+                {/* User menu dropdown */}
                 <div className="relative" ref={menuRef}>
                   <Button
                     variant="outline"
@@ -301,14 +375,12 @@ const UserLayout = () => {
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                   {isUserMenuOpen && (
-                    <div
-                      className="absolute right-0 mt-3 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 p-4"
-                    >
+                    <div className="absolute right-0 mt-3 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 p-4">
                       <h3 className="font-semibold text-gray-800 mb-2">Thông tin người dùng</h3>
                       <div className="space-y-2">
                         <Link
                           to="/user/profile"
-                          className="flex items-center text-gray-700 hover:text-crocus-600"
+                          className="flex items-center text-gray-700 hover:text-crocus-600 transition-colors p-2 rounded-md hover:bg-gray-50"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <UserCircle className="h-5 w-5 mr-2" />
@@ -316,7 +388,7 @@ const UserLayout = () => {
                         </Link>
                         <Link
                           to="/user/orders"
-                          className="flex items-center text-gray-700 hover:text-crocus-600"
+                          className="flex items-center text-gray-700 hover:text-crocus-600 transition-colors p-2 rounded-md hover:bg-gray-50"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <Package className="h-5 w-5 mr-2" />
@@ -325,7 +397,7 @@ const UserLayout = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full text-red-600 flex items-center justify-start"
+                          className="w-full text-red-600 flex items-center justify-start p-2 hover:bg-red-50"
                           onClick={handleLogout}
                         >
                           <LogOut className="h-4 w-4 mr-2" />
@@ -337,6 +409,8 @@ const UserLayout = () => {
                 </div>
               </>
             )}
+
+            {/* Login button for non-logged in users */}
             {!isLoggedIn && (
               <Button variant="outline" size="sm" asChild>
                 <Link to="/auth/login">
@@ -347,14 +421,19 @@ const UserLayout = () => {
           </div>
         </div>
       </header>
+
+      {/* Main content */}
       <main className="flex-1">
         <div className="container mx-auto py-6 px-4">
           <Outlet />
         </div>
       </main>
+
+      {/* Footer */}
       <footer className="bg-gray-50 border-t border-gray-200 py-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative translate-y-5">
+            {/* Logo and description */}
             <div>
               <Link to="/" className="flex items-center gap-2">
                 <img
@@ -368,71 +447,77 @@ const UserLayout = () => {
               </p>
               <Translate />
             </div>
+
+            {/* Shopping links */}
             <div className="hidden md:block">
               <h3 className="font-bold text-2xl mb-4 text-crocus-700">Mua sắm</h3>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <LayoutGrid className="h-5 w-5 inline mr-2" /> Trang chủ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/products" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/products" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <ShoppingBag className="h-5 w-5 inline mr-2" /> Sản phẩm
                   </Link>
                 </li>
                 <li>
-                  <Link to="/combos" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/combos" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <Package className="h-5 w-5 inline mr-2" /> Combo
                   </Link>
                 </li>
                 <li>
-                  <Link to="/Guarantee" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/Guarantee" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <RotateCcw className="h-5 w-5 inline mr-2" /> Chính sách đổi trả
                   </Link>
                 </li>
               </ul>
             </div>
+
+            {/* Account links */}
             <div className="hidden md:block">
               <h3 className="font-bold text-2xl mb-4 text-crocus-700">Tài khoản</h3>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/user/profile" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/user/profile" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <UserCircle className="h-5 w-5 inline mr-2" /> Hồ sơ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/user/orders" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/user/orders" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <Package className="h-5 w-5 inline mr-2" /> Đơn hàng
                   </Link>
                 </li>
                 <li>
-                  <Link to="/user/cart" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/user/cart" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <ShoppingCart className="h-5 w-5 inline mr-2" /> Giỏ hàng
                   </Link>
                 </li>
                 <li>
-                  <Link to="/Security" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/Security" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <ShieldCheck className="h-5 w-5 inline mr-2" /> Chính sách bảo mật
                   </Link>
                 </li>
               </ul>
             </div>
+
+            {/* Contact and social links */}
             <div>
               <h3 className="font-bold text-2xl mb-4 text-crocus-700">Kết nối với chúng tôi</h3>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/contact" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/contact" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <Mail className="h-5 w-5 inline mr-2" /> Liên hệ
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/about" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <MapPin className="h-5 w-5 inline mr-2" /> Về chúng tôi
                   </Link>
                 </li>
                 <li>
-                  <Link to="/blogs" className="text-gray-700 hover:text-crocus-500 text-xl">
+                  <Link to="/blogs" className="text-gray-700 hover:text-crocus-500 text-xl transition-colors">
                     <Newspaper className="h-5 w-5 inline mr-2" /> Tin tức
                   </Link>
                 </li>
@@ -440,7 +525,7 @@ const UserLayout = () => {
               <div className="flex space-x-4 mt-6">
                 <a
                   href="https://facebook.com/Ultrastore"
-                  className="text-gray-700 hover:text-crocus-500"
+                  className="text-gray-700 hover:text-crocus-500 transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -448,7 +533,7 @@ const UserLayout = () => {
                 </a>
                 <a
                   href="https://instagram.com/ultrasstore"
-                  className="text-gray-700 hover:text-crocus-500"
+                  className="text-gray-700 hover:text-crocus-500 transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -456,7 +541,7 @@ const UserLayout = () => {
                 </a>
                 <a
                   href="https://twitter.com/ultrastore"
-                  className="text-gray-700 hover:text-crocus-500"
+                  className="text-gray-700 hover:text-crocus-500 transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

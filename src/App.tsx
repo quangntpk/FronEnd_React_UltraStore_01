@@ -83,6 +83,8 @@ import DiaChiTime from "./components/default/DiaChiTime";
 import VnpayReturn from "./router/Vnpayreturn";
 
 
+import ChiTietKhuyenMai from "./components/user/KhuyenMai/KhuyenMaiDetail";
+import ListKhuyenMai from "./pages/admin/AdminEvent";
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
   const location = useLocation();
@@ -205,6 +207,8 @@ const App = () => (
                 <Route path="search" element={<Search />} />
                 <Route path="diachitime" element={<DiaChiTime />} />
 
+                <Route path="KhuyenMais"></Route>
+                 <Route path="KhuyenMais/:id" element={<ChiTietKhuyenMai />}></Route>
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
@@ -237,6 +241,10 @@ const App = () => (
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="events" element ={<ListKhuyenMai/>} />
+
+                <Route path="orders" element={<StaffOrders />} />
+
                 <Route path="invoices" element={<AdminInvoices />} />
                 <Route path="statistics" element={<AdminStatistics />} />
                 <Route path="products" element={<AdminProducs />} />
