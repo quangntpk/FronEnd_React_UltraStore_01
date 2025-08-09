@@ -1150,12 +1150,34 @@ const CartPage = () => {
                           <h3 className="font-medium text-lg">
                             {item.tenSanPham}
                           </h3>
-                          <p className="text-muted-foreground">
-                            Size: {item.kickThuoc} | Color: {item.mauSac}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {formatCurrency(item.tienSanPham)} VND
-                          </p>
+                          <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Kích thước:</span>
+                              <span className="text-sm text-gray-600">{item.kickThuoc}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Màu sắc:</span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="inline-block rounded-full border border-gray-200 shadow-sm"
+                                  style={{
+                                    backgroundColor: `#${item.mauSac}`,
+                                    width: "1.5rem",
+                                    height: "1.5rem",
+                                  }}
+                                ></span>
+                                <span className="text-sm text-gray-600 capitalize">
+                                  {item.mauSac}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Đơn Giá:</span>
+                              <span className="text-xl font-bold text-crocus-600">
+                                {formatCurrency(item.tienSanPham)} VND
+                              </span>
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center mt-4 sm:mt-0">
                           <button

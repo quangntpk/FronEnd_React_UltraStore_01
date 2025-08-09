@@ -77,7 +77,8 @@ import Security from "./components/default/Security";
 import Guarantee from "./components/default/Guarantee";
 import AdminMessages from "./pages/admin/AdminMessages";
 import Search from "./components/default/Search";
-
+import ChiTietKhuyenMai from "./components/user/KhuyenMai/KhuyenMaiDetail";
+import ListKhuyenMai from "./pages/admin/AdminEvent";
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
   const location = useLocation();
@@ -181,7 +182,8 @@ const App = () => (
                 <Route path="security" element={<Security />} />
                 <Route path="guarantee" element={<Guarantee />} />
                 <Route path="search" element={<Search />} />
-
+                <Route path="KhuyenMais"></Route>
+                 <Route path="KhuyenMais/:id" element={<ChiTietKhuyenMai />}></Route>
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
@@ -202,7 +204,7 @@ const App = () => (
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="settings" element={<AdminSettings />} />
-                
+                <Route path="events" element ={<ListKhuyenMai/>} />
 
                 <Route path="orders" element={<StaffOrders />} />
 

@@ -75,7 +75,6 @@ const Comments = ({ productId }) => {
         const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
         const commentData = await commentResponse.json();
-        console.log("Fetched comments:", commentData);
         const productComments = commentData
           .filter((comment) => comment.maSanPham === baseProductId && comment.trangThai === 1)
           .map((comment) => ({
