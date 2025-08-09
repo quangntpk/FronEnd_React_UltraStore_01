@@ -880,7 +880,7 @@ const Index = () => {
 
       if (!userId) {
         showNotification("Vui lòng đăng nhập để thêm sản phẩm vào danh sách yêu thích!", "warning").then(() => {
-          navigate("/login");
+          navigate("/auth/login");
         });
         return;
       }

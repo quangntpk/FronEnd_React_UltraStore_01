@@ -52,6 +52,7 @@ const UserLayout = () => {
   const { isLoggedIn, userName, logout } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [cartQuantity, setCartQuantity] = useState(0);
+  const [favoritesQuantity, setFavoritesQuantity] = useState(0);
   const menuRef = useRef(null);
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -75,24 +76,38 @@ const UserLayout = () => {
       return;
     }
 
-    const userID = localStorage.getItem("userId");
-    if (!userID) {
-      console.warn("No userID found in localStorage");
+    const userData = JSON.parse(localStorage.getItem("user") || "null");
+    const userId = userData?.maNguoiDung || null;
+    const token = localStorage.getItem("token");
+
+    if (!userId || !token) {
+      console.warn("No userId or token found for cart");
       setCartQuantity(0);
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng đăng nhập lại để tải giỏ hàng.",
+        variant: "destructive",
+        duration: 3000,
+      });
       return;
     }
 
+    console.log("Fetching cart for userId:", userId);
     try {
-      const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userID}`);
+      const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userId}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log(data)
+      console.log("Cart data:", data);
       const ctghSanPhamView = data.ctghSanPhamView;
       const ctghComboView = data.ctghComboView;
 
-      // Calculate total quantity
       const sanPhamQuantity = Array.isArray(ctghSanPhamView)
         ? ctghSanPhamView.reduce((sum, item) => sum + (item.soLuong || 0), 0)
         : 0;
@@ -113,10 +128,63 @@ const UserLayout = () => {
     }
   }, [isLoggedIn, toast]);
 
-  // Fetch cart data on login status change
+  // Fetch favorites data function
+  const fetchFavoritesData = useCallback(async () => {
+    if (!isLoggedIn) {
+      setFavoritesQuantity(0);
+      return;
+    }
+
+    const userData = JSON.parse(localStorage.getItem("userId") || "null");
+    const userId = userData?.maNguoiDung || null;
+    const token = localStorage.getItem("token");
+
+    if (!userId || !token) {
+      console.warn("No userId or token found for favorites");
+      setFavoritesQuantity(0);
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng đăng nhập lại để tải danh sách yêu thích.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    console.log("Fetching favorites for userId:", userId);
+    try {
+      const response = await fetch(`http://localhost:5261/api/YeuThich?maNguoiDung=${userId}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Favorites data:", data);
+
+      // API returns an array of favorite items
+      const favoritesCount = Array.isArray(data) ? data.length : 0;
+      setFavoritesQuantity(favoritesCount);
+    } catch (error) {
+      console.error("Error fetching favorites data:", error);
+      setFavoritesQuantity(0);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải dữ liệu danh sách yêu thích.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  }, [isLoggedIn, toast]);
+
+  // Fetch cart and favorites data on login status change
   useEffect(() => {
     fetchCartData();
-  }, [fetchCartData]);
+    fetchFavoritesData();
+  }, [fetchCartData, fetchFavoritesData]);
 
   // Handle click outside user menu
   useEffect(() => {
@@ -138,6 +206,8 @@ const UserLayout = () => {
 
     try {
       await logout();
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
       toast({
         title: "Đăng xuất thành công 🎉",
         description: "Bạn đã đăng xuất khỏi tài khoản.",
@@ -149,7 +219,8 @@ const UserLayout = () => {
           </Button>
         ),
       });
-      setCartQuantity(0); // Reset cart quantity on logout
+      setCartQuantity(0);
+      setFavoritesQuantity(0);
       setTimeout(() => {
         navigate("/auth/login", { replace: true });
       }, 500);
@@ -314,7 +385,7 @@ const UserLayout = () => {
             {/* Logged in user icons */}
             {isLoggedIn && (
               <>
-                {/* Favorites */}
+                {/* Favorites with quantity badge */}
                 <Link
                   to="/favorites"
                   className={cn(
@@ -323,17 +394,11 @@ const UserLayout = () => {
                   )}
                 >
                   <Heart className="h-5 w-5" />
-                </Link>
-
-                {/* Personal promotions */}
-                <Link
-                  to="/personalpromotions"
-                  className={cn(
-                    "relative hover:text-crocus-600 transition-colors",
-                    location.pathname === "/personalpromotions" ? "text-crocus-600" : "text-gray-600"
+                  {favoritesQuantity > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold shadow-md">
+                      {favoritesQuantity > 99 ? "99+" : favoritesQuantity}
+                    </span>
                   )}
-                >
-                  <Ticket className="h-5 w-5" />
                 </Link>
 
                 {/* Shopping cart with quantity badge */}

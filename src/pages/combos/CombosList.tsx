@@ -192,6 +192,7 @@ const CombosList = () => {
             setCombos(updatedCombos);
             setFilteredCombos(updatedCombos);
           } else {
+            console.log(favoriteResponse)
             // Nếu không lấy được danh sách yêu thích, vẫn hiển thị combo
             setCombos(transformedCombos);
             setFilteredCombos(transformedCombos);
@@ -328,19 +329,64 @@ const CombosList = () => {
 
   const toggleFavorite = async (comboId: number) => {
     try {
-      // Mock toggle favorite functionality
-      setFilteredCombos((prev) =>
-        prev.map((c) => c.id === comboId ? { ...c, isFavorite: !c.isFavorite } : c)
-      );
-      setCombos((prev) =>
-        prev.map((c) => c.id === comboId ? { ...c, isFavorite: !c.isFavorite } : c)
-      );
-      
       const combo = combos.find(c => c.id === comboId);
-      showNotification(
-        combo?.isFavorite ? "Đã xóa combo khỏi danh sách yêu thích!" : "Đã thêm combo vào danh sách yêu thích!",
-        "success"
-      );
+      let userData: UserData = {};
+      try {
+        const user = localStorage.getItem("user");
+        userData = user ? JSON.parse(user) : {};
+      } catch (error) {
+        console.error("Lỗi parse user data:", error);
+      }
+      const userId = userData?.maNguoiDung;
+      const hoTen = userData?.hoTen;
+
+      if (!userId) {
+        showNotification("Vui lòng đăng nhập để thêm combo vào danh sách yêu thích!", "warning").then(() => {
+          navigate("/login");
+        });
+        return;
+      }
+
+      if (combo?.isFavorite) {
+        const response = await fetch(`http://localhost:5261/api/YeuThich/${combo.likedId}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (!response.ok) throw new Error("Không thể xóa combo khỏi danh sách yêu thích");
+        setFilteredCombos((prev) =>
+          prev.map((c) => c.id === comboId ? { ...c, isFavorite: false, likedId: undefined } : c)
+        );
+        setCombos((prev) =>
+          prev.map((c) => c.id === comboId ? { ...c, isFavorite: false, likedId: undefined } : c)
+        );
+        showNotification("Đã xóa combo khỏi danh sách yêu thích!", "success");
+      } else {
+        const yeuThichData = {
+          maCombo: comboId,
+          tenCombo: combo?.name,
+          maNguoiDung: userId,
+          hoTen: hoTen,
+          soLuongYeuThich: 1,
+          ngayYeuThich: new Date().toISOString(),
+        };
+        const response = await fetch("http://localhost:5261/api/YeuThich", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(yeuThichData),
+        });
+        if (!response.ok) throw new Error("Không thể thêm combo vào danh sách yêu thích");
+        const addedFavorite = await response.json();
+        setFilteredCombos((prev) =>
+          prev.map((c) => c.id === comboId ? { ...c, isFavorite: true, likedId: addedFavorite.maYeuThich } : c)
+        );
+        setCombos((prev) =>
+          prev.map((c) => c.id === comboId ? { ...c, isFavorite: true, likedId: addedFavorite.maYeuThich } : c)
+        );
+        showNotification("Đã thêm combo vào danh sách yêu thích!", "success");
+      }
     } catch (error) {
       console.error("Lỗi khi cập nhật yêu thích:", error);
       showNotification("Có lỗi xảy ra khi cập nhật yêu thích!", "error");
