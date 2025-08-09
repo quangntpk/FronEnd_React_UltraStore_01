@@ -31,9 +31,13 @@ const Combos = () => {
 
   const fetchCombos = async () => {
     try {
-      const response = await fetch("http://localhost:5261/api/Combo/ComboSanPhamView", {
+       const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5261/api/Combo/ComboSanPhamViewAdmin", {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
+        
       });
       if (response.ok) {
         const data = await response.json();
@@ -115,11 +119,14 @@ const Combos = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
+           const token = localStorage.getItem("token");
           const response = await fetch(
             `http://localhost:5261/api/Combo/DeleteCombo?id=${combo.maCombo}`,
             {
               method: "GET",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json",
+                Authorization: token ? `Bearer ${token}` : undefined,
+               },
             }
           );
 
@@ -172,11 +179,14 @@ const Combos = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
+           const token = localStorage.getItem("token");
           const response = await fetch(
             `http://localhost:5261/api/Combo/DeleteCombo?id=${combo.maCombo}&status=true`,
             {
               method: "GET",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json",
+                Authorization: token ? `Bearer ${token}` : undefined,
+               },
             }
           );
 

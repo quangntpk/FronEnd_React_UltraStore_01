@@ -245,7 +245,8 @@ const ProductReportGenerator = ({ isOpen, onClose, selectedProductIds }: Product
       const response = await fetch("http://localhost:5261/api/SanPham/ReportByDate", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
+          , Authorization: localStorage.getItem("token") ? `Bearer ${localStorage.getItem("token")}` : undefined,
         },
         body: JSON.stringify({
           batDau: startDate,

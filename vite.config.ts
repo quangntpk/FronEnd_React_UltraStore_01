@@ -8,11 +8,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      "/api/ghn": {
+        target: "https://dev-online-gateway.ghn.vn",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ghn/, ""),
+      },
+    },
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {

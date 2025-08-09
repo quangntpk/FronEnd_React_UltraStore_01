@@ -117,7 +117,14 @@ const Vouchers = () => {
   const fetchVouchers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5261/api/Voucher`);
+         const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5261/api/Voucher`,{
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
       if (!response.ok) throw new Error('Không thể lấy dữ liệu voucher');
       const data: Voucher[] = await response.json();
       const adjustedData = data.map((voucher) => ({
@@ -149,8 +156,13 @@ const Vouchers = () => {
     if (!voucherToDelete) return;
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5261/api/Voucher/${voucherToDelete.maVoucher}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
       });
       if (response.status === 204) {
         setVouchers(vouchers.filter(voucher => voucher.maVoucher !== voucherToDelete.maVoucher));
@@ -188,9 +200,12 @@ const Vouchers = () => {
     }
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5261/api/Voucher`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
         body: JSON.stringify({
           tenVoucher: newVoucher.tenVoucher,
           giaTri: newVoucher.loaiVoucher === '2' ? 0 : parseInt(newVoucher.giaTri, 10),
@@ -281,9 +296,12 @@ const Vouchers = () => {
     try {
       console.log("Sending payload to update voucher:", JSON.stringify(payload, null, 2)); // Debug payload
 
-      const response = await fetch(`http://localhost:5261/api/Voucher`, {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:5261/api/Voucher`, {        
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
         body: JSON.stringify(payload),
       });
 

@@ -28,9 +28,11 @@ const CreateComboModal = ({ isCreateModalOpen, setIsCreateModalOpen }) => {
       const fetchProducts = async () => {
         setSearchLoading(true);
         try {
+           const token = localStorage.getItem("token");
           const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
+            Authorization: token ? `Bearer ${token}` : undefined,
           });
           if (!response.ok) throw new Error("Failed to fetch products");
           const data = await response.json();
@@ -209,9 +211,11 @@ const CreateComboModal = ({ isCreateModalOpen, setIsCreateModalOpen }) => {
         })),
       };
 
+       const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5261/api/Combo/CreateComboSanPham", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        Authorization: token ? `Bearer ${token}` : undefined,
         body: JSON.stringify(comboDataToSend),
       });
 

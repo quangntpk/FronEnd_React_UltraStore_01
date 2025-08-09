@@ -19,12 +19,12 @@ type HeaderProps = {
 
 const Header = ({ title }: HeaderProps) => {
   const navigate = useNavigate();
-  const { isLoggedIn, userName, logout } = useAuth(); 
-   const { toast } = useToast();
+  const { isLoggedIn, userName, user, logout } = useAuth();
+  const { toast } = useToast();
   const handleLogout = async () => {
     try {
-      await logout(); 
-       toast({
+      await logout();
+      toast({
         title: "Đăng xuất thành công 🎉",
         description: "Bạn đã đăng xuất khỏi tài khoản.",
         duration: 3000,
@@ -40,10 +40,11 @@ const Header = ({ title }: HeaderProps) => {
       toast.error('Đăng xuất thất bại');
     }
   };
+  const profilePath = user?.role === 'admin' ? '/admin/profile' : user?.role === 'staff' ? '/staff/profile' : '/profile';
 
   return (
     <header className="h-16 border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 bg-white/80 backdrop-blur-sm z-20">
-      <h1 className="text-xl font-semibold">{}</h1>
+      <h1 className="text-xl font-semibold">{ }</h1>
       {/* title */}
       <div className="flex items-center gap-4">
         {isLoggedIn && (
@@ -67,13 +68,13 @@ const Header = ({ title }: HeaderProps) => {
             {isLoggedIn && (
               <>
                 <DropdownMenuItem asChild>
-                  <Link to="/admin/profile" className="flex items-center w-full">
+                  <Link to={profilePath} className="flex items-center w-full">
                     <User className="mr-2 h-4 w-4" />
                     <span>Hồ sơ</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link to="/admin/settings" className="flex items-center w-full">
+                  <Link to={profilePath} className="flex items-center w-full">
                     <SettingsIcon className="mr-2 h-4 w-4" />
                     <span>Cài đặt</span>
                   </Link>

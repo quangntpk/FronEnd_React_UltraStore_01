@@ -29,8 +29,15 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
       if (!productId || !isOpen) return;
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
         const baseProductId = productId.split('_')[0] || productId;
-        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${baseProductId}`);
+        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${baseProductId}`,{
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+          }
+        });
         if (!response.ok) {
           throw new Error('Không thể tải thông tin sản phẩm');
         }

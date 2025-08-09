@@ -13,7 +13,14 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
 
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5261/api/Combo/ComboSanPhamView?id=${comboId}`);
+        const token = localStorage.getItem("token");
+        const response = await fetch(`http://localhost:5261/api/Combo/ComboSanPhamViewAdmin?id=${comboId}`,{
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          }
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch combo');
         }
@@ -57,8 +64,13 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
   const handleDelete = async () => {
     if (window.confirm("Bạn có chắc muốn xóa combo này?")) {
       try {
+         const token = localStorage.getItem("token");
         const response = await fetch(`http://localhost:5261/api/Combo/DeleteCombo?id=${comboId}`, {
-          method: "GET", // Giả định API sử dụng GET để xóa, thay đổi nếu cần
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          }
         });
         if (!response.ok) {
           throw new Error("Failed to delete combo");
