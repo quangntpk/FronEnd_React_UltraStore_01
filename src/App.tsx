@@ -33,8 +33,9 @@ import Messages from "./pages/user/Messages";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import AdminBuy from "./pages/admin/AdminBuy";
 import HoaDon from "./pages/user/HoaDon"
+import AdminOrders from "./pages/admin/AdminOrders";
 import StaffOrders from "./pages/admin/AdminOrders";
-import StaffInventory from "./pages/staff/StaffInventory";
+import StaffInventory from "./pages/admin/AdminInventory";
 import InventoryForm from "./pages/staff/InventoryForm";
 import PurchaseOrdersForm from "./pages/staff/PurchaseOrdersForm";
 import ProductsForm from "./pages/staff/ProductsForm";
@@ -79,8 +80,11 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import Search from "./components/default/Search";
 import CmtForm from "@/pages/products/CmtForm"
 import DiaChiTime from "./components/default/DiaChiTime";
+import VnpayReturn from "./router/Vnpayreturn";
 
 
+import ChiTietKhuyenMai from "./components/user/KhuyenMai/KhuyenMaiDetail";
+import ListKhuyenMai from "./pages/admin/AdminEvent";
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
   const location = useLocation();
@@ -98,38 +102,56 @@ const GoogleCallbackHandler = () => {
     processedRef.current = true;
 
     const email = searchParams.get("email") || "";
-    const name = searchParams.get("name") || "";
-    const role = parseInt(searchParams.get("role") || "0", 10);
+    const fullName = searchParams.get("name") || "";
+    const vaiTro = parseInt(searchParams.get("role") || "0", 10);
+    const role = vaiTro === 1 ? "admin" : vaiTro === 2 ? "staff" : "Người Dùng";
 
     const processCallback = async () => {
       try {
-        setAuth(token, {
+        const userData = {
           maNguoiDung: userId,
           email,
-          hoTen: name,
-          vaiTro: role,
-        });
+          fullName,
+          vaiTro,
+          role,
+        };
 
-        const redirectPath = role === 1 ? "/admin" : "/";
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(userData));
+
+
+        setAuth(token, userData);
+
+        const redirectPath =
+          vaiTro === 1 ? "/admin" : vaiTro === 2 ? "/staff" : "/";
         window.history.replaceState({}, "", redirectPath);
 
-        window.dispatchEvent(new Event('storage'));
+
+        window.dispatchEvent(new Event("storage"));
+
 
         setTimeout(() => {
           toast({
             title: "Đăng nhập Google thành công 🎉",
             description: "Chào mừng bạn quay trở lại!",
             duration: 3000,
-            className: "bg-green-500 text-white border border-green-700 shadow-lg",
+            className:
+              "bg-green-500 text-white border border-green-700 shadow-lg",
           });
+          navigate(redirectPath);
         }, 200);
-
       } catch (error) {
         console.error("Lỗi Google callback:", error);
+        toast({
+          title: "Đăng nhập Google thất bại!",
+          description:
+            error.message || "Có lỗi xảy ra khi đăng nhập với Google.",
+          variant: "destructive",
+          duration: 3000,
+        });
         processedRef.current = false;
       }
     };
-
     processCallback();
   }, [location.search, setAuth, navigate, toast]);
 
@@ -147,7 +169,6 @@ const App = () => (
           <AppShell>
             <GoogleCallbackHandler />
             <Routes>
-              <Route path="buy" element={<AdminBuy />} />
               <Route path="/" element={<UserLayout />}>
                 <Route index element={<Index />} />
                 <Route path="products" element={<ProductList />} />
@@ -158,7 +179,7 @@ const App = () => (
                 <Route path="blogs/:slug" element={<BlogDetailComponent />} />
                 <Route path="voucher/*" element={<VoucherUser />} />
                 <Route path="favorites" element={<FavoritesList />} />
-                 <Route path="personalpromotions" element={<PersonalpromotionsList />} />
+                <Route path="personalpromotions" element={<PersonalpromotionsList />} />
                 <Route path="contact" element={<Contact />} />
                 <Route path="about" element={<About />} />
                 <Route path="auth/login" element={<Login />} />
@@ -180,33 +201,47 @@ const App = () => (
                 <Route path="testing" element={<Testing />} />
                 <Route path="/user/hoadon/:orderId" element={<OrderEmailPage />} />
                 <Route path="/user/hoadon" element={<HoaDon />} />
-                <Route path="/user/CheckOutInstant" element={<CheckOutInstant/>}/>
+                <Route path="/user/CheckOutInstant" element={<CheckOutInstant />} />
                 <Route path="security" element={<Security />} />
                 <Route path="guarantee" element={<Guarantee />} />
                 <Route path="search" element={<Search />} />
                 <Route path="diachitime" element={<DiaChiTime />} />
 
+                <Route path="KhuyenMais"></Route>
+                 <Route path="KhuyenMais/:id" element={<ChiTietKhuyenMai />}></Route>
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
-                <Route index element={<StaffDashboard />} />
+                <Route index element={<StaffOrders />} />
 
                 <Route path="orders" element={<StaffOrders />} />
-                <Route path="inventory" element={<StaffInventory />} />
+                <Route path="inventory" element={<AdminInventory />} />
+                <Route path="hashtag" element={<AdminHashTag />} />
                 <Route path="inventory/form" element={<InventoryForm />} />
                 <Route path="purchase-orders/form" element={<PurchaseOrdersForm />} />
                 <Route path="products/form" element={<ProductsForm />} />
                 <Route path="shipping/form" element={<ShippingForm />} />
                 <Route path="orders/form" element={<OrdersForm />} />
-                <Route path="invoice/form" element={<InvoiceForm />} />
+                <Route path="invoices" element={<AdminInvoices />} />
+                <Route path="blog" element={<AdminBlog />} />
+                <Route path="contact" element={<AdminContact />} />
+                <Route path="messages" element={<AdminMessages />} />
+                <Route path="loaisanpham" element={<AdminLoaiSanPham />} />
+                <Route path="products" element={<AdminProducs />} />
+                <Route path="profile" element={<AdminProfile />} />
+                <Route path="buy" element={<AdminBuy />} />
+                <Route path="combos" element={<AdminCombos />} />
+                <Route path="thuonghieu" element={<AdminThuongHieu />} />
               </Route>
 
               <Route path="/admin" element={<AdminLayout role="admin" />}>
                 <Route index element={<AdminDashboard />} />
+                <Route path="buy" element={<AdminBuy />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="settings" element={<AdminSettings />} />
-                
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="events" element ={<ListKhuyenMai/>} />
 
                 <Route path="orders" element={<StaffOrders />} />
 
@@ -214,7 +249,7 @@ const App = () => (
                 <Route path="statistics" element={<AdminStatistics />} />
                 <Route path="products" element={<AdminProducs />} />
                 <Route path="blog" element={<AdminBlog />} />
-                <Route path="inventory" element={<AdminInventory />} />
+                <Route path="inventory" element={<StaffInventory />} />
                 <Route path="combos" element={<AdminCombos />} />
                 <Route path="thuonghieu" element={<AdminThuongHieu />} />
                 <Route path="loaisanpham" element={<AdminLoaiSanPham />} />
@@ -227,11 +262,7 @@ const App = () => (
                 <Route path="invoice/form" element={<InvoiceForm />} />
                 <Route path="contact" element={<AdminContact />} />
                 <Route path="messages" element={<AdminMessages />} />
-
-
-                <Route path="*" element={<NotFound />} />
               </Route>
-
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />

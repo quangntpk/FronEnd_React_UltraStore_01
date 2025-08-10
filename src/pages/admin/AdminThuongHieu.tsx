@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/tabs";
 import { Search, MoreVertical, Upload, X, Loader2, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import Swal from "sweetalert2";
+import axios from "axios";
+
 
 interface Trademark {
   maThuongHieu: number;
@@ -73,6 +75,7 @@ const AdminTrademark = () => {
   const [errorsThem, setErrorsThem] = useState({ ten: "", hinhAnh: "" });
   const [errorsSua, setErrorsSua] = useState({ ten: "", hinhAnh: "" });
   const [errorMessage, setErrorMessage] = useState<string>("");
+  
 
   const formatBase64Image = (base64String: string) => {
     if (!base64String) return "";
@@ -89,30 +92,25 @@ const AdminTrademark = () => {
   };
 
   const fetchTrademarks = useCallback(async () => {
-    try {
-      setLoading(true);
-      const targetStatus = activeTab === "active" ? 1 : 0;
-      const response = await fetch(`${API_URL}/api/ThuongHieu?trangThai=${targetStatus}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể lấy danh sách thương hiệu");
-      }
-      const data = await response.json();
-      setTrademarks(data);
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Lỗi khi tải danh sách thương hiệu: " + (error as Error).message,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab]);
+  try {
+    setLoading(true);
+    const targetStatus = activeTab === "active" ? 1 : 0;
+    const response = await axios.get<Trademark[]>(`${API_URL}/api/ThuongHieu?trangThai=${targetStatus}`);
+    setTrademarks(response.data);
+  } catch (error) {
+    Swal.fire({
+      icon: "error",
+      title: "Lỗi",
+      text: "Lỗi khi tải danh sách thương hiệu: " + (error as any).response?.data?.message || (error as Error).message,
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      showCloseButton: true,
+    });
+  } finally {
+    setLoading(false);
+  }
+}, [activeTab, API_URL]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value.toLowerCase());
@@ -224,7 +222,7 @@ const AdminTrademark = () => {
     try {
       setIsProcessing(true);
       const base64Image = getBase64(hinhAnhMoi);
-      const response = await fetch(`${API_URL}/api/ThuongHieu`, {
+      const response = await axios.post<Trademark[]>(`${API_URL}/api/ThuongHieu`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -233,10 +231,6 @@ const AdminTrademark = () => {
           TrangThai: 1,
         }),
       });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể thêm thương hiệu");
-      }
       setTenThuongHieuMoi("");
       setHinhAnhMoi("");
       setErrorsThem({ ten: "", hinhAnh: "" });
@@ -271,10 +265,14 @@ const AdminTrademark = () => {
     try {
       setIsProcessing(true);
       setErrorMessage("");
+     
+       const token = localStorage.getItem("token");
       const base64Image = getBase64(trademarkDangSua.hinhAnh || "");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkDangSua.maThuongHieu}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
         body: JSON.stringify({
           MaThuongHieu: trademarkDangSua.maThuongHieu,
           TenThuongHieu: trademarkDangSua.tenThuongHieu,
@@ -326,9 +324,12 @@ const AdminTrademark = () => {
     if (!trademarkCanXoa) return;
     try {
       setIsProcessing(true);
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanXoa.maThuongHieu}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
         body: JSON.stringify({
           MaThuongHieu: trademarkCanXoa.maThuongHieu,
           TenThuongHieu: trademarkCanXoa.tenThuongHieu,
@@ -379,9 +380,12 @@ const AdminTrademark = () => {
     if (!trademarkCanKhoiPhuc) return;
     try {
       setIsProcessing(true);
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanKhoiPhuc.maThuongHieu}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
         body: JSON.stringify({
           MaThuongHieu: trademarkCanKhoiPhuc.maThuongHieu,
           TenThuongHieu: trademarkCanKhoiPhuc.tenThuongHieu,
@@ -432,8 +436,12 @@ const AdminTrademark = () => {
     if (!trademarkCanXoaVinhVien) return;
     try {
       setIsProcessing(true);
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanXoaVinhVien.maThuongHieu}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
       });
       if (!response.ok) {
         const errorText = await response.text();

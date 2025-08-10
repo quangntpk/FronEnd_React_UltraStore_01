@@ -192,7 +192,14 @@ const Dashboard = () => {
 
     const [year, month, day] = date.split("-");
     try {
-      const response = await fetch(`${API_BASE_URL}/Daily?year=${year}&month=${month}&day=${day}`);
+      const response = await fetch(`${API_BASE_URL}/Daily?year=${year}&month=${month}&day=${day}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch daily statistics");
       const data = await response.json();
 
@@ -224,7 +231,14 @@ const Dashboard = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/Monthly?year=${monthlyYear}&month=${monthlyMonth}`);
+      const response = await fetch(`${API_BASE_URL}/Monthly?year=${monthlyYear}&month=${monthlyMonth}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch monthly statistics");
       const data = await response.json();
 
@@ -255,7 +269,14 @@ const Dashboard = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/Yearly?year=${yearlyYear}`);
+      const response = await fetch(`${API_BASE_URL}/Yearly?year=${yearlyYear}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch yearly statistics");
       const data = await response.json();
 
@@ -294,7 +315,14 @@ const Dashboard = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch order status statistics");
       const data = await response.json();
       return data.length > 0 ? data : [];
@@ -319,7 +347,14 @@ const Dashboard = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch top products statistics");
       const data = await response.json();
       return data.length > 0 ? data : [];

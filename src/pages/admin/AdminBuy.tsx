@@ -186,9 +186,11 @@ const Products = () => {
 
     const fetchProducts = async () => {
       try {
+        
         const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
+
         });
         if (response.ok) {
           const data = await response.json();

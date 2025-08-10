@@ -15,11 +15,12 @@ import {
 } from "@/components/ui/select";
 import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, Star, CreditCard, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import Swal from "sweetalert2";
-import CmtForm from "../products/CmtForm";
+import { Textarea } from "@/components/ui/textarea";
 
 // Interfaces
 interface CancelOrderResponse {
@@ -111,6 +112,7 @@ interface CommentState {
   productId: number;
   content: string;
   rating: number;
+}
 interface Comment {
   maBinhLuan: number;
   maSanPham: string;
@@ -129,8 +131,8 @@ interface Comment {
 interface OrderItemProps {
   order: Order;
   onCancel: (orderId: string) => void;
-  onAddComment: (orderId: string, productId: string, content: string, rating: number, image?: string, imageDescription?: string, isCombo?: boolean) => Promise<boolean>;
-  commentedProducts: Set<string>;
+  onAddComment: (orderId: string, productId: number, content: string, rating: number) => Promise<boolean>;
+  commentedProducts: Set<number>;
 }
 
 // Constants
@@ -212,16 +214,15 @@ const NotificationComponent = ({ notification, onClose }: {
 };
 
 
+
+
+// OrderItem Component
+// ...existing code...
+
 const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
-
-const OrderItem = ({
-  order,
-  onCancel,
-  onAddComment,
-  commentedProducts,
-}: OrderItemProps) => {
-
   const [isExpanded, setIsExpanded] = useState(false);
+  const [commentStates, setCommentStates] = useState<{ [key: number]: CommentState }>({});
+  const [isCommenting, setIsCommenting] = useState<{ [key: number]: boolean }>({});
   const statusInfo = orderStatuses[mapStatus(order.trangThaiDonHang)] || orderStatuses.pending;
   const StatusIcon = statusInfo.icon;
 
@@ -398,58 +399,61 @@ const OrderItem = ({
         </div>
       </a>
 
-      {/* Comment Section */}
+      {/* Comment Section for completed orders */}
       {mapStatus(order.trangThaiDonHang) === "completed" && 
        !commentedProducts.has(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)) && (
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg ml-4">
+        <div className="ml-4">
           <h3 className="text-lg font-medium mb-4 text-blue-800">
             Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
           </h3>
-          <div className="flex items-center mb-4">
-            <span className="mr-2 text-sm font-medium">Đánh giá:</span>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star
-                key={index}
-                className={cn(
-                  "w-6 h-6 cursor-pointer transition-colors",
-                  index < (commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.rating || 0)
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-gray-300 hover:text-yellow-200"
-                )}
-                onClick={() => handleCommentChange(
-                  item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
-                  "rating", 
-                  index + 1
-                )}
-              />
-            ))}
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+            <div className="flex items-center mb-4">
+              <span className="mr-2 text-sm font-medium">Đánh giá:</span>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star
+                  key={index}
+                  className={cn(
+                    "w-6 h-6 cursor-pointer transition-colors",
+                    index < (commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.rating || 0)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-300 hover:text-yellow-200"
+                  )}
+                  onClick={() => handleCommentChange(
+                    item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
+                    "rating", 
+                    index + 1
+                  )}
+                />
+              ))}
+            </div>
+            <Textarea
+              value={commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.content || ""}
+              onChange={(e) => handleCommentChange(
+                item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
+                "content", 
+                e.target.value
+              )}
+              placeholder="Nhập bình luận của bạn..."
+              className="w-full mb-4"
+              rows={4}
+              disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
+            />
+            <Button
+              onClick={() => handleAddComment(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!))}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
+            >
+              {isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)] ? "Đang gửi..." : "Gửi Bình Luận"}
+            </Button>
           </div>
-          <Textarea
-            value={commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.content || ""}
-            onChange={(e) => handleCommentChange(
-              item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
-              "content", 
-              e.target.value
-            )}
-            placeholder="Nhập bình luận của bạn..."
-            className="w-full mb-4"
-            rows={4}
-            disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
-          />
-          <Button
-            onClick={() => handleAddComment(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!))}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
-          >
-            {isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)] ? "Đang gửi..." : "Gửi Bình Luận"}
-          </Button>
         </div>
       )}
 
+      {/* Already commented message */}
       {mapStatus(order.trangThaiDonHang) === "completed" && 
        commentedProducts.has(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)) && (
         <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
-          <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này.</p>
+          <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này trong đơn hàng này.</p>
         </div>
       )}
     </div>
@@ -457,7 +461,7 @@ const OrderItem = ({
 
   return (
     <div className="border rounded-lg overflow-hidden mb-4 transition-all duration-200 hover:shadow-md">
-      <div className="p-4 bg-gray-50涯overflow-x-auto">
+      <div className="p-4 bg-gray-50 overflow-x-auto">
         <div className="grid grid-cols-12 gap-4 items-center min-w-[700px]">
           <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
             <span className="font-medium text-gray-800">Mã đơn hàng: {order.maDonHang || "N/A"}</span>
@@ -662,6 +666,7 @@ const OrderItem = ({
                     {formatCurrency(order.thongTinDonHang?.tongTien || 0)}
                   </span>
                 </div>
+
                 {order.thongTinDonHang?.soTienGiam > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Giảm giá:</span>
@@ -912,23 +917,6 @@ const OrderTrackingTimeline = ({ order }: { order: Order }) => {
             </div>
           </div>
 
-const OrderHistory = () => {
-  const navigate = useNavigate();
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [commentedProducts, setCommentedProducts] = useState<Set<string>>(new Set());
-
-  const cancelReasonsSuggestions = [
-    "Không muốn mua nữa",
-    "Hết hàng",
-    "Sai thông tin đơn hàng",
-    "Khác",
-  ];
-
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h5 className="font-medium text-gray-900 mb-3">Thông tin đơn hàng</h5>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -961,7 +949,257 @@ const OrderHistory = () => {
       )}
     </div>
   );
+};
+
+const OrderHistory = () => {
+  const navigate = useNavigate();
+  
+  // States
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [trackingSearch, setTrackingSearch] = useState('');
+  const [allOrdersSearch, setAllOrdersSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState<{ 
+    message: string; 
+    type: "success" | "error"; 
+    duration?: number 
+  } | null>(null);
+  const [commentedProducts, setCommentedProducts] = useState<Set<number>>(new Set());
+
+  const [allOrdersPagination, setAllOrdersPagination] = useState<PaginationInfo>({
+    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
+  });
+  const [pendingPagination, setPendingPagination] = useState<PaginationInfo>({
+    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
+  });
+  const [processingPagination, setProcessingPagination] = useState<PaginationInfo>({
+    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
+  });
+  const [shippingPagination, setShippingPagination] = useState<PaginationInfo>({
+    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
+  });
+  const [completedPagination, setCompletedPagination] = useState<PaginationInfo>({
+    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
+  });
+  const [canceledPagination, setCanceledPagination] = useState<PaginationInfo>({
+    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
+  });
+
+  const [allOrdersData, setAllOrdersData] = useState<Order[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [processingOrders, setProcessingOrders] = useState<Order[]>([]);
+  const [shippingOrders, setShippingOrders] = useState<Order[]>([]);
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
+  const [canceledOrders, setCanceledOrders] = useState<Order[]>([]);
+  const [trackingOrders, setTrackingOrders] = useState<Order[]>([]);
+
+  const searchTrackingOrders = async (query: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setNotification({ message: "Vui lòng đăng nhập để tra cứu đơn hàng!", type: "error" });
+        navigate("/login");
+        return;
+      }
+
+      if (!query.trim()) {
+        setTrackingOrders(allOrdersData);
+        return;
+      }
+
+      const response = await axios.get('http://localhost:5261/api/user/orders/search', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { query: query },
+      });
+
+      const rawOrders = response.data;
+      if (!Array.isArray(rawOrders)) {
+        setTrackingOrders([]);
+        return;
+      }
+
+      setTrackingOrders(rawOrders);
+
+    } catch (error: any) {
+      console.error("Error searching tracking orders:", error);
+      if (error.response?.status === 401) {
+        setNotification({ message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", type: "error" });
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      } else {
+        setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!", type: "error" });
+        setTrackingOrders([]);
+      }
+    }
   };
+
+  // Helper functions
+  const updateTabData = (status: string, data: Order[], pagination: PaginationInfo) => {
+    const setters = {
+      'all': [setAllOrdersData, setAllOrdersPagination],
+      'pending': [setPendingOrders, setPendingPagination],
+      'processing': [setProcessingOrders, setProcessingPagination],
+      'shipping': [setShippingOrders, setShippingPagination],
+      'completed': [setCompletedOrders, setCompletedPagination],
+      'canceled': [setCanceledOrders, setCanceledPagination]
+    };
+    
+    const [setData, setPagination] = setters[status as keyof typeof setters] || [];
+    if (setData && setPagination) {
+      (setData as React.Dispatch<React.SetStateAction<Order[]>>)(data);
+      (setPagination as React.Dispatch<React.SetStateAction<PaginationInfo>>)(pagination);
+    }
+  };
+
+  const getCurrentPagination = (status: string): PaginationInfo => {
+    const paginationMap = {
+      'all': allOrdersPagination,
+      'pending': pendingPagination,
+      'processing': processingPagination,
+      'shipping': shippingPagination,
+      'completed': completedPagination,
+      'canceled': canceledPagination
+    };
+    return paginationMap[status as keyof typeof paginationMap] || allOrdersPagination;
+  };
+
+  const getTabOrders = (status: string): Order[] => {
+    const ordersMap = {
+      'all': allOrdersData,
+      'pending': pendingOrders,
+      'processing': processingOrders,
+      'shipping': shippingOrders,
+      'completed': completedOrders,
+      'canceled': canceledOrders
+    };
+    return ordersMap[status as keyof typeof ordersMap] || allOrdersData;
+  };
+
+  const getOrderCountByStatus = (status: OrderStatus | "all") => {
+    if (status === "all") return orders.length;
+    return orders.filter(order => mapStatus(order.trangThaiDonHang) === status).length;
+  };
+
+  // API Functions
+  const fetchOrdersByStatus = async (status: string, page: number = 1) => {
+    try {
+      setIsLoading(true);
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const maNguoiDung = userData?.maNguoiDung;
+      if (!maNguoiDung) {
+        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
+        navigate("/login");
+        return;
+      }
+
+      const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      const allOrders = response.data;
+      if (!Array.isArray(allOrders)) {
+        setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
+        return;
+      }
+
+      let filteredData = allOrders;
+      if (status !== 'all') {
+        filteredData = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === status);
+      }
+
+      const pageSize = 10;
+      const totalRecords = filteredData.length;
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+
+      const mockPagination: PaginationInfo = {
+        currentPage: page,
+        pageSize: pageSize,
+        totalRecords: totalRecords,
+        totalPages: totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      };
+
+      updateTabData(status, paginatedData, mockPagination);
+
+    } catch (error: any) {
+      console.error("Error fetching orders by status:", error);
+      setNotification({ 
+        message: error.response?.data?.message || "Đã xảy ra lỗi khi tải đơn hàng!", 
+        type: "error" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFilterChange = async (newStatus: string) => {
+    setFilterStatus(newStatus);
+    
+    if (newStatus === "all") {
+      await fetchOrdersByStatus("all", 1);
+    } else {
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const maNguoiDung = userData?.maNguoiDung;
+      if (!maNguoiDung) {
+        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
+        navigate("/login");
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+
+        const allOrders = response.data;
+        if (!Array.isArray(allOrders)) {
+          setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
+          return;
+        }
+
+        const filteredOrders = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === newStatus);
+        
+        const pageSize = 10;
+        const totalRecords = filteredOrders.length;
+        const totalPages = Math.ceil(totalRecords / pageSize);
+        const paginatedData = filteredOrders.slice(0, pageSize);
+
+        const filterPagination: PaginationInfo = {
+          currentPage: 1,
+          pageSize: pageSize,
+          totalRecords: totalRecords,
+          totalPages: totalPages,
+          hasNextPage: totalPages > 1,
+          hasPreviousPage: false
+        };
+
+        updateTabData("all", paginatedData, filterPagination);
+        setOrders(allOrders);
+
+      } catch (error: any) {
+        console.error("Error filtering orders:", error);
+        setNotification({ 
+          message: error.response?.data?.message || "Đã xảy ra lỗi khi lọc đơn hàng!", 
+          type: "error" 
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+         
 
 const OrderHistory = () => {
   const navigate = useNavigate();
@@ -1221,12 +1459,8 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng đăng nhập để xem lịch sử đơn hàng!",
-          confirmButtonText: "Đăng nhập",
-        }).then(() => navigate("/login"));
+        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
+        navigate("/login");
         return;
       }
 
@@ -1234,7 +1468,7 @@ const OrderHistory = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const rawOrders = response.data;
-
+      
       if (!Array.isArray(rawOrders)) {
         setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
         console.error("API did not return an array:", rawOrders);
@@ -1250,11 +1484,7 @@ const OrderHistory = () => {
       setOrders(rawOrders);
     } catch (error: any) {
       console.error("Error fetching orders:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!",
-      });
+      setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!", type: "error" });
       setOrders([]);
     }
   };
@@ -1264,17 +1494,14 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng đăng nhập để kiểm tra bình luận!",
-        }).then(() => navigate("/login"));
+        setNotification({ message: "Vui lòng đăng nhập để kiểm tra bình luận!", type: "error" });
+        navigate("/login");
         return;
       }
 
       const likedCommentsKey = `likedComments_${maNguoiDung}`;
-      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as string[];
-      setCommentedProducts(new Set<string>(storedCommentedProducts));
+      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as number[];
+      setCommentedProducts(new Set(storedCommentedProducts));
 
       const response = await axios.get("http://localhost:5261/api/Comment/list", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -1290,16 +1517,12 @@ const OrderHistory = () => {
         userComments.map((comment) => `${comment.maDonHang}-${comment.maSanPham || comment.maCombo}`)
       );
 
-      const mergedCommentedProductKeys = new Set<string>([...apiCommentedProductKeys, ...storedCommentedProducts]);
-      setCommentedProducts(mergedCommentedProductKeys);
-      localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductKeys]));
+      const mergedCommentedProductIds = new Set([...apiCommentedProductIds, ...storedCommentedProducts]);
+      setCommentedProducts(mergedCommentedProductIds);
+      localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductIds]));
     } catch (error) {
       console.error("Error fetching commented products:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Đã xảy ra lỗi khi kiểm tra bình luận!",
-      });
+      setNotification({ message: "Đã xảy ra lỗi khi kiểm tra bình luận!", type: "error" });
     }
   };
 
@@ -1313,7 +1536,7 @@ const OrderHistory = () => {
       }
 
       if (!query.trim()) {
-        // Fix 1: Load lại dữ liệu khi xóa từ khóa tìm kiếm
+
         await fetchOrdersByUserId();
         await fetchOrdersByStatus("all", 1);
         return;
@@ -1377,6 +1600,7 @@ const OrderHistory = () => {
     imageDescription?: string,
     isCombo: boolean = false
   ) => {
+  const handleAddComment = async (orderId: string, productId: number, content: string, rating: number) => {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
@@ -1406,26 +1630,19 @@ const OrderHistory = () => {
         return false;
       }
       if (!content.trim() || rating < 1 || rating > 5) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!",
-        });
+        setNotification({ message: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!", type: "error" });
         return false;
       }
 
       const commentData = {
-        maSanPham: isCombo ? null : productId,
-        maCombo: isCombo ? parseInt(productId) : 0,
+        maSanPham: productId.toString(),
         maNguoiDung: maNguoiDung,
         noiDungBinhLuan: content,
         danhGia: rating,
         ngayBinhLuan: new Date().toISOString(),
         trangThai: 0,
         soTimBinhLuan: 0,
-        maDonHang: orderId,
-        hinhAnh: image || null,
-        moTaHinhAnh: imageDescription || null,
+        maDonHang: orderId
       };
 
       const response = await axios.post("http://localhost:5261/api/Comment/add", commentData, {
@@ -1437,19 +1654,13 @@ const OrderHistory = () => {
 
       if (response.status === 201) {
         setCommentedProducts((prev) => {
-          const newSet = new Set<string>(prev);
-          newSet.add(`${orderId}-${productId}`);
+          const newSet = new Set(prev);
+          newSet.add(productId);
           const likedCommentsKey = `likedComments_${maNguoiDung}`;
           localStorage.setItem(likedCommentsKey, JSON.stringify([...newSet]));
           return newSet;
         });
-        Swal.fire({
-          icon: "success",
-          title: "Thành công",
-          text: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!",
-          timer: 3000,
-          showConfirmButton: false,
-        });
+        setNotification({ message: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!", type: "success" });
         await fetchCommentedProducts();
         return true;
       }
@@ -1487,11 +1698,7 @@ const OrderHistory = () => {
       } else {
         errorMessage = `Lỗi: ${error.message}`;
       }
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: errorMessage,
-      });
+      setNotification({ message: errorMessage, type: "error" });
       return false;
     }
   };
@@ -1622,54 +1829,33 @@ const OrderHistory = () => {
   const handleCancelClick = (orderId: string) => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const token = localStorage.getItem("token");
-
-    console.log("Debug cancel click:", {
-      orderId,
-      userData,
-      hasToken: !!token,
-    });
-
+    
     if (!userData?.maNguoiDung || !token) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Vui lòng đăng nhập để hủy đơn hàng!",
-      }).then(() => navigate("/login"));
+      setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
+      navigate("/login");
       return;
     }
 
-    const order = orders.find((o) => o.maDonHang.toString() === orderId);
+    const order = orders.find(o => o.maDonHang.toString() === orderId);
     if (!order) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Đơn hàng không tồn tại!",
-      });
+      setNotification({ message: "Đơn hàng không tồn tại!", type: "error" });
       return;
     }
 
     const orderStatus = mapStatus(order.trangThaiDonHang);
     if (orderStatus !== "pending" && orderStatus !== "processing") {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!",
-      });
+      setNotification({ message: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!", type: "error" });
       return;
     }
 
     setCancelOrderId(orderId);
-    setCancelReason("");
+    setCancelReason('');
     setShowCancelModal(true);
   };
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Vui lòng nhập lý do hủy!",
-      });
+      setNotification({ message: "Vui lòng nhập lý do hủy!", type: "error" });
       return;
     }
     if (cancelOrderId === null) return;
@@ -1678,7 +1864,7 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       const token = localStorage.getItem("token");
-
+      
       if (!maNguoiDung || !token) {
         Swal.fire({
           icon: "error",
@@ -1686,6 +1872,8 @@ const OrderHistory = () => {
           text: "Vui lòng đăng nhập để hủy đơn hàng!",
         }).then(() => navigate("/login"));
 
+        setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
+        navigate("/login");
         return;
       }
 
@@ -1724,115 +1912,77 @@ const OrderHistory = () => {
         setNotification({ message: lockMessage, type: "error" });
         
         setTimeout(() => {
-          setNotification({ 
-            message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
-            type: "error" 
 
         Swal.fire({
           icon: "error",
           title: "Lỗi",
           text: "Mã đơn hàng không hợp lệ!",
         });
+        setNotification({ message: "Mã đơn hàng không hợp lệ!", type: "error" });
         return;
-      }
-
-      const order = orders.find((o) => o.maDonHang === orderIdNumber);
-      if (!order) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Đơn hàng không tồn tại!",
-        });
-        setShowCancelModal(false);
-        return;
-      }
-
-      console.log("Canceling order:", {
-        orderId: orderIdNumber,
-        reason: cancelReason.trim(),
-        userId: maNguoiDung,
       });
 
       const cancelRequest: CancelOrderRequest = {
-        lyDoHuy: cancelReason.trim(),
+        lyDoHuy: cancelReason.trim()
       };
-
-      console.log("Cancel request payload:", cancelRequest);
 
       const response = await axios.put<CancelOrderResponse>(
         `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
         cancelRequest,
         {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
           },
-          timeout: 10000,
+          timeout: 10000
         }
       );
 
-      console.log("Cancel response:", response.data);
-
       setShowCancelModal(false);
-      setCancelReason("");
+      setCancelReason('');
       setCancelOrderId(null);
 
       if (response.data.isAccountLocked) {
-        const lockMessage =
-          response.data.lockoutMessage || "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
-
-        Swal.fire({
-          icon: "error",
-          title: "Tài khoản bị khóa",
-          text: lockMessage,
-          footer: "<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>",
-        }).then(() => {
-          Swal.fire({
-            icon: "info",
-            title: "Đăng xuất",
-            text: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.",
-            timer: 3000,
-            showConfirmButton: false,
-          }).then(() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            if (maNguoiDung) {
-              localStorage.removeItem(`likedComments_${maNguoiDung}`);
-            }
-            navigate("/login");
+        const lockMessage = response.data.lockoutMessage || 
+          "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
+        
+        setNotification({ message: lockMessage, type: "error" });
+        
+        setTimeout(() => {
+          setNotification({ 
+            message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
+            type: "error" 
           });
-        });
-      } else {
-        let successMessage = response.data.message || "Hủy đơn hàng thành công!";
-
-        if (response.data.remainingCancellations !== undefined) {
-          if (response.data.remainingCancellations === 1) {
-            successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 1 lần hủy đơn hàng. Nếu hủy thêm 1 lần nữa, tài khoản sẽ bị khóa trong 3 ngày.";
-          } else if (response.data.remainingCancellations === 2) {
-            successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 2 lần hủy đơn hàng. Hãy cẩn thận khi đặt hàng để tránh bị khóa tài khoản.";
-          }
+        }, 3000);
+        
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        if (maNguoiDung) {
+          localStorage.removeItem(`likedComments_${maNguoiDung}`);
         }
-
-        Swal.fire({
-          icon: "success",
-          title: "Thành công",
-          text: successMessage,
-          timer: 5000,
-          showConfirmButton: false,
+        
+        setTimeout(() => {
+          navigate("/login");
+        }, 6000);
+      } else {
+        setNotification({ 
+          message: response.data.message || "Đơn hàng đã được hủy thành công!", 
+          type: "success" 
         });
-
+        
         await fetchOrdersByUserId();
       }
-    } catch (error: any) {
+
+    }} catch (error: any) {
       console.error("Error canceling order:", error);
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const maNguoiDung = userData?.maNguoiDung;
-
+      
       setShowCancelModal(false);
-      setCancelReason("");
+      setCancelReason('');
       setCancelOrderId(null);
-
+      
+      let errorMessage = "Đã xảy ra lỗi khi hủy đơn hàng!";
+      
       if (error.response?.status === 401) {
         Swal.fire({
           icon: "error",
@@ -1901,38 +2051,11 @@ const OrderHistory = () => {
         setNotification({ 
           message: response.data.message || "Đơn hàng đã được hủy thành công!", 
           type: "success" 
-
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: error.response?.data?.message || "Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.",
-
-        });
-        
+        })       
         await fetchOrdersByUserId();
       }
 
-    } catch (error: any) {
-      console.error("Error canceling order:", error);
-      
-      setShowCancelModal(false);
-      setCancelReason('');
-      setCancelOrderId(null);
-      
-      let errorMessage = "Đã xảy ra lỗi khi hủy đơn hàng!";
-      
-      if (error.response?.status === 401) {
-        errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
-      setNotification({ message: errorMessage, type: "error" });
-
-    }
+    } 
   };
 
   const handleTabPageChange = (status: string, newPage: number) => {
@@ -2385,6 +2508,7 @@ const OrderHistory = () => {
             </div>
           </div>
 
+          
           <DialogFooter className="flex gap-3 sm:gap-0">
             <Button
               type="button"
@@ -2411,6 +2535,14 @@ const OrderHistory = () => {
             <Button variant="destructive" onClick={handleCancel}>
 
               Xác nhận hủy
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={!cancelReason.trim()}
+            >
+              Xác nhận hủy đơn
             </Button>
           </DialogFooter>
         </DialogContent>

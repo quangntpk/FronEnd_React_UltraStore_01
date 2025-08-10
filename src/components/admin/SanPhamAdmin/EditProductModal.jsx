@@ -35,7 +35,14 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
   useEffect(() => {
     const fetchLoaiSanPham = async () => {
       try {
-        const response = await fetch("http://localhost:5261/api/LoaiSanPham");
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/LoaiSanPham", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         const data = await response.json();
         setLoaiSanPhamList(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -53,7 +60,14 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
 
     const fetchThuongHieu = async () => {
       try {
-        const response = await fetch("http://localhost:5261/api/ThuongHieu");
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/ThuongHieu", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         const data = await response.json();
         setThuongHieuList(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -71,7 +85,14 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
 
     const fetchHashTags = async () => {
       try {
-        const response = await fetch("http://localhost:5261/api/HashTag");
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/HashTag", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         const data = await response.json();
         setHashTagList(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -375,10 +396,12 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
 
     setErrors({});
     try {
+         const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5261/api/SanPham/EditSanPham", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
         body: JSON.stringify(updatedData),
       });
@@ -768,13 +791,12 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                 <div>
                   <label className="block mb-2 font-medium text-gray-700">Hình Ảnh Chung</label>
                   <div
-                    className={`relative w-full h-48 border-2 border-dashed rounded-lg transition-all duration-200 ${
-                      isDragging
+                    className={`relative w-full h-48 border-2 border-dashed rounded-lg transition-all duration-200 ${isDragging
                         ? "border-blue-500 bg-blue-50"
                         : images.length > 0
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}

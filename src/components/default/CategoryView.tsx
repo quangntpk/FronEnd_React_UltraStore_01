@@ -28,6 +28,7 @@ const CategoryView = () => {
         const response = await fetch(`${API_URL}/api/LoaiSanPham`, {
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,            
           },
         });
 

@@ -28,9 +28,11 @@ const EditComboModal = ({ isEditModalOpen, setIsEditModalOpen, comboId }) => {
       const fetchComboDetails = async () => {
         setSearchLoading(true);
         try {
-          const response = await fetch(`http://localhost:5261/api/Combo/ComboSanPhamView?id=${comboId}`, {
+           const token = localStorage.getItem("token");
+          const response = await fetch(`http://localhost:5261/api/Combo/ComboSanPhamViewAdmin?id=${comboId}`, {
             method: "GET",
             headers: { "Content-Type": "application/json" },
+            Authorization: token ? `Bearer ${token}` : undefined,
           });
           if (!response.ok) throw new Error("Failed to fetch combo details");
           const data = await response.json();
@@ -80,9 +82,11 @@ const EditComboModal = ({ isEditModalOpen, setIsEditModalOpen, comboId }) => {
       const fetchProducts = async () => {
         setSearchLoading(true);
         try {
+           const token = localStorage.getItem("token");
           const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
+            Authorization: token ? `Bearer ${token}` : undefined,
           });
           if (!response.ok) throw new Error("Failed to fetch products");
           const data = await response.json();

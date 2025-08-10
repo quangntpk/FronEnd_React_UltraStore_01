@@ -246,7 +246,14 @@ const AdminUsers = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_URL}/api/NguoiDung`);
+      const response = await fetch(`${API_URL}/api/NguoiDung`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Lỗi khi tải danh sách người dùng");
       const data: Account[] = await response.json();
       setUsers(data);
@@ -263,7 +270,14 @@ const AdminUsers = () => {
 
   const fetchDefaultAvatar = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/GiaoDien`);
+      const response = await fetch(`${API_URL}/api/GiaoDien`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Lỗi khi tải avatar mặc định");
       const data: GiaoDien[] = await response.json();
       const activeGiaoDien = data.find((item) => item.trangThai === 1);
@@ -280,7 +294,14 @@ const AdminUsers = () => {
 
   const fetchDiaChiList = async (maNguoiDung: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`);
+      const response = await fetch(`${API_URL}/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error("Lỗi khi tải danh sách địa chỉ");
       const data: DiaChi[] = await response.json();
       const sortedData = data.sort(
@@ -687,7 +708,9 @@ const AdminUsers = () => {
 
       const response = await fetch(`${API_URL}/api/NguoiDung`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+         },
         body: JSON.stringify(userData),
       });
 
@@ -731,18 +754,25 @@ const AdminUsers = () => {
       if (confirmationAction === "hide") {
         await fetch(`${API_URL}/api/NguoiDung/${confirmationUser.maNguoiDung}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+           },
           body: JSON.stringify({ ...confirmationUser, trangThai: 2 }),
         });
       } else if (confirmationAction === "restore") {
         await fetch(`${API_URL}/api/NguoiDung/${confirmationUser.maNguoiDung}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+           },
           body: JSON.stringify({ ...confirmationUser, trangThai: 0 }),
         });
       } else if (confirmationAction === "delete") {
         await fetch(`${API_URL}/api/NguoiDung/${confirmationUser.maNguoiDung}`, {
           method: "DELETE",
+          headers: { "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+           },
         });
       }
       await fetchUsers();
@@ -884,6 +914,9 @@ const AdminUsers = () => {
     try {
       const response = await fetch(`${API_URL}/api/NguoiDung/chitiet/${selectedUser.maNguoiDung}`, {
         method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token") || ""}`,
+        },
         body: formData,
       });
 

@@ -23,7 +23,7 @@ const PaymentSuccess = () => {
         },
       });
       navigate("/", { state: { orderId } });
-    } else {    
+    } else {
       navigate("user/orders");
     }
   }, [location, navigate]);
@@ -35,4 +35,7 @@ const PaymentSuccess = () => {
   );
 };
 
-export default PaymentSuccess;
+export default PaymentSuccess; 
+
+
+

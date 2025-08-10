@@ -5,7 +5,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Heart, ShoppingCart, Printer, Zap, CreditCard } from "lucide-react";
+import { Heart, ShoppingCart, Printer, Zap, CreditCard, Sparkles } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -14,16 +14,24 @@ import {
 } from "@/components/ui/tabs";
 import Swal from "sweetalert2";
 import Comments from "./Comments";
-import Testing from "@/components/default/Testing";
+// Import Testing component locally
+import React from 'react';
+import { ChevronDown, ChevronUp, Upload, X, EyeOff } from 'lucide-react';
 import SelectSize from "@/components/default/SelectSize";
 import SanPhamLienQuan from "@/pages/products/ProductShowcase"
 import MoTaSanPham from './MoTaSanPham';
+
 // ---------- Types ---------- //
 interface ProductDetail {
   kichThuoc: string;
   soLuong: number;
   gia: number;
   hinhAnh: string;
+}
+
+interface HashTag {
+  id: number,
+  name: string;
 }
 
 interface Product {
@@ -36,8 +44,10 @@ interface Product {
   chatLieu: string;
   details: ProductDetail[];
   hinhAnhs: string[];
+  listHashTag: HashTag[];
+  khuyenMaiMax: number;
 }
-// ---------- Helpers ---------- //
+
 const showNotification = (message: string, type: "success" | "error") => {
   Swal.fire({
     toast: true,
@@ -47,6 +57,374 @@ const showNotification = (message: string, type: "success" | "error") => {
     position: "top-end",
     showConfirmButton: false,
   });
+};
+
+const Testing: React.FC = () => {
+  const [file1, setFile1] = useState<File | null>(null);
+  const [file2, setFile2] = useState<File | null>(null);
+  const [preview1, setPreview1] = useState<string | null>(null);
+  const [preview2, setPreview2] = useState<string | null>(null);
+  const [outputImage, setOutputImage] = useState<string | null>(null);
+  const [loadingAI, setLoadingAI] = useState<boolean>(false);
+  const [zoom1, setZoom1] = useState<number>(1);
+  const [zoom2, setZoom2] = useState<number>(1);
+  const [zoomOutput, setZoomOutput] = useState<number>(1);
+
+  const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5261';
+
+  const handleDrop = (
+    event: React.DragEvent<HTMLDivElement>,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+      const selectedFile = event.dataTransfer.files[0];
+      if (selectedFile.type.startsWith('image/')) {
+        setFile(selectedFile);
+        const previewUrl = URL.createObjectURL(selectedFile);
+        setPreview(previewUrl);
+      }
+    }
+  };
+
+  const handleClick = (
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setPreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files[0]) {
+        const selectedFile = target.files[0];
+        setFile(selectedFile);
+        const previewUrl = URL.createObjectURL(selectedFile);
+        setPreview(previewUrl);
+      }
+    };
+    input.click();
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleZoomIn = (setZoom: React.Dispatch<React.SetStateAction<number>>) => {
+    setZoom((prevZoom) => Math.min(prevZoom + 0.1, 3));
+  };
+
+  const handleZoomOut = (setZoom: React.Dispatch<React.SetStateAction<number>>) => {
+    setZoom((prevZoom) => Math.max(prevZoom - 0.1, 0.5));
+  };
+
+  useEffect(() => {
+    return () => {
+      if (preview1) URL.revokeObjectURL(preview1);
+      if (preview2) URL.revokeObjectURL(preview2);
+    };
+  }, [preview1, preview2]);
+
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          const base64Data = reader.result.split(',')[1];
+          resolve(base64Data);
+        } else {
+          reject(new Error('Kết quả không phải là chuỗi'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!file1 || !file2) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Vui lòng chọn cả hai tệp hình ảnh!',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+      return;
+    }
+
+    setLoadingAI(true);
+    try {
+      const base64Data1 = await readFileAsBase64(file1);
+      const base64Data2 = await readFileAsBase64(file2);
+
+      const requestData = {
+        cauHoi: 'Mặc cái áo này lên người này giúp tôi',
+        hinhAnh: [base64Data1, base64Data2],
+      };
+
+      const response = await fetch(`${API_URL}/api/Gemini/Response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.result) {
+        setOutputImage(`data:image/png;base64,${data.result}`);
+        setZoomOutput(1);
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: data.errorMessage || 'Có lỗi xảy ra khi xử lý yêu cầu',
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          showCloseButton: true,
+        });
+      }
+    } catch (error) {
+      console.error('Lỗi:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Có lỗi xảy ra khi gửi yêu cầu đến API',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
+  const handleClear = () => {
+    setFile1(null);
+    setFile2(null);
+    setPreview1(null);
+    setPreview2(null);
+    setOutputImage(null);
+    setZoom1(1);
+    setZoom2(1);
+    setZoomOutput(1);
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto relative bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      {/* Header with gradient */}
+      <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 px-6 py-4">
+        <h2 className="text-white text-2xl font-bold text-center flex items-center justify-center gap-3">
+          <Sparkles className="h-6 w-6" />
+          Mặc Thử Đồ Bằng AI
+          <Sparkles className="h-6 w-6" />
+        </h2>
+      </div>
+
+      <div className="p-8">
+        {/* Input Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* File 1 - Person */}
+          <div className="text-center">
+            <label className="block text-lg font-semibold mb-4 text-gray-700">
+              Chọn ảnh người (Tệp 1):
+            </label>
+            <div
+              className="relative w-full h-80 border-3 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-all duration-300"
+              onDrop={(e) => handleDrop(e, setFile1, setPreview1)}
+              onDragOver={handleDragOver}
+              onClick={() => handleClick(setFile1, setPreview1)}
+            >
+              {preview1 ? (
+                <div className="relative">
+                  <img
+                    src={preview1}
+                    alt="Preview 1"
+                    className="max-w-full max-h-72 object-contain rounded-lg shadow-lg"
+                    style={{ transform: `scale(${zoom1})` }}
+                  />
+                  <button
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile1(null);
+                      setPreview1(null);
+                      setZoom1(1);
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className="absolute bottom-2 right-2 flex gap-2">
+                    <button
+                      className="bg-gray-800 text-white rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomIn(setZoom1);
+                      }}
+                    >
+                      +
+                    </button>
+                    <button
+                      className="bg-gray-800 text-white rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomOut(setZoom1);
+                      }}
+                    >
+                      -
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600">Kéo thả hoặc click để chọn ảnh</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* File 2 - Clothes */}
+          <div className="text-center">
+            <label className="block text-lg font-semibold mb-4 text-gray-700">
+              Chọn ảnh quần áo (Tệp 2):
+            </label>
+            <div
+              className="relative w-full h-80 border-3 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 cursor-pointer hover:border-pink-400 hover:bg-pink-50 transition-all duration-300"
+              onDrop={(e) => handleDrop(e, setFile2, setPreview2)}
+              onDragOver={handleDragOver}
+              onClick={() => handleClick(setFile2, setPreview2)}
+            >
+              {preview2 ? (
+                <div className="relative">
+                  <img
+                    src={preview2}
+                    alt="Preview 2"
+                    className="max-w-full max-h-72 object-contain rounded-lg shadow-lg"
+                    style={{ transform: `scale(${zoom2})` }}
+                  />
+                  <button
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile2(null);
+                      setPreview2(null);
+                      setZoom2(1);
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className="absolute bottom-2 right-2 flex gap-2">
+                    <button
+                      className="bg-gray-800 text-white rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomIn(setZoom2);
+                      }}
+                    >
+                      +
+                    </button>
+                    <button
+                      className="bg-gray-800 text-white rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomOut(setZoom2);
+                      }}
+                    >
+                      -
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600">Kéo thả hoặc click để chọn ảnh</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Result */}
+          <div className="text-center">
+            <label className="block text-lg font-semibold mb-4 text-gray-700">
+              Kết quả AI:
+            </label>
+            <div className="relative w-full h-80 border-3 border-solid border-blue-300 rounded-xl flex items-center justify-center bg-blue-50">
+              {loadingAI ? (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-blue-600 font-semibold">Đang xử lý bằng AI...</p>
+                </div>
+              ) : outputImage ? (
+                <div className="relative">
+                  <img
+                    src={outputImage}
+                    alt="AI Result"
+                    className="max-w-full max-h-72 object-contain rounded-lg shadow-lg"
+                    style={{ transform: `scale(${zoomOutput})` }}
+                  />
+                  <div className="absolute bottom-2 right-2 flex gap-2">
+                    <button
+                      className="bg-gray-800 text-white rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomIn(setZoomOutput);
+                      }}
+                    >
+                      +
+                    </button>
+                    <button
+                      className="bg-gray-800 text-white rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-700 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomOut(setZoomOutput);
+                      }}
+                    >
+                      -
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <Sparkles className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600">Chưa có kết quả</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            onClick={handleSubmit}
+            disabled={loadingAI || !file1 || !file2}
+            className="flex-1 max-w-xs bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-8 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3"
+          >
+            <Upload size={20} />
+            {loadingAI ? 'Đang xử lý...' : 'Mặc Đồ Thử Bằng AI'}
+          </button>
+
+          <button
+            onClick={handleClear}
+            className="flex-1 max-w-xs bg-gradient-to-r from-red-500 to-pink-600 text-white py-4 px-8 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center justify-center gap-3"
+          >
+            <X size={20} />
+            Xóa Toàn Bộ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const handlePrint = () => {
@@ -88,6 +466,7 @@ const ProductDetail = () => {
   const [stock, setStock] = useState<number>(0);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likedId, setLikedId] = useState<string | null>(null);
+  const [showTesting, setShowTesting] = useState<boolean>(false);
 
   // ---- Effects ---- //
   useEffect(() => {
@@ -189,7 +568,7 @@ const ProductDetail = () => {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        if (!v) throw new Error("Failed to remove favorite");
+        if (!res.ok) throw new Error("Failed to remove favorite");
         setIsLiked(false);
         setLikedId(null);
         showNotification("Đã xóa sản phẩm khỏi danh sách yêu thích!", "success");
@@ -308,6 +687,25 @@ const ProductDetail = () => {
     }
   };
 
+  const handleAITryOn = () => {
+    setShowTesting(!showTesting);
+    if (!showTesting) {
+      showNotification("Đang mở tính năng mặc thử bằng AI...", "success");
+      // Smooth scroll to the Testing component
+      setTimeout(() => {
+        const testingElement = document.querySelector('#testing-section');
+        if (testingElement) {
+          testingElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }, 300);
+    } else {
+      showNotification("Đã đóng tính năng mặc thử AI", "success");
+    }
+  };
+
   // ---- Render ---- //
   if (loading) return <div className="container mx-auto py-8">Loading...</div>;
   if (error || !selectedProduct)
@@ -315,10 +713,13 @@ const ProductDetail = () => {
 
   // Get the price for the selected size
   const selectedDetail = selectedProduct.details.find((d) => d.kichThuoc === selectedSize);
-  const price = selectedDetail ? selectedDetail.gia : selectedProduct.details[0]?.gia || 0;
+  const originalPrice = selectedDetail ? selectedDetail.gia : selectedProduct.details[0]?.gia || 0;
+  const discountPercentage = selectedProduct.khuyenMaiMax || 0;
+  const discountedPrice = originalPrice * (1 - discountPercentage / 100);
+  const savings = originalPrice * (discountPercentage / 100);
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 pb-24 relative">
       {/* Back link */}
       <div className="mb-4">
         <Link to="/products" className="text-crocus-600 hover:underline flex items-center gap-1">
@@ -330,12 +731,18 @@ const ProductDetail = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
         {/* Images */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+          <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 relative">
             <img
               src={mainImage}
               alt={selectedProduct.tenSanPham}
               className="w-full h-full object-cover"
             />
+            {discountPercentage > 0 && (
+              <div className="absolute top-4 right-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-3 min-w-[80px] min-h-[80px] flex flex-col items-center justify-center shadow-lg z-10 rounded">
+                <div className="text-xs font-medium">Khuyến Mãi</div>
+                <div className="text-lg font-bold"> -{discountPercentage}%</div>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <button
@@ -385,19 +792,70 @@ const ProductDetail = () => {
           {/* Title & price */}
           <div>
             <h1 className="text-3xl font-bold">{selectedProduct.tenSanPham}</h1>
-            <p className="text-2xl font-bold text-crocus-600 mt-2">
-              {(price / 1000).toFixed(3)} VND
-            </p>
-          </div>
+            <div className="mt-2 items-center gap-3">
+        {discountPercentage > 0 ? (
+              <>
+                {/* Giá hiện tại & Giá gốc */}
+                <div className="mb-1">
+                  <p className="text-4xl font-bold text-red-600">
+                    {(discountedPrice / 1000).toFixed(3)} VND
+                  </p>
+                  <p className="text-lg text-gray-500 line-through">
+                    {(originalPrice / 1000).toFixed(3)} VND
+                  </p>
+                </div>
 
+                {/* Tiết kiệm */}
+                <div>
+                  <h4 className="text-lg font-bold text-green-600">
+                    Tiết kiệm: {(savings / 1000).toFixed(3)} VND
+                  </h4>
+                </div>
+              </>
+            ) : (
+              <p className="text-2xl font-bold text-crocus-600">
+                {(originalPrice / 1000).toFixed(3)} VND
+              </p>
+            )}
+
+            </div>
+          </div>
+          {/* Material */}
+          <p className="text-gray-700  text-2xl">
+            <h3 className="font-bold mb-2 text-2xl">Chất liệu</h3>
+            {selectedProduct.chatLieu || "Chưa có thông tin chất liệu"}
+          </p>
+
+          {/* Brand */}
+          <p className="text-gray-700  text-2xl">
+            <h3 className="font-bold mb-2 text-2xl">Thương hiệu</h3>
+            {selectedProduct.maThuongHieu || "Chưa có thông tin thương hiệu"}
+          </p>
+
+
+
+          {/* Hashtags */}
           <p className="text-gray-700">
-            <h3 className="font-medium mb-2">Mô tả</h3>
-            {selectedProduct.moTa || "Sản phẩm này chưa có mô tả"}
+            <h3 className="font-bold mb-2 text-2xl">Hashtags</h3>
+            {selectedProduct.listHashTag && selectedProduct.listHashTag.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {selectedProduct.listHashTag.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-block bg-gray-100 text-gray-800 text-sm font-medium px-2.5 py-0.5 rounded"
+                  >
+                    #{tag.name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              "Chưa có hashtag"
+            )}
           </p>
 
           {/* Color */}
           <div>
-            <h3 className="font-medium mb-2">Màu sắc</h3>
+            <h3 className="font-bold mb-2 text-2xl">Màu sắc</h3>
             <div className="flex gap-3">
               {products.map((p) => (
                 <button
@@ -417,7 +875,7 @@ const ProductDetail = () => {
           {/* Size */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <h3 className="font-medium text-sm text-gray-900">Kích thước</h3>
+              <h3 className="font-bold mb-2 text-2xl text-gray-900">Kích thước</h3>
               <SelectSize />
             </div>
             <div className="flex flex-wrap gap-3">
@@ -443,7 +901,7 @@ const ProductDetail = () => {
 
           {/* Quantity */}
           <div>
-            <h3 className="font-medium mb-2">Số Lượng</h3>
+            <h3 className="font-bold mb-2 text-2xl">Số Lượng</h3>
             <div className="flex items-center border border-gray-200 rounded-md w-32">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -548,12 +1006,76 @@ const ProductDetail = () => {
         </div>
       </div>
 
-      <Testing />
+      {/* AI Testing Component with Animation */}
+      <div 
+        id="testing-section"
+        className={`transition-all duration-700 ease-in-out transform ${
+          showTesting 
+            ? 'translate-y-0 opacity-100 max-h-screen mb-12' 
+            : 'translate-y-full opacity-0 max-h-0 overflow-hidden'
+        }`}
+      >
+        <Testing />
+      </div>
+
       <MoTaSanPham product={selectedProduct} />
+      
       {/* Comments Section */}
       <Comments productId={id} />
 
       <SanPhamLienQuan productId={id}/>
+
+      {/* Fixed AI Try-On Button */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+        <button
+          onClick={handleAITryOn}
+          className={`relative group text-white py-4 px-8 rounded-full font-bold text-lg shadow-2xl transition-all duration-300 transform hover:scale-110 hover:shadow-3xl ${
+            showTesting 
+              ? 'bg-gradient-to-r from-red-500 via-pink-600 to-red-700' 
+              : 'bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-pulse'
+          }`}
+        >
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 opacity-75 blur-md animate-pulse"></div>
+          <div className="relative flex items-center justify-center gap-3">
+            {showTesting ? (
+              <>
+                <X className="h-6 w-6" />
+                <span className="whitespace-nowrap">Đóng Mặc Thử AI</span>
+                <X className="h-6 w-6" />
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-6 w-6 animate-spin" />
+                <span className="whitespace-nowrap">Mặc Thử Đồ Bằng AI</span>
+                <Sparkles className="h-6 w-6 animate-spin" />
+              </>
+            )}
+          </div>
+          
+          {/* Glowing Ring Effect */}
+          <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-ping"></div>
+        </button>
+      </div>
+
+      {/* Custom CSS for additional animations */}
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.8;
+          }
+        }
+        
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .shadow-3xl {
+          box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+        }
+      `}</style>
     </div>
   );
 };

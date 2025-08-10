@@ -78,7 +78,11 @@ export const MessagesInbox: React.FC<MessagesInboxProps> = ({
 
   const fetchDefaultAvatar = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/GiaoDien`);
+      const response = await fetch(`${API_URL}/api/GiaoDien`,
+        { headers: { "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`
+         } }
+      );
       if (!response.ok) throw new Error("Lỗi khi tải avatar mặc định");
       const data: GiaoDien[] = await response.json();
       const activeGiaoDien = data.find((item) => item.trangThai === 1);

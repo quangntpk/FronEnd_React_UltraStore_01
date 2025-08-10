@@ -48,18 +48,22 @@ interface CheckoutForm {
 }
 
 interface Province {
-  code: number;
-  name: string;
+  ProvinceID: number;
+  ProvinceName: string;
+  CountryID?: number;
+  NameExtension?: string[];
 }
 
 interface District {
-  code: number;
-  name: string;
+  DistrictID: number; 
+  DistrictName: string; 
+  ProvinceID?: number;
 }
 
 interface Ward {
-  code: number;
-  name: string;
+  WardCode: number; 
+  WardName: string;
+  DistrictID?: number; 
 }
 
 interface Address {
@@ -146,6 +150,7 @@ const provinceMapping: { [key: string]: string } = {
   "thanh pho ha noi": "Hà Nội",
   "tp ho chi minh": "TP. Hồ Chí Minh",
   "thanh pho ho chi minh": "TP. Hồ Chí Minh",
+  "ho chi minh": "TP. Hồ Chí Minh",
   "hai phong": "Hải Phòng",
   "thanh pho hai phong": "Hải Phòng",
   "da nang": "Đà Nẵng",
@@ -291,6 +296,7 @@ const CartPage = () => {
   const [shippingFee, setShippingFee] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
   const [isLoading, setIsLoading] = useState(false); // New state for loading
+  const [isSelectingAddress, setIsSelectingAddress] = useState(false);
 
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(() => {
     const savedForm = localStorage.getItem("checkoutForm");
@@ -446,9 +452,16 @@ const CartPage = () => {
 
     const fetchProvinces = async () => {
       try {
-        const response = await fetch("https://provinces.open-api.vn/api/p/");
+        const response = await fetch("/api/ghn/shiip/public-api/master-data/province", {
+          headers: {
+            Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status}`);
+        }
         const data = await response.json();
-        setProvinces(data);
+        setProvinces(data.data || []);
       } catch (error) {
         toast.error("Không thể tải danh sách tỉnh/thành phố");
         console.error("Error fetching provinces:", error);
@@ -489,16 +502,16 @@ const CartPage = () => {
     setWards([]);
 
     const selectedProvince = provinces.find(
-      (p) => p.code.toString() === provinceCode
+      (p) => p.ProvinceID.toString() === provinceCode
     );
     if (selectedProvince) {
-      const shippingInfo = shippingData[selectedProvince.name.trim()] || {
+      const shippingInfo = shippingData[selectedProvince.ProvinceName.trim()] || {
         fee: 0,
         time: "Không xác định",
       };
       setShippingFee(shippingInfo.fee);
       console.log("Province changed:", {
-        province: selectedProvince.name,
+        province: selectedProvince.ProvinceName,
         shippingFee: shippingInfo.fee,
       });
     } else {
@@ -511,10 +524,19 @@ const CartPage = () => {
     if (provinceCode) {
       try {
         const response = await fetch(
-          `https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`
+          `/api/ghn/shiip/public-api/master-data/district?province_id=${provinceCode}`,
+          {
+            headers: {
+              Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+            },
+          }
         );
+        if (!response.ok) {
+          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status}`);
+        }
         const data = await response.json();
-        setDistricts(data.districts || []);
+        console.log("Provinces from API:", data.data);
+        setDistricts(data.data || []);
       } catch (error) {
         toast.error("Không thể tải danh sách quận/huyện");
         console.error("Lỗi khi lấy danh sách huyện:", error);
@@ -533,10 +555,18 @@ const CartPage = () => {
     if (districtCode) {
       try {
         const response = await fetch(
-          `https://provinces.open-api.vn/api/d/${districtCode}?depth=2`
+          `/api/ghn/shiip/public-api/master-data/ward?district_id=${districtCode}`,
+          {
+            headers: {
+              Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+            },
+          }
         );
+        if (!response.ok) {
+          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status}`);
+        }
         const data = await response.json();
-        setWards(data.wards || []);
+        setWards(data.data || []);
       } catch (error) {
         toast.error("Không thể tải danh sách phường/xã");
         console.error("Lỗi khi lấy danh sách phường/xã:", error);
@@ -544,84 +574,120 @@ const CartPage = () => {
     }
   };
 
-  const handleSelectAddress = async (address: Address) => {
-    try {
-      const rawProvinceName = address.tinh;
-      const normalizedProvinceName = normalizeName(rawProvinceName);
+  const extractFeeFromMoTa = (moTa: string): number => {
+  if (!moTa) return 0;
+  const match = moTa.match(/\d+(\.\d{3})?/); 
+  return match ? parseFloat(match[0].replace(".", "")) : 0;
+};
 
-      const province = provinces.find(
-        (p) => normalizeName(p.name) === normalizedProvinceName
-      );
-      if (!province) {
-        return;
-      }
-      console.log("Tỉnh được chọn:", province);
-
-      const districtResponse = await fetch(
-        `https://provinces.open-api.vn/api/p/${province.code}?depth=2`
-      );
-      const districtData = await districtResponse.json();
-      const normalizedDistrictName = normalizeName(address.quanHuyen);
-      const district = districtData.districts.find(
-        (d: District) => normalizeName(d.name) === normalizedDistrictName
-      );
-
-      if (!district) {
-        toast.error("Không thể tìm thấy quận/huyện tương ứng");
-        return;
-      }
-      console.log("Quận/Huyện được chọn:", district);
-
-      const wardResponse = await fetch(
-        `https://provinces.open-api.vn/api/d/${district.code}?depth=2`
-      );
-      const wardData = await wardResponse.json();
-      const normalizedWardName = normalizeName(address.phuongXa);
-      const ward = wardData.wards.find(
-        (w: Ward) => normalizeName(w.name) === normalizedWardName
-      );
-
-      if (!ward) {
-        toast.error(
-          "Địa chỉ không hoạt động, bạn vui lòng đổi trạng thái cho nó"
-        );
-        console.error("Não tìm thấy phường/xã:", normalizedWardName);
-        return;
-      }
-
-      const shippingProvinceName = normalizeShippingName(rawProvinceName);
-      const shippingInfo = shippingData[shippingProvinceName] || {
-        fee: 0,
-        time: "Không xác định",
-      };
-      setShippingFee(shippingInfo.fee);
-      console.log("Selected address:", {
-        rawProvinceName,
-        shippingProvinceName,
-        shippingFee: shippingInfo.fee,
-      });
-
-      setDistricts(districtData.districts || []);
-      setWards(wardData.wards || []);
-
-      const fullAddress = `${address.diaChi}, ${ward.name}, ${district.name}, ${province.name}`;
-      setCheckoutForm({
-        tenNguoiNhan: address.hoTen,
-        sdt: address.sdt,
-        province: province.code.toString(),
-        district: district.code.toString(),
-        ward: ward.code.toString(),
-        specificAddress: address.diaChi,
-      });
-
-      const subtotal = calculateSubtotal();
-      setFinalAmount(subtotal - discountAmount + shippingInfo.fee);
-
-      setShowAddressModal(false);
-    } catch (error) {
-      toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
+const handleSelectAddress = async (address: Address) => {
+  setIsSelectingAddress(true);
+  try {
+    if (address.trangThai !== 1) {
+      toast.error("Địa chỉ không hoạt động, vui lòng chọn địa chỉ khác");
+      return;
     }
-  };
+
+    if (!provinces.length) {
+      toast.error("Danh sách tỉnh/thành phố chưa tải, vui lòng thử lại");
+      return;
+    }
+
+    const normalizedProvinceName = normalizeName(address.tinh);
+    const mappedProvinceName = provinceMapping[normalizedProvinceName] || normalizedProvinceName;
+    console.log("Normalized Province Name:", normalizedProvinceName);
+    console.log("Mapped Province Name:", mappedProvinceName);
+
+    const province = provinces.find((p) => {
+      const normalizedProvinceFromAPI = normalizeName(p.ProvinceName);
+      const normalizedMappedName = normalizeName(mappedProvinceName);
+      return normalizedProvinceFromAPI === normalizedMappedName;
+    });
+
+    if (!province) {
+      toast.error(`Không tìm thấy tỉnh/thành phố: ${address.tinh}. Vui lòng kiểm tra lại hoặc thêm địa chỉ mới.`);
+      console.log("Available Provinces:", provinces.map(p => p.ProvinceName ? normalizeName(p.ProvinceName) : ""));
+      setShowAddressModal(true);
+      return;
+    }
+
+    const districtResponse = await fetch(
+      `/api/ghn/shiip/public-api/master-data/district?province_id=${province.ProvinceID}`,
+      {
+        headers: {
+          Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+        },
+      }
+    );
+    if (!districtResponse.ok) {
+      toast.error("Lỗi khi tải danh sách quận/huyện");
+      throw new Error(`HTTP error: ${districtResponse.status}`);
+    }
+    const districtData = await districtResponse.json();
+
+    const normalizedDistrictName = normalizeName(address.quanHuyen);
+    const district = districtData.data.find(
+      (d: { DistrictID: number; DistrictName: string }) =>
+        normalizeName(d.DistrictName) === normalizedDistrictName
+    );
+    if (!district) {
+      toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen}`);
+      console.log("Available Districts:", districtData.data.map(d => normalizeName(d.DistrictName)));
+      return;
+    }
+
+    const wardResponse = await fetch(
+      `/api/ghn/shiip/public-api/master-data/ward?district_id=${district.DistrictID}`,
+      {
+        headers: {
+          Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+        },
+      }
+    );
+    if (!wardResponse.ok) {
+      toast.error("Lỗi khi tải danh sách phường/xã");
+      throw new Error(`HTTP error: ${wardResponse.status}`);
+    }
+    const wardData = await wardResponse.json();
+    console.log("Ward Data:", wardData);
+
+    const normalizedWardName = normalizeName(address.phuongXa);
+    const ward = wardData.data.find(
+      (w: Ward) => normalizeName(w.WardName) === normalizedWardName
+    );
+    if (!ward) {
+      toast.error(`Không tìm thấy phường/xã: ${address.phuongXa}`);
+      console.log("Available Wards:", wardData.data.map(w => w.WardName ? normalizeName(w.WardName) : ""));
+      setShowAddressModal(true);
+      return;
+    }
+
+    const shippingFee = extractFeeFromMoTa(address.moTa); // Lấy phí từ moTa
+    setShippingFee(shippingFee);
+
+    setDistricts(districtData.data || []);
+    setWards(wardData.data || []);
+    setCheckoutForm({
+      tenNguoiNhan: address.hoTen,
+      sdt: address.sdt,
+      province: province.ProvinceID.toString(),
+      district: district.DistrictID.toString(),
+      ward: ward.WardCode.toString(),
+      specificAddress: address.diaChi,
+    });
+
+    const subtotal = calculateSubtotal();
+    setFinalAmount(subtotal - discountAmount + shippingFee);
+
+    setShowAddressModal(false);
+    toast.success("Đã chọn địa chỉ thành công");
+  } catch (error) {
+    toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
+    console.error("Error in handleSelectAddress:", error);
+  } finally {
+    setIsSelectingAddress(false);
+  }
+};
 
   const handleQuantityChange = async (idSanPham: string, change: number) => {
     const userId = localStorage.getItem("userId");
@@ -984,13 +1050,13 @@ const CartPage = () => {
       }
 
       const selectedProvince = provinces.find(
-        (p) => p.code.toString() === checkoutForm.province
+        (p) => p.ProvinceID.toString() === checkoutForm.province
       );
       const selectedDistrict1 = districts.find(
-        (d) => d.code.toString() === checkoutForm.district
+        (d) => d.DistrictID.toString() === checkoutForm.district
       );
       const selectedWard1 = wards.find(
-        (w) => w.code.toString() === checkoutForm.ward
+        (w) => w.WardCode.toString() === checkoutForm.ward
       );
       if (!selectedProvince) {
         toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
@@ -1004,30 +1070,17 @@ const CartPage = () => {
         toast.error("Vui lòng chọn phường/xã hợp lệ");
         return;
       }
-      const normalizedProvinceName = normalizeShippingName(selectedProvince.name);
-      console.log("Province for shipping:", {
-        rawName: selectedProvince.name,
-        normalizedName: normalizedProvinceName,
-      });
-      const expectedShippingFee = shippingData[normalizedProvinceName]?.fee || 0;
-      if (shippingFee !== expectedShippingFee) {
-        console.warn("Shipping fee mismatch, correcting:", {
-          current: shippingFee,
-          expected: expectedShippingFee,
-        });
-        setShippingFee(expectedShippingFee);
-      }
 
       const subtotal = calculateSubtotal();
-      const newFinalAmount = subtotal - discountAmount + expectedShippingFee;
+      const newFinalAmount = subtotal - discountAmount + shippingFee;
       setFinalAmount(newFinalAmount);
 
       const selectedDistrict =
-        districts.find((d) => d.code.toString() === checkoutForm.district)?.name ||
+        districts.find((d) => d.DistrictID.toString() === checkoutForm.district)?.DistrictName ||
         "";
       const selectedWard =
-        wards.find((w) => w.code.toString() === checkoutForm.ward)?.name || "";
-      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.name}`;
+        wards.find((w) => w.WardCode.toString() === checkoutForm.ward)?.WardName || "";
+      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.ProvinceName}`;
       if (typeof fullAddress !== "string" || fullAddress.includes("[object Object]")) {
         toast.error("Lỗi định dạng địa chỉ, vui lòng kiểm tra lại");
         console.error("Invalid fullAddress:", fullAddress);
@@ -1036,7 +1089,6 @@ const CartPage = () => {
 
       console.log("Before sending paymentRequest:", {
         shippingFee,
-        expectedShippingFee,
         finalAmount: newFinalAmount,
       });
 
@@ -1048,7 +1100,7 @@ const CartPage = () => {
         sdt: checkoutForm.sdt,
         diaChi: fullAddress,
         discountAmount: discountAmount,
-        shippingFee: expectedShippingFee,
+        shippingFee: shippingFee,
         finalAmount: newFinalAmount,
       };
 
@@ -1069,18 +1121,9 @@ const CartPage = () => {
 
       if (result.success) {
         if (paymentMethod === "cod") {
-          if (
-            result.shippingFee !== expectedShippingFee ||
-            result.finalAmount !== newFinalAmount
-          ) {
-            toast.warning(
-              `Dữ liệu từ server không khớp: ShippingFee: ${result.shippingFee}, FinalAmount: ${result.finalAmount}, ExpectedShippingFee: ${expectedShippingFee}, ExpectedFinalAmount: ${newFinalAmount}`
-            );
-          }
-
-          toast.success(result.message, {
-            description: `Mã đơn hàng: ${result.orderId}`,
-            duration: 3000,
+          toast.success(`Thanh toán COD thành công! Mã đơn hàng: ${result.orderId}`, {
+            description: "Cảm ơn bạn đã mua sắm. Vui lòng kiểm tra đơn hàng trong mục Lịch sử mua hàng.",
+            duration: 5000,
             action: {
               label: "Xem chi tiết",
               onClick: () =>
@@ -1151,12 +1194,34 @@ const CartPage = () => {
                           <h3 className="font-medium text-lg">
                             {item.tenSanPham}
                           </h3>
-                          <p className="text-muted-foreground">
-                            Size: {item.kickThuoc} | Color: {item.mauSac}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {formatCurrency(item.tienSanPham)} VND
-                          </p>
+                          <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Kích thước:</span>
+                              <span className="text-sm text-gray-600">{item.kickThuoc}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Màu sắc:</span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="inline-block rounded-full border border-gray-200 shadow-sm"
+                                  style={{
+                                    backgroundColor: `#${item.mauSac}`,
+                                    width: "1.5rem",
+                                    height: "1.5rem",
+                                  }}
+                                ></span>
+                                <span className="text-sm text-gray-600 capitalize">
+                                  {item.mauSac}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Đơn Giá:</span>
+                              <span className="text-xl font-bold text-crocus-600">
+                                {formatCurrency(item.tienSanPham)} VND
+                              </span>
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center mt-4 sm:mt-0">
                           <button
@@ -1313,7 +1378,7 @@ const CartPage = () => {
                       >
                         Quay về trang Sản Phẩm
                       </Link>
-                      
+
                       <DiaChiTime />
 
                       {qrCodeUrl && (
@@ -1395,8 +1460,8 @@ const CartPage = () => {
                           >
                             <option value="">Chọn tỉnh/thành phố</option>
                             {provinces.map((province) => (
-                              <option key={province.code} value={province.code}>
-                                {province.name}
+                              <option key={province.ProvinceID} value={province.ProvinceID}>
+                                {province.ProvinceName}
                               </option>
                             ))}
                           </select>
@@ -1415,8 +1480,8 @@ const CartPage = () => {
                           >
                             <option value="">Chọn quận/huyện</option>
                             {districts.map((district) => (
-                              <option key={district.code} value={district.code}>
-                                {district.name}
+                              <option key={district.DistrictID} value={district.DistrictID}>
+                                {district.DistrictName}
                               </option>
                             ))}
                           </select>
@@ -1435,8 +1500,8 @@ const CartPage = () => {
                           >
                             <option value="">Chọn phường/xã</option>
                             {wards.map((ward) => (
-                              <option key={ward.code} value={ward.code}>
-                                {ward.name}
+                              <option key={ward.WardCode} value={ward.WardCode}>
+                                {ward.WardName}
                               </option>
                             ))}
                           </select>

@@ -110,7 +110,14 @@ const VoucherUser = () => {
 
   const fetchVouchers = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5261/api/Voucher");
+      const response = await fetch("http://localhost:5261/api/Voucher",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`
+          }
+        }
+      );
       if (!response.ok) throw new Error("Không thể lấy danh sách voucher");
       const data: Voucher[] = await response.json();
       const currentDate = new Date();

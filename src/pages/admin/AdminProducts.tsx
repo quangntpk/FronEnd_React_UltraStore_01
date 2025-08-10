@@ -21,6 +21,7 @@ import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import ProductReportGenerator from "@/components/admin/SanPhamAdmin/ProductReportGenerator";
+import axios from "axios";
 
 const DateRangeModal = ({ isOpen, onClose, onSubmit, selectedProductIds }) => {
   const [startDate, setStartDate] = useState("");
@@ -105,9 +106,12 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham", {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
       });
       if (response.ok) {
         const data = await response.json();
@@ -126,9 +130,12 @@ const Products = () => {
 
   const fetchProductLoadInfo = async (id) => {
     try {
+        const token = localStorage.getItem("token");
       const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${id}`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
       });
       if (response.ok) {
         const data = await response.json();
@@ -216,10 +223,12 @@ const Products = () => {
     }
 
     try {
+        const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5261/api/SanPham/ReportByDate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
         body: JSON.stringify({
           batDau: dateRange.batDau,
@@ -272,7 +281,12 @@ const Products = () => {
     try {
       const selectedProductsData = [];
       for (const productId of selectedProducts) {
-        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`);
+          const token = localStorage.getItem("token");
+        const response = await fetch(`http://localhost:5261/api/SanPham/SanPhamByID?id=${productId}`,{
+        headers: { "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+         },
+      });
         if (!response.ok) {
           throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
         }
@@ -360,9 +374,12 @@ const Products = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
+           const token = localStorage.getItem("token");
           const response = await fetch(`http://localhost:5261/api/SanPham/DeleteSanPham?id=${product.id}`, {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json",
+               Authorization: token ? `Bearer ${token}` : undefined,
+             },
           });
           if (response.ok) {
             Swal.fire({
@@ -406,9 +423,12 @@ const Products = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
+          const token = localStorage.getItem("token");
           const response = await fetch(`http://localhost:5261/api/SanPham/ActiveSanPham?id=${product.id}`, {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : undefined,
+             },
           });
           if (response.ok) {
             Swal.fire({
