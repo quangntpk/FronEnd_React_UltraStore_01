@@ -43,36 +43,36 @@ interface LoaiSanPham {
   maLoaiSanPham: number;
   tenLoaiSanPham: string;
   kiHieu: string;
-  kichThuoc?: string;
-  hinhAnh?: string;
-  trangThai?: number;
+  kichThuoc: string[];
+  hinhAnh?: string | null;
+  trangThai: number;
 }
 
 interface GroupedLoaiSanPham {
   tenLoaiSanPham: string;
   kiHieu: string;
-  hinhAnh?: string;
+  hinhAnh?: string | null;
   entries: LoaiSanPham[];
 }
 
 const ITEMS_PER_PAGE = 10;
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "http://localhost:5261";
 
-const formatBase64Image = (base64String: string | undefined): string => {
-  if (!base64String) return "";
+const formatBase64Image = (base64String: string | null | undefined): string => {
+  if (!base64String) return "/placeholder-image.jpg";
   if (base64String.startsWith("data:image")) return base64String;
   return `data:image/png;base64,${base64String}`;
 };
 
-const getBase64 = (base64String: string | undefined): string => {
-  if (!base64String) return "";
+const getBase64 = (base64String: string | null | undefined): string | null => {
+  if (!base64String) return null;
   if (base64String.startsWith("data:")) {
     return base64String.split(",")[1];
   }
   return base64String;
 };
 
-const AdminType = () => {
+const AdminLoaiSanPham = () => {
   const [loaiSanPhams, setLoaiSanPhams] = useState<LoaiSanPham[]>([]);
   const [groupedLoaiSanPhams, setGroupedLoaiSanPhams] = useState<GroupedLoaiSanPham[]>([]);
   const [filteredGroupedLoaiSanPhams, setFilteredGroupedLoaiSanPhams] = useState<GroupedLoaiSanPham[]>([]);
@@ -89,12 +89,10 @@ const AdminType = () => {
   const [loaiSanPhamCanXoa, setLoaiSanPhamCanXoa] = useState<GroupedLoaiSanPham | null>(null);
   const [loaiSanPhamCanXoaVinhVien, setLoaiSanPhamCanXoaVinhVien] = useState<GroupedLoaiSanPham | null>(null);
   const [loaiSanPhamCanKhoiPhuc, setLoaiSanPhamCanKhoiPhuc] = useState<GroupedLoaiSanPham | null>(null);
-  const [kichThuocCanKhoiPhuc, setKichThuocCanKhoiPhuc] = useState<LoaiSanPham | null>(null);
-  const [kichThuocCanXoaVinhVien, setKichThuocCanXoaVinhVien] = useState<LoaiSanPham | null>(null);
   const [tenLoaiSanPhamMoi, setTenLoaiSanPhamMoi] = useState("");
   const [kiHieuMoi, setKiHieuMoi] = useState("");
   const [kichThuocMoi, setKichThuocMoi] = useState<string[]>([""]);
-  const [hinhAnhMoi, setHinhAnhMoi] = useState("");
+  const [hinhAnhMoi, setHinhAnhMoi] = useState<string | null>(null);
   const [loaiSanPhamDangSua, setLoaiSanPhamDangSua] = useState<GroupedLoaiSanPham | null>(null);
   const [loaiSanPhamChiTiet, setLoaiSanPhamChiTiet] = useState<GroupedLoaiSanPham | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -129,7 +127,7 @@ const AdminType = () => {
   const fetchLoaiSanPham = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/LoaiSanPham`, {
+      const response = await fetch(`${API_URL}/api/LoaiSanPham?trangThai=${activeTab === "active" ? 1 : 0}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -138,12 +136,12 @@ const AdminType = () => {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("Không tìm thấy dữ liệu loại sản phẩm.");
+        const errorText = await response.text();
+        if (response.status === 401) {
+          throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
         } else if (response.status === 500) {
           throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
         }
-        const errorText = await response.text();
         throw new Error(errorText || "Không thể lấy danh sách loại sản phẩm.");
       }
 
@@ -168,27 +166,62 @@ const AdminType = () => {
     }
   }, [activeTab]);
 
-  const locLoaiSanPham = useCallback(() => {
+  const searchLoaiSanPham = useCallback(async () => {
     if (!searchTerm.trim()) {
       setFilteredGroupedLoaiSanPhams(groupedLoaiSanPhams);
-    } else {
-      const tuKhoa = searchTerm.toLowerCase();
-      const filtered = groupedLoaiSanPhams.filter(
-        (group) =>
-          (group.tenLoaiSanPham?.toLowerCase().includes(tuKhoa) || false) ||
-          (group.kiHieu?.toLowerCase().includes(tuKhoa) || false)
-      );
-      setFilteredGroupedLoaiSanPhams(filtered);
-      setCurrentPage(1);
+      return;
     }
-  }, [searchTerm, groupedLoaiSanPhams]);
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        tenLoai: searchTerm,
+        trangThai: activeTab === "active" ? "1" : "0",
+      });
+      const response = await fetch(`${API_URL}/api/LoaiSanPham/Search?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 401) {
+          throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+        } else if (response.status === 500) {
+          throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
+        }
+        throw new Error(errorText || "Không thể tìm kiếm loại sản phẩm.");
+      }
+
+      const data: LoaiSanPham[] = await response.json();
+      const groupedData = groupLoaiSanPhams(data);
+      setFilteredGroupedLoaiSanPhams(groupedData);
+      setCurrentPage(1);
+    } catch (error) {
+      setError((error as Error).message);
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi tìm kiếm loại sản phẩm: " + (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm, groupedLoaiSanPhams, activeTab]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      locLoaiSanPham();
+      searchLoaiSanPham();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, locLoaiSanPham]);
+  }, [searchTerm, activeTab, searchLoaiSanPham]);
 
   useEffect(() => {
     fetchLoaiSanPham();
@@ -315,7 +348,7 @@ const AdminType = () => {
     } else if (!/^[A-Z]$/.test(kiHieuUpper)) {
       newErrors.kiHieu = "Ký hiệu phải là chữ cái in hoa (A-Z)!";
       valid = false;
-    } else if (loaiSanPhams.some(lsp => lsp.kiHieu === kiHieuUpper)) {
+    } else if (groupedLoaiSanPhams.some(group => group.kiHieu.toUpperCase() === kiHieuUpper && group.entries.some(entry => entry.trangThai === 1))) {
       newErrors.kiHieu = "Ký hiệu đã tồn tại! Vui lòng chọn ký hiệu khác.";
       valid = false;
     }
@@ -357,21 +390,21 @@ const AdminType = () => {
       valid = false;
     }
 
-    if (kichThuocMoi.length > 0) {
-      const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase());
-      const uniqueSizes = new Set(trimmedSizes.filter(size => size));
-      if (uniqueSizes.size !== trimmedSizes.filter(size => size).length) {
+    if (kichThuocMoi.some(size => size.trim())) {
+      const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
+      const uniqueSizes = new Set(trimmedSizes);
+      if (uniqueSizes.size !== trimmedSizes.length) {
         newErrors.kichThuoc = "Các kích thước mới không được trùng lặp!";
         valid = false;
       }
-      if (trimmedSizes.some(size => size && !/^[A-Z0-9]{1,3}$/.test(size))) {
+      if (trimmedSizes.some(size => !/^[A-Z0-9]{1,3}$/.test(size))) {
         newErrors.kichThuoc = "Kích thước phải là chữ cái in hoa hoặc số (1-3 ký tự, ví dụ: S, M, XL, 2XL)!";
         valid = false;
       }
-      const existingSizes = loaiSanPhamDangSua.entries
+      const existingSizes = loaiSanPhamDangSua?.entries
         .filter(entry => entry.trangThai === 1)
-        .map(entry => entry.kichThuoc?.toUpperCase());
-      if (trimmedSizes.some(size => size && existingSizes.includes(size))) {
+        .flatMap(entry => entry.kichThuoc.map(size => size.toUpperCase())) || [];
+      if (trimmedSizes.some(size => existingSizes.includes(size))) {
         newErrors.kichThuoc = "Kích thước mới không được trùng với kích thước hiện tại!";
         valid = false;
       }
@@ -393,40 +426,41 @@ const AdminType = () => {
     try {
       const base64Image = getBase64(hinhAnhMoi);
       const kiHieuUpper = kiHieuMoi.trim().toUpperCase();
-      const trimmedSizes = kichThuocMoi.map(size => size.trim()).filter(size => size);
+      const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
 
-      for (const kichThuoc of trimmedSizes) {
-        const response = await fetch(`${API_URL}/api/LoaiSanPham`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tenLoaiSanPham: tenLoaiSanPhamMoi,
-            kiHieu: kiHieuUpper,
-            kichThuoc: kichThuoc.toUpperCase(),
-            hinhAnh: base64Image,
-            trangThai: 1,
-          }),
-        });
+      const response = await fetch(`${API_URL}/api/LoaiSanPham`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify({
+          tenLoaiSanPham: tenLoaiSanPhamMoi.trim(),
+          kiHieu: kiHieuUpper,
+          kichThuoc: trimmedSizes,
+          hinhAnh: base64Image,
+          trangThai: 1,
+        }),
+      });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          if (response.status === 400) {
-            throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
-          } else if (response.status === 409) {
-            throw new Error(errorText || `Ký hiệu ${kiHieuUpper} đã tồn tại trong cơ sở dữ liệu. Vui lòng chọn ký hiệu khác.`);
-          } else if (response.status === 500) {
-            throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
-          }
-          throw new Error(errorText || "Không thể thêm loại sản phẩm.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 400) {
+          throw new Error(errorData.error || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+        } else if (response.status === 401) {
+          throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+        } else if (response.status === 409) {
+          throw new Error(errorData.error || `Ký hiệu ${kiHieuUpper} đã tồn tại trong cơ sở dữ liệu.`);
+        } else if (response.status === 500) {
+          throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
         }
+        throw new Error("Không thể thêm loại sản phẩm.");
       }
 
       setTenLoaiSanPhamMoi("");
       setKiHieuMoi("");
       setKichThuocMoi([""]);
-      setHinhAnhMoi("");
+      setHinhAnhMoi(null);
       setErrorsThem({ ten: "", kiHieu: "", kichThuoc: "", hinhAnh: "" });
       setMoModalThem(false);
       await fetchLoaiSanPham();
@@ -456,68 +490,52 @@ const AdminType = () => {
   };
 
   const suaLoaiSanPham = async () => {
-    if (!validateSua()) return;
+    if (!loaiSanPhamDangSua || !validateSua()) return;
 
     setIsProcessing(true);
     try {
-      const base64Image = getBase64(loaiSanPhamDangSua!.hinhAnh);
-      const kiHieuUpper = loaiSanPhamDangSua!.kiHieu.toUpperCase();
+      const base64Image = getBase64(loaiSanPhamDangSua.hinhAnh);
+      const kiHieuUpper = loaiSanPhamDangSua.kiHieu.toUpperCase();
+      const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
 
-      for (const entry of loaiSanPhamDangSua!.entries.filter(e => e.trangThai === 1)) {
-        const response = await fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            maLoaiSanPham: entry.maLoaiSanPham,
-            tenLoaiSanPham: loaiSanPhamDangSua!.tenLoaiSanPham,
-            kiHieu: kiHieuUpper,
-            kichThuoc: entry.kichThuoc,
-            hinhAnh: base64Image,
-            trangThai: entry.trangThai,
-          }),
+      // Update existing active entries with new sizes appended
+      const updatePromises = loaiSanPhamDangSua.entries
+        .filter(entry => entry.trangThai === 1)
+        .map(entry => {
+          const updatedKichThuoc = [...entry.kichThuoc, ...trimmedSizes].filter((size, index, self) =>
+            size && self.indexOf(size) === index
+          ); // Ensure uniqueness
+          return fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            },
+            body: JSON.stringify({
+              maLoaiSanPham: entry.maLoaiSanPham,
+              tenLoaiSanPham: loaiSanPhamDangSua.tenLoaiSanPham.trim(),
+              kiHieu: kiHieuUpper,
+              kichThuoc: updatedKichThuoc,
+              hinhAnh: base64Image,
+              trangThai: 1,
+            }),
+          });
         });
 
+      const updateResponses = await Promise.all(updatePromises);
+      for (const response of updateResponses) {
         if (!response.ok) {
-          const errorText = await response.text();
+          const errorData = await response.json();
           if (response.status === 400) {
-            throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+            throw new Error(errorData.error || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+          } else if (response.status === 401) {
+            throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
           } else if (response.status === 404) {
-            throw new Error(errorText || "Loại sản phẩm không tồn tại.");
+            throw new Error(errorData.error || "Loại sản phẩm không tồn tại.");
           } else if (response.status === 500) {
             throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
           }
-          throw new Error(errorText || "Không thể cập nhật loại sản phẩm.");
-        }
-      }
-
-      const trimmedSizes = kichThuocMoi.map(size => size.trim()).filter(size => size);
-      for (const kichThuoc of trimmedSizes) {
-        const response = await fetch(`${API_URL}/api/LoaiSanPham`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            tenLoaiSanPham: loaiSanPhamDangSua!.tenLoaiSanPham,
-            kiHieu: kiHieuUpper,
-            kichThuoc: kichThuoc.toUpperCase(),
-            hinhAnh: base64Image,
-            trangThai: 1,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          if (response.status === 400) {
-            throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
-          } else if (response.status === 409) {
-            throw new Error(errorText || `Loại sản phẩm với kích thước ${kichThuoc} đã tồn tại.`);
-          } else if (response.status === 500) {
-            throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
-          }
-          throw new Error(errorText || "Không thể thêm kích thước mới.");
+          throw new Error("Không thể cập nhật loại sản phẩm.");
         }
       }
 
@@ -551,93 +569,45 @@ const AdminType = () => {
     }
   };
 
-  const anKichThuoc = async (entry: LoaiSanPham) => {
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          maLoaiSanPham: entry.maLoaiSanPham,
-          tenLoaiSanPham: entry.tenLoaiSanPham,
-          kiHieu: entry.kiHieu,
-          kichThuoc: entry.kichThuoc,
-          hinhAnh: entry.hinhAnh,
-          trangThai: 0,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 400) {
-          throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
-        } else if (response.status === 404) {
-          throw new Error(errorText || "Loại sản phẩm không tồn tại.");
-        } else if (response.status === 500) {
-          throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
-        }
-        throw new Error(errorText || "Không thể ẩn kích thước.");
-      }
-
-      await fetchLoaiSanPham();
-      Swal.fire({
-        icon: "success",
-        title: "Thành công",
-        text: `Đã ẩn kích thước ${entry.kichThuoc}!`,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } catch (error) {
-      setError((error as Error).message);
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Lỗi khi ẩn kích thước: " + (error as Error).message,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const anLoaiSanPham = async () => {
     if (!loaiSanPhamCanXoa) return;
 
     setIsProcessing(true);
     try {
-      for (const entry of loaiSanPhamCanXoa.entries) {
-        const response = await fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            maLoaiSanPham: entry.maLoaiSanPham,
-            tenLoaiSanPham: entry.tenLoaiSanPham,
-            kiHieu: entry.kiHieu,
-            kichThuoc: entry.kichThuoc,
-            hinhAnh: entry.hinhAnh,
-            trangThai: 0,
-          }),
-        });
+      const updatePromises = loaiSanPhamCanXoa.entries
+        .filter(entry => entry.trangThai === 1)
+        .map(entry =>
+          fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            },
+            body: JSON.stringify({
+              maLoaiSanPham: entry.maLoaiSanPham,
+              tenLoaiSanPham: entry.tenLoaiSanPham,
+              kiHieu: entry.kiHieu,
+              kichThuoc: entry.kichThuoc,
+              hinhAnh: getBase64(entry.hinhAnh),
+              trangThai: 0,
+            }),
+          })
+        );
 
+      const responses = await Promise.all(updatePromises);
+      for (const response of responses) {
         if (!response.ok) {
-          const errorText = await response.text();
+          const errorData = await response.json();
           if (response.status === 400) {
-            throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+            throw new Error(errorData.error || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+          } else if (response.status === 401) {
+            throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
           } else if (response.status === 404) {
-            throw new Error(errorText || "Loại sản phẩm không tồn tại.");
+            throw new Error(errorData.error || "Loại sản phẩm không tồn tại.");
           } else if (response.status === 500) {
             throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
           }
-          throw new Error(errorText || "Không thể ẩn loại sản phẩm.");
+          throw new Error("Không thể ẩn loại sản phẩm.");
         }
       }
 
@@ -669,96 +639,45 @@ const AdminType = () => {
     }
   };
 
-  const khoiPhucKichThuoc = async () => {
-    if (!kichThuocCanKhoiPhuc) return;
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`${API_URL}/api/LoaiSanPham/${kichThuocCanKhoiPhuc.maLoaiSanPham}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          maLoaiSanPham: kichThuocCanKhoiPhuc.maLoaiSanPham,
-          tenLoaiSanPham: kichThuocCanKhoiPhuc.tenLoaiSanPham,
-          kiHieu: kichThuocCanKhoiPhuc.kiHieu,
-          kichThuoc: kichThuocCanKhoiPhuc.kichThuoc,
-          hinhAnh: kichThuocCanKhoiPhuc.hinhAnh,
-          trangThai: 1,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 400) {
-          throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
-        } else if (response.status === 404) {
-          throw new Error(errorText || "Loại sản phẩm không tồn tại.");
-        } else if (response.status === 500) {
-          throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
-        }
-        throw new Error(errorText || "Không thể khôi phục kích thước.");
-      }
-
-      setKichThuocCanKhoiPhuc(null);
-      await fetchLoaiSanPham();
-      Swal.fire({
-        icon: "success",
-        title: "Thành công",
-        text: `Đã khôi phục kích thước ${kichThuocCanKhoiPhuc.kichThuoc}!`,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } catch (error) {
-      setError((error as Error).message);
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Lỗi khi khôi phục kích thước: " + (error as Error).message,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const khoiPhucLoaiSanPham = async () => {
     if (!loaiSanPhamCanKhoiPhuc) return;
 
     setIsProcessing(true);
     try {
-      for (const entry of loaiSanPhamCanKhoiPhuc.entries) {
-        const response = await fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            maLoaiSanPham: entry.maLoaiSanPham,
-            tenLoaiSanPham: entry.tenLoaiSanPham,
-            kiHieu: entry.kiHieu,
-            kichThuoc: entry.kichThuoc,
-            hinhAnh: entry.hinhAnh,
-            trangThai: 1,
-          }),
-        });
+      const updatePromises = loaiSanPhamCanKhoiPhuc.entries
+        .filter(entry => entry.trangThai === 0)
+        .map(entry =>
+          fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            },
+            body: JSON.stringify({
+              maLoaiSanPham: entry.maLoaiSanPham,
+              tenLoaiSanPham: entry.tenLoaiSanPham,
+              kiHieu: entry.kiHieu,
+              kichThuoc: entry.kichThuoc,
+              hinhAnh: getBase64(entry.hinhAnh),
+              trangThai: 1,
+            }),
+          })
+        );
 
+      const responses = await Promise.all(updatePromises);
+      for (const response of responses) {
         if (!response.ok) {
-          const errorText = await response.text();
+          const errorData = await response.json();
           if (response.status === 400) {
-            throw new Error(errorText || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+            throw new Error(errorData.error || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại.");
+          } else if (response.status === 401) {
+            throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
           } else if (response.status === 404) {
-            throw new Error(errorText || "Loại sản phẩm không tồn tại.");
+            throw new Error(errorData.error || "Loại sản phẩm không tồn tại.");
           } else if (response.status === 500) {
             throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
           }
-          throw new Error(errorText || "Không thể khôi phục loại sản phẩm.");
+          throw new Error("Không thể khôi phục loại sản phẩm.");
         }
       }
 
@@ -790,74 +709,34 @@ const AdminType = () => {
     }
   };
 
-  const xoaVinhVienKichThuoc = async () => {
-    if (!kichThuocCanXoaVinhVien) return;
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`${API_URL}/api/LoaiSanPham/${kichThuocCanXoaVinhVien.maLoaiSanPham}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 404) {
-          throw new Error(errorText || "Loại sản phẩm không tồn tại.");
-        } else if (response.status === 409) {
-          throw new Error(errorText || "Không thể xóa vì có dữ liệu liên quan.");
-        } else if (response.status === 500) {
-          throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
-        }
-        throw new Error(errorText || "Không thể xóa vĩnh viễn kích thước.");
-      }
-
-      setKichThuocCanXoaVinhVien(null);
-      await fetchLoaiSanPham();
-      Swal.fire({
-        icon: "success",
-        title: "Thành công",
-        text: `Đã xóa vĩnh viễn kích thước ${kichThuocCanXoaVinhVien.kichThuoc}!`,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } catch (error) {
-      setError((error as Error).message);
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Lỗi khi xóa vĩnh viễn kích thước: " + (error as Error).message,
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        showCloseButton: true,
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const xoaVinhVienLoaiSanPham = async () => {
     if (!loaiSanPhamCanXoaVinhVien) return;
 
     setIsProcessing(true);
     try {
-      for (const entry of loaiSanPhamCanXoaVinhVien.entries) {
-        const response = await fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
+      const deletePromises = loaiSanPhamCanXoaVinhVien.entries.map(entry =>
+        fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
           method: "DELETE",
-        });
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+          },
+        })
+      );
 
+      const responses = await Promise.all(deletePromises);
+      for (const response of responses) {
         if (!response.ok) {
-          const errorText = await response.text();
-          if (response.status === 404) {
-            throw new Error(errorText || "Loại sản phẩm không tồn tại.");
+          const errorData = await response.json();
+          if (response.status === 401) {
+            throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+          } else if (response.status === 404) {
+            throw new Error(errorData.error || "Loại sản phẩm không tồn tại.");
           } else if (response.status === 409) {
-            throw new Error(errorText || "Không thể xóa vì có dữ liệu liên quan.");
+            throw new Error(errorData.error || "Không thể xóa vì có dữ liệu liên quan.");
           } else if (response.status === 500) {
             throw new Error("Lỗi máy chủ, vui lòng thử lại sau.");
           }
-          throw new Error(errorText || "Không thể xóa vĩnh viễn loại sản phẩm.");
+          throw new Error("Không thể xóa vĩnh viễn loại sản phẩm.");
         }
       }
 
@@ -891,20 +770,15 @@ const AdminType = () => {
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value.toLowerCase());
+    setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
 
   const sortedAndFilteredLoaiSanPham = useMemo(() => {
-    const filtered = [...groupedLoaiSanPhams]
-      .sort((a, b) => a.tenLoaiSanPham.localeCompare(b.tenLoaiSanPham))
-      .filter(
-        (group) =>
-          (group.tenLoaiSanPham?.toLowerCase().includes(searchTerm) || false) ||
-          (group.kiHieu?.toLowerCase().includes(searchTerm) || false)
-      );
-    return filtered;
-  }, [groupedLoaiSanPhams, searchTerm]);
+    return [...filteredGroupedLoaiSanPhams].sort((a, b) =>
+      a.tenLoaiSanPham.localeCompare(b.tenLoaiSanPham)
+    );
+  }, [filteredGroupedLoaiSanPhams]);
 
   const totalPages = Math.ceil(sortedAndFilteredLoaiSanPham.length / ITEMS_PER_PAGE);
   const paginatedLoaiSanPham = sortedAndFilteredLoaiSanPham.slice(
@@ -917,7 +791,7 @@ const AdminType = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight text-gray-800">
           Quản lý loại sản phẩm
@@ -931,7 +805,14 @@ const AdminType = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="active" className="w-full" onValueChange={(value) => setActiveTab(value as "active" | "inactive")}>
+      <Tabs
+        defaultValue="active"
+        className="w-full"
+        onValueChange={(value) => {
+          setActiveTab(value as "active" | "inactive");
+          setCurrentPage(1);
+        }}
+      >
         <TabsList className="grid w-full md:w-auto grid-cols-2 gap-1">
           <TabsTrigger value="active" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" /> Danh sách loại sản phẩm
@@ -943,13 +824,14 @@ const AdminType = () => {
 
         <TabsContent value="active">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="relative">
+            <div className="relative w-full md:w-[820px]">
               <Input
                 type="search"
                 placeholder="Tìm kiếm loại sản phẩm..."
                 value={searchTerm}
                 onChange={handleSearch}
-                className="w-full md:w-[820px] pl-10"
+                className="pl-10"
+                disabled={loading || isProcessing}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
@@ -975,6 +857,7 @@ const AdminType = () => {
                         <TableHead>Hình Ảnh</TableHead>
                         <TableHead>Tên Loại Sản Phẩm</TableHead>
                         <TableHead>Ký Hiệu</TableHead>
+                        <TableHead>Kích Thước</TableHead>
                         <TableHead>Hành Động</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -998,6 +881,9 @@ const AdminType = () => {
                             <TableCell>{group.tenLoaiSanPham}</TableCell>
                             <TableCell>{group.kiHieu}</TableCell>
                             <TableCell>
+                              {group.entries.map(entry => entry.kichThuoc.join(", ")).join("; ")}
+                            </TableCell>
+                            <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1018,8 +904,10 @@ const AdminType = () => {
                                     onClick={() => {
                                       setLoaiSanPhamDangSua({
                                         ...group,
-                                        hinhAnh: group.hinhAnh || "",
+                                        hinhAnh: group.hinhAnh || null,
                                       });
+                                      setKichThuocMoi([""]);
+                                      setErrorsSua({ ten: "", kichThuoc: "", hinhAnh: "" });
                                       setMoModalSua(true);
                                     }}
                                     className="text-blue-700"
@@ -1056,7 +944,7 @@ const AdminType = () => {
                 <div className="flex justify-center items-center space-x-2 mt-6">
                   <Button
                     onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    disabled={currentPage === 1 || loading || isProcessing}
                     variant="outline"
                     className="flex items-center"
                   >
@@ -1070,6 +958,7 @@ const AdminType = () => {
                       onClick={() => handlePageChange(page)}
                       variant={currentPage === page ? "default" : "outline"}
                       className={currentPage === page ? "bg-[#9b87f5] text-white hover:bg-[#8a76e3]" : ""}
+                      disabled={loading || isProcessing}
                     >
                       {page}
                     </Button>
@@ -1077,7 +966,7 @@ const AdminType = () => {
 
                   <Button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === totalPages || loading || isProcessing}
                     variant="outline"
                     className="flex items-center"
                   >
@@ -1092,13 +981,14 @@ const AdminType = () => {
 
         <TabsContent value="inactive">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="relative">
+            <div className="relative w-full md:w-[820px]">
               <Input
                 type="search"
                 placeholder="Tìm kiếm loại sản phẩm..."
                 value={searchTerm}
                 onChange={handleSearch}
-                className="w-full md:w-[820px] pl-10"
+                className="pl-10"
+                disabled={loading || isProcessing}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
@@ -1124,6 +1014,7 @@ const AdminType = () => {
                         <TableHead>Hình Ảnh</TableHead>
                         <TableHead>Tên Loại Sản Phẩm</TableHead>
                         <TableHead>Ký Hiệu</TableHead>
+                        <TableHead>Kích Thước</TableHead>
                         <TableHead>Hành Động</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1146,6 +1037,9 @@ const AdminType = () => {
                             </TableCell>
                             <TableCell>{group.tenLoaiSanPham}</TableCell>
                             <TableCell>{group.kiHieu}</TableCell>
+                            <TableCell>
+                              {group.entries.map(entry => entry.kichThuoc.join(", ")).join("; ")}
+                            </TableCell>
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -1202,7 +1096,7 @@ const AdminType = () => {
                 <div className="flex justify-center items-center space-x-2 mt-6">
                   <Button
                     onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    disabled={currentPage === 1 || loading || isProcessing}
                     variant="outline"
                     className="flex items-center"
                   >
@@ -1216,6 +1110,7 @@ const AdminType = () => {
                       onClick={() => handlePageChange(page)}
                       variant={currentPage === page ? "default" : "outline"}
                       className={currentPage === page ? "bg-[#9b87f5] text-white hover:bg-[#8a76e3]" : ""}
+                      disabled={loading || isProcessing}
                     >
                       {page}
                     </Button>
@@ -1223,7 +1118,7 @@ const AdminType = () => {
 
                   <Button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === totalPages || loading || isProcessing}
                     variant="outline"
                     className="flex items-center"
                   >
@@ -1237,14 +1132,22 @@ const AdminType = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={moModalThem} onOpenChange={setMoModalThem}>
+      <Dialog open={moModalThem} onOpenChange={(open) => {
+        setMoModalThem(open);
+        if (!open) {
+          setTenLoaiSanPhamMoi("");
+          setKiHieuMoi("");
+          setKichThuocMoi([""]);
+          setHinhAnhMoi(null);
+          setErrorsThem({ ten: "", kiHieu: "", kichThuoc: "", hinhAnh: "" });
+        }
+      }}>
         <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>Thêm Loại Sản Phẩm</DialogTitle>
             <DialogDescription>Nhập thông tin loại sản phẩm mới.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cột 1 (Bên trái): Tên Loại Sản Phẩm, Ký Hiệu, Hình Ảnh */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên Loại Sản Phẩm</label>
@@ -1265,10 +1168,10 @@ const AdminType = () => {
                 <Input
                   value={kiHieuMoi}
                   onChange={(e) => {
-                    setKiHieuMoi(e.target.value);
+                    setKiHieuMoi(e.target.value.toUpperCase());
                     setErrorsThem((prev) => ({ ...prev, kiHieu: "" }));
                   }}
-                  placeholder="Ký hiệu"
+                  placeholder="Ký hiệu (1 chữ cái in hoa)"
                   maxLength={1}
                   disabled={isProcessing}
                 />
@@ -1277,8 +1180,7 @@ const AdminType = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hình Ảnh</label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-4 text-center ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                    }`}
+                  className={`border-2 border-dashed rounded-lg p-4 text-center ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -1291,7 +1193,7 @@ const AdminType = () => {
                         className="h-32 w-64 mx-auto object-cover rounded"
                       />
                       <button
-                        onClick={() => setHinhAnhMoi("")}
+                        onClick={() => setHinhAnhMoi(null)}
                         className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
                         disabled={isProcessing}
                       >
@@ -1300,7 +1202,7 @@ const AdminType = () => {
                     </div>
                   ) : (
                     <div>
-                      <Upload className="h-16 w-8 mx-auto text-gray-400" />
+                      <Upload className="h-8 w-8 mx-auto text-gray-400" />
                       <p className="mt-2 text-sm text-gray-600">
                         Kéo và thả hình ảnh vào đây hoặc nhấp để chọn (Tối đa 2MB)
                       </p>
@@ -1322,7 +1224,6 @@ const AdminType = () => {
               </div>
             </div>
 
-            {/* Cột 2 (Bên phải): Kích Thước với scrollbar */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kích Thước</label>
@@ -1332,7 +1233,7 @@ const AdminType = () => {
                       <Input
                         value={size}
                         onChange={(e) => {
-                          updateKichThuocField(index, e.target.value);
+                          updateKichThuocField(index, e.target.value.toUpperCase());
                           setErrorsThem((prev) => ({ ...prev, kichThuoc: "" }));
                         }}
                         placeholder="Kích thước (ví dụ: S, M, XL)"
@@ -1366,27 +1267,43 @@ const AdminType = () => {
             </div>
           </div>
           <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setMoModalThem(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+            <Button
+              variant="ghost"
+              onClick={() => setMoModalThem(false)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 bg-[#e7e4f5]"
+            >
               <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={themLoaiSanPham} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Thêm"}
+            <Button
+              onClick={themLoaiSanPham}
+              disabled={isProcessing}
+              className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Thêm"}
               <Plus className="h-4 w-4" />
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={moModalSua} onOpenChange={setMoModalSua}>
+      <Dialog open={moModalSua} onOpenChange={(open) => {
+        setMoModalSua(open);
+        if (!open) {
+          setLoaiSanPhamDangSua(null);
+          setKichThuocMoi([""]);
+          setErrorsSua({ ten: "", kichThuoc: "", hinhAnh: "" });
+        }
+      }}>
         <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>Sửa Loại Sản Phẩm</DialogTitle>
+            <DialogDescription>Cập nhật thông tin loại sản phẩm.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cột 1: Tên, Ký Hiệu, Kích Thước Hiện Tại */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên loại sản phẩm</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên Loại Sản Phẩm</label>
                 <Input
                   value={loaiSanPhamDangSua?.tenLoaiSanPham || ""}
                   onChange={(e) => {
@@ -1400,10 +1317,10 @@ const AdminType = () => {
                 {errorsSua.ten && <p className="text-red-500 text-sm mt-1">{errorsSua.ten}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kí hiệu</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ký Hiệu</label>
                 <Input
                   value={loaiSanPhamDangSua?.kiHieu || ""}
-                  onChange={() => { }}
+                  onChange={() => {}}
                   placeholder="Ký hiệu"
                   maxLength={1}
                   disabled={true}
@@ -1417,16 +1334,16 @@ const AdminType = () => {
                     .map((entry, index) => (
                       <div key={index} className="flex items-center gap-2 mb-2">
                         <Input
-                          value={entry.kichThuoc || ""}
-                          onChange={() => { }}
-                          placeholder="Kích thước"
-                          maxLength={3}
+                          value={entry.kichThuoc.join(", ") || ""}
                           disabled={true}
                         />
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => anKichThuoc(entry)}
+                          onClick={() => {
+                            setLoaiSanPhamCanXoa({ ...loaiSanPhamDangSua!, entries: [entry] });
+                            setMoModalXoa(true);
+                          }}
                           disabled={isProcessing}
                         >
                           <EyeOff className="h-4 w-4" />
@@ -1440,13 +1357,11 @@ const AdminType = () => {
               </div>
             </div>
 
-            {/* Cột 2: Thêm Kích Thước Mới, Hình Ảnh */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hình Ảnh</label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-2 text-center ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                    }`}
+                  className={`border-2 border-dashed rounded-lg p-4 text-center ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -1456,10 +1371,10 @@ const AdminType = () => {
                       <img
                         src={formatBase64Image(loaiSanPhamDangSua.hinhAnh)}
                         alt="Preview"
-                        className="h-24 w-32 mx-auto object-cover rounded"
+                        className="h-32 w-64 mx-auto object-cover rounded"
                       />
                       <button
-                        onClick={() => setLoaiSanPhamDangSua({ ...loaiSanPhamDangSua!, hinhAnh: "" })}
+                        onClick={() => setLoaiSanPhamDangSua({ ...loaiSanPhamDangSua!, hinhAnh: null })}
                         className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
                         disabled={isProcessing}
                       >
@@ -1496,7 +1411,7 @@ const AdminType = () => {
                       <Input
                         value={size}
                         onChange={(e) => {
-                          updateKichThuocField(index, e.target.value);
+                          updateKichThuocField(index, e.target.value.toUpperCase());
                           setErrorsSua((prev) => ({ ...prev, kichThuoc: "" }));
                         }}
                         placeholder="Kích thước (ví dụ: S, M, XL)"
@@ -1530,11 +1445,20 @@ const AdminType = () => {
             </div>
           </div>
           <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setMoModalSua(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+            <Button
+              variant="ghost"
+              onClick={() => setMoModalSua(false)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 bg-[#e7e4f5]"
+            >
               <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={suaLoaiSanPham} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Lưu"}
+            <Button
+              onClick={suaLoaiSanPham}
+              disabled={isProcessing}
+              className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
               <FaEdit className="h-4 w-4" />
             </Button>
           </DialogFooter>
@@ -1548,7 +1472,6 @@ const AdminType = () => {
           </DialogHeader>
           {loaiSanPhamChiTiet && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Cột 1 (Bên trái): Hình Ảnh, Tên Loại Sản Phẩm, Ký Hiệu */}
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Tên Loại Sản Phẩm</label>
@@ -1564,7 +1487,7 @@ const AdminType = () => {
                     <img
                       src={formatBase64Image(loaiSanPhamChiTiet.hinhAnh)}
                       alt={loaiSanPhamChiTiet.tenLoaiSanPham}
-                      className="h-40 w-80 object-cover rounded"
+                      className="h-32 w-64 object-cover rounded"
                       onError={(e) => (e.currentTarget.src = "/placeholder-image.jpg")}
                     />
                   ) : (
@@ -1573,7 +1496,6 @@ const AdminType = () => {
                 </div>
               </div>
 
-              {/* Cột 2 (Bên phải): Kích Thước với scrollbar */}
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Kích Thước</label>
@@ -1581,36 +1503,13 @@ const AdminType = () => {
                     {loaiSanPhamChiTiet.entries.map((entry, index) => (
                       <div key={index} className="flex items-center gap-2 mb-2">
                         <Input
-                          value={entry.kichThuoc || "Không có"}
+                          value={entry.kichThuoc.join(", ") || "Không có"}
                           disabled
-                          className="mb-2"
                         />
-                        {activeTab === "inactive" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setKichThuocCanKhoiPhuc(entry)}
-                              disabled={isProcessing}
-                              className="text-green-700"
-                            >
-                              <FaUndo className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setKichThuocCanXoaVinhVien(entry)}
-                              disabled={isProcessing}
-                              className="text-red-700"
-                            >
-                              <FaTrash className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
                       </div>
                     ))}
                     {loaiSanPhamChiTiet.entries.length === 0 && (
-                      <p className="text-gray-500 text-sm">Không có kích thước hoạt động.</p>
+                      <p className="text-gray-500 text-sm">Không có kích thước.</p>
                     )}
                   </div>
                 </div>
@@ -1618,7 +1517,12 @@ const AdminType = () => {
             </div>
           )}
           <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setMoModalChiTiet(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+            <Button
+              variant="ghost"
+              onClick={() => setMoModalChiTiet(false)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 bg-[#e7e4f5]"
+            >
               <X className="h-4 w-4" /> Đóng
             </Button>
           </DialogFooter>
@@ -1634,11 +1538,20 @@ const AdminType = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setMoModalXoa(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+            <Button
+              variant="ghost"
+              onClick={() => setMoModalXoa(false)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 bg-[#e7e4f5]"
+            >
               <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={anLoaiSanPham} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Ẩn"}
+            <Button
+              onClick={anLoaiSanPham}
+              disabled={isProcessing}
+              className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ẩn"}
               <FaTrashAlt className="h-4 w-4" />
             </Button>
           </DialogFooter>
@@ -1654,11 +1567,20 @@ const AdminType = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setMoModalKhoiPhuc(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+            <Button
+              variant="ghost"
+              onClick={() => setMoModalKhoiPhuc(false)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 bg-[#e7e4f5]"
+            >
               <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={khoiPhucLoaiSanPham} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Khôi phục"}
+            <Button
+              onClick={khoiPhucLoaiSanPham}
+              disabled={isProcessing}
+              className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Khôi phục"}
               <FaUndo className="h-4 w-4" />
             </Button>
           </DialogFooter>
@@ -1674,51 +1596,20 @@ const AdminType = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setMoModalXoaVinhVien(false)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
+            <Button
+              variant="ghost"
+              onClick={() => setMoModalXoaVinhVien(false)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 bg-[#e7e4f5]"
+            >
               <X className="h-4 w-4" /> Hủy
             </Button>
-            <Button onClick={xoaVinhVienLoaiSanPham} disabled={isProcessing} className="bg-red-500 text-white hover:bg-red-600 flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Xóa vĩnh viễn"}
-              <FaTrash className="h-4 w-4" />
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!kichThuocCanKhoiPhuc} onOpenChange={() => setKichThuocCanKhoiPhuc(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xác nhận khôi phục kích thước</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn khôi phục kích thước {kichThuocCanKhoiPhuc?.kichThuoc} không?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setKichThuocCanKhoiPhuc(null)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
-              <X className="h-4 w-4" /> Hủy
-            </Button>
-            <Button onClick={khoiPhucKichThuoc} disabled={isProcessing} className="bg-[#9b87f5] text-white hover:bg-[#8a76e3] flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Khôi phục"}
-              <FaUndo className="h-4 w-4" />
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!kichThuocCanXoaVinhVien} onOpenChange={() => setKichThuocCanXoaVinhVien(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Xác nhận xóa vĩnh viễn kích thước</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn xóa vĩnh viễn kích thước {kichThuocCanXoaVinhVien?.kichThuoc} không? Hành động này không thể hoàn tác.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end space-x-2 mt-4">
-            <Button variant="ghost" onClick={() => setKichThuocCanXoaVinhVien(null)} disabled={isProcessing} className="flex items-center gap-2 bg-[#e7e4f5]">
-              <X className="h-4 w-4" /> Hủy
-            </Button>
-            <Button onClick={xoaVinhVienKichThuoc} disabled={isProcessing} className="bg-red-500 text-white hover:bg-red-600 flex items-center gap-2">
-              {isProcessing ? "Đang xử lý..." : "Xóa vĩnh viễn"}
+            <Button
+              onClick={xoaVinhVienLoaiSanPham}
+              disabled={isProcessing}
+              className="bg-red-500 text-white hover:bg-red-600 flex items-center gap-2"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Xóa vĩnh viễn"}
               <FaTrash className="h-4 w-4" />
             </Button>
           </DialogFooter>
@@ -1728,4 +1619,4 @@ const AdminType = () => {
   );
 };
 
-export default AdminType;
+export default AdminLoaiSanPham;

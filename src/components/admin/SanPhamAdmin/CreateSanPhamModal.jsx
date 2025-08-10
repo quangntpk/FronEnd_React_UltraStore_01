@@ -11,7 +11,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     {
       color: "#ffffff",
       image: null,
-      sizes: [{ size: "S", price: "", giaNhap: "", quantity: 1 }],
+      sizes: [{ size: "", price: "", giaNhap: "", quantity: 1 }],
     },
   ]);
   const [tenSanPham, setTenSanPham] = useState("");
@@ -29,28 +29,32 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const [hashTagSearch, setHashTagSearch] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isMoTaModalOpen, setIsMoTaModalOpen] = useState(false);
+  const [kichThuocList, setKichThuocList] = useState([]);
   const fileInputRef = useRef(null);
   const colorImageInputRefs = useRef({});
 
   useEffect(() => {
     const fetchLoaiSanPham = async () => {
       try {
-         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5261/api/LoaiSanPham",{
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/LoaiSanPham", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : undefined,
+            Authorization: token ? `Bearer ${token}` : "",
           },
         });
-        if (!response.ok) throw new Error("Failed to fetch product types");
+        if (!response.ok) {
+          if (response.status === 401) throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+          throw new Error("Không thể lấy danh sách loại sản phẩm.");
+        }
         const data = await response.json();
-        setLoaiSanPhamList(Array.isArray(data) ? data : []);
+        setLoaiSanPhamList(Array.isArray(data) ? data.filter(lsp => lsp.trangThai === 1) : []);
       } catch (error) {
         console.error("Lỗi khi lấy danh sách loại sản phẩm:", error);
         Swal.fire({
           title: "Lỗi!",
-          text: "Không thể lấy danh sách loại sản phẩm.",
+          text: error.message || "Không thể lấy danh sách loại sản phẩm.",
           icon: "error",
           timer: 2000,
           timerProgressBar: true,
@@ -61,22 +65,25 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     const fetchThuongHieu = async () => {
       try {
-         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5261/api/ThuongHieu",{
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/ThuongHieu", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : undefined,
+            Authorization: token ? `Bearer ${token}` : "",
           },
         });
-        if (!response.ok) throw new Error("Failed to fetch brands");
+        if (!response.ok) {
+          if (response.status === 401) throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+          throw new Error("Không thể lấy danh sách thương hiệu.");
+        }
         const data = await response.json();
         setThuongHieuList(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Lỗi khi lấy danh sách thương hiệu:", error);
         Swal.fire({
           title: "Lỗi!",
-          text: "Không thể lấy danh sách thương hiệu.",
+          text: error.message || "Không thể lấy danh sách thương hiệu.",
           icon: "error",
           timer: 2000,
           timerProgressBar: true,
@@ -87,22 +94,25 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     const fetchHashTags = async () => {
       try {
-         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5261/api/HashTag",{
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5261/api/HashTag", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : undefined,
+            Authorization: token ? `Bearer ${token}` : "",
           },
         });
-        if (!response.ok) throw new Error("Failed to fetch hashtags");
+        if (!response.ok) {
+          if (response.status === 401) throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+          throw new Error("Không thể lấy danh sách hashtag.");
+        }
         const data = await response.json();
         setHashTagList(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Lỗi khi lấy danh sách hashtag:", error);
         Swal.fire({
           title: "Lỗi!",
-          text: "Không thể lấy danh sách hashtag.",
+          text: error.message || "Không thể lấy danh sách hashtag.",
           icon: "error",
           timer: 2000,
           timerProgressBar: true,
@@ -115,6 +125,52 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     fetchThuongHieu();
     fetchHashTags();
   }, []);
+
+  useEffect(() => {
+    const fetchKichThuoc = async () => {
+      if (!loaiSanPham) {
+        setKichThuocList([]);
+        return;
+      }
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`http://localhost:5261/api/LoaiSanPham/${loaiSanPham}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        });
+        if (!response.ok) {
+          if (response.status === 401) throw new Error("Không có quyền truy cập, vui lòng đăng nhập lại.");
+          if (response.status === 404) throw new Error("Loại sản phẩm không tồn tại.");
+          throw new Error("Không thể lấy danh sách kích thước.");
+        }
+        const data = await response.json();
+        setKichThuocList(Array.isArray(data.kichThuoc) ? data.kichThuoc : []);
+        setColors(colors.map(color => ({
+          ...color,
+          sizes: color.sizes.map(size => ({
+            ...size,
+            size: data.kichThuoc.length > 0 ? data.kichThuoc[0] : "",
+          })),
+        })));
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách kích thước:", error);
+        Swal.fire({
+          title: "Lỗi!",
+          text: error.message || "Không thể lấy danh sách kích thước.",
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+        setKichThuocList([]);
+      }
+    };
+
+    fetchKichThuoc();
+  }, [loaiSanPham]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -134,7 +190,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
     files.forEach((file) => {
-      if (file.type.startsWith("image/")) {
+      if (file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
@@ -142,6 +198,15 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
           setErrors((prevErrors) => ({ ...prevErrors, images: "" }));
         };
         reader.readAsDataURL(file);
+      } else {
+        Swal.fire({
+          title: "Lỗi!",
+          text: file.type.startsWith("image/") ? "Hình ảnh không được vượt quá 5MB." : "Vui lòng chọn tệp hình ảnh.",
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
       }
     });
   };
@@ -149,7 +214,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     files.forEach((file) => {
-      if (file.type.startsWith("image/")) {
+      if (file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) {
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
@@ -157,13 +222,22 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
           setErrors((prevErrors) => ({ ...prevErrors, images: "" }));
         };
         reader.readAsDataURL(file);
+      } else {
+        Swal.fire({
+          title: "Lỗi!",
+          text: file.type.startsWith("image/") ? "Hình ảnh không được vượt quá 5MB." : "Vui lòng chọn tệp hình ảnh.",
+          icon: "error",
+          timer: 2000,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
       }
     });
   };
 
   const handleColorImageChange = (colorIndex, e) => {
     const file = e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file && file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result.replace(/^data:image\/[a-z]+;base64,/, "");
@@ -172,6 +246,15 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
         setColors(newColors);
       };
       reader.readAsDataURL(file);
+    } else {
+      Swal.fire({
+        title: "Lỗi!",
+        text: file.type.startsWith("image/") ? "Hình ảnh không được vượt quá 5MB." : "Vui lòng chọn tệp hình ảnh.",
+        icon: "error",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -191,7 +274,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       {
         color: "#ffffff",
         image: null,
-        sizes: [{ size: "S", price: "", giaNhap: "", quantity: 1 }],
+        sizes: [{ size: kichThuocList.length > 0 ? kichThuocList[0] : "", price: "", giaNhap: "", quantity: 1 }],
       },
     ]);
   };
@@ -199,7 +282,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   const handleAddSize = (colorIndex) => {
     const newColors = [...colors];
     newColors[colorIndex].sizes.push({
-      size: "S",
+      size: kichThuocList.length > 0 ? kichThuocList[0] : "",
       price: "",
       giaNhap: "",
       quantity: 1,
@@ -248,39 +331,14 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
   };
 
   const handleSaveChanges = async () => {
+    let errorList = {};
+    let hasError = false;
+    const colorSet = new Set();
     const imagesToSend = images.map((img) =>
       img.startsWith("data:image") ? img.replace(/^data:image\/[a-z]+;base64,/, "") : img
     );
 
-    const newProductData = {
-      data: colors.map((colorItem) => ({
-        TenSanPham: tenSanPham || null,
-        MaThuongHieu: parseInt(maThuongHieu) || null,
-        LoaiSanPham: parseInt(loaiSanPham) || null,
-        MoTa: moTa || null,
-        MauSac: colorItem.color.slice(1) || null,
-        ChatLieu: chatLieu || null,
-        GioiTinh: parseInt(gioiTinh) || null,
-        HinhAnhs: imagesToSend,
-        Details: colorItem.sizes.map((sizeItem) => ({
-          KichThuoc: sizeItem.size.padEnd(10, " ").trim() || null,
-          SoLuong: parseInt(sizeItem.quantity) || 0,
-          Gia: parseInt(sizeItem.price) || 0,
-          GiaNhap: parseInt(sizeItem.giaNhap) || 0,
-          HinhAnh: colorItem.image || null,
-        })),
-      })),
-      ListHashTag: selectedHashTags.map((tag) => ({
-        ID: tag.ID,
-        Name: tag.Name,
-      })),
-    };
-
-    let errorList = {};
-    let hasError = false;
-    const colorSet = new Set();
-
-    if (!tenSanPham) {
+    if (!tenSanPham.trim()) {
       errorList["tenSanPham"] = "Tên sản phẩm không được để trống.";
       hasError = true;
     }
@@ -300,33 +358,49 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       errorList["images"] = "Vui lòng thêm ít nhất một hình ảnh.";
       hasError = true;
     }
+    if (!chatLieu.trim()) {
+      errorList["chatLieu"] = "Chất liệu không được để trống.";
+      hasError = true;
+    }
 
-    newProductData.data.forEach((item, index) => {
-      if (colorSet.has(item.MauSac)) {
-        errorList[`${index}-mauSac`] = `- Màu ${item.MauSac} đã tồn tại.`;
+    colors.forEach((item, index) => {
+      const mauSac = item.color.slice(1).toUpperCase();
+      if (!mauSac) {
+        errorList[`${index}-mauSac`] = `- Vui lòng chọn màu sắc cho màu ${index + 1}.`;
+        hasError = true;
+      } else if (colorSet.has(mauSac)) {
+        errorList[`${index}-mauSac`] = `- Màu ${mauSac} đã tồn tại.`;
         hasError = true;
       } else {
-        colorSet.add(item.MauSac);
+        colorSet.add(mauSac);
+      }
+
+      if (!item.image) {
+        errorList[`${index}-image`] = `- Vui lòng thêm hình ảnh cho màu ${mauSac}.`;
+        hasError = true;
       }
 
       const sizeSet = new Set();
-      item.Details.forEach((detail, detailIndex) => {
-        if (sizeSet.has(detail.KichThuoc)) {
-          errorList[`${index}-details-${detailIndex}-kichThuoc`] = `- Kích thước ${detail.KichThuoc} của mã màu ${item.MauSac} đã tồn tại.`;
+      item.sizes.forEach((detail, detailIndex) => {
+        if (!detail.size) {
+          errorList[`${index}-details-${detailIndex}-kichThuoc`] = `- Vui lòng chọn kích thước cho màu ${mauSac}.`;
+          hasError = true;
+        } else if (sizeSet.has(detail.size)) {
+          errorList[`${index}-details-${detailIndex}-kichThuoc`] = `- Kích thước ${detail.size} của màu ${mauSac} đã tồn tại.`;
           hasError = true;
         } else {
-          sizeSet.add(detail.KichThuoc);
+          sizeSet.add(detail.size);
         }
-        if (detail.SoLuong <= 0) {
-          errorList[`${index}-details-${detailIndex}-soLuong`] = `- Số lượng của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
+        if (!detail.quantity || parseInt(detail.quantity) <= 0) {
+          errorList[`${index}-details-${detailIndex}-soLuong`] = `- Số lượng của kích thước ${detail.size} thuộc màu ${mauSac} phải lớn hơn 0.`;
           hasError = true;
         }
-        if (detail.Gia <= 0) {
-          errorList[`${index}-details-${detailIndex}-gia`] = `- Giá của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
+        if (!detail.price || parseInt(detail.price) <= 0) {
+          errorList[`${index}-details-${detailIndex}-gia`] = `- Giá của kích thước ${detail.size} thuộc màu ${mauSac} phải lớn hơn 0.`;
           hasError = true;
         }
-        if (detail.GiaNhap <= 0) {
-          errorList[`${index}-details-${detailIndex}-giaNhap`] = `- Giá nhập của kích thước ${detail.KichThuoc} thuộc mã màu ${item.MauSac} phải lớn hơn 0.`;
+        if (!detail.giaNhap || parseInt(detail.giaNhap) <= 0) {
+          errorList[`${index}-details-${detailIndex}-giaNhap`] = `- Giá nhập của kích thước ${detail.size} thuộc màu ${mauSac} phải lớn hơn 0.`;
           hasError = true;
         }
       });
@@ -336,7 +410,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       setErrors(errorList);
       Swal.fire({
         title: "Lỗi!",
-        text: "Vui lòng điền đầy đủ và đúng thông tin trước khi thêm sản phẩm",
+        text: "Vui lòng điền đầy đủ và đúng thông tin trước khi thêm sản phẩm.",
         icon: "error",
         timer: 2000,
         timerProgressBar: true,
@@ -345,22 +419,43 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       return;
     }
 
-    setErrors({});
-    console.log(newProductData)
+    const newProductData = {
+      data: colors.map((colorItem) => ({
+        TenSanPham: tenSanPham.trim(),
+        MaThuongHieu: parseInt(maThuongHieu),
+        LoaiSanPham: parseInt(loaiSanPham),
+        MoTa: moTa.trim() || null,
+        MauSac: colorItem.color.slice(1).toUpperCase(),
+        ChatLieu: chatLieu.trim(),
+        GioiTinh: parseInt(gioiTinh),
+        HinhAnhs: imagesToSend,
+        Details: colorItem.sizes.map((sizeItem) => ({
+          KichThuoc: sizeItem.size.trim(),
+          SoLuong: parseInt(sizeItem.quantity),
+          Gia: parseInt(sizeItem.price),
+          GiaNhap: parseInt(sizeItem.giaNhap),
+          HinhAnh: colorItem.image || null,
+        })),
+      })),
+      ListHashTag: selectedHashTags.map((tag) => ({
+        ID: tag.ID,
+        Name: tag.Name,
+      })),
+    };
+
     try {
-       const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch("http://localhost:5261/api/SanPham/CreateSanPham", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : undefined,
+          Authorization: token ? `Bearer ${token}` : "",
         },
         body: JSON.stringify(newProductData),
       });
 
       if (response.ok) {
         const responseData = await response.json();
-        const maSanPham = responseData.maSanPham;
         Swal.fire({
           title: "Thành công!",
           text: "Thêm sản phẩm thành công!",
@@ -369,9 +464,19 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
           timerProgressBar: true,
           showConfirmButton: false,
         }).then(() => {
-          setIsMoTaModalOpen(true);
           window.location.reload();
           setIsAddModalOpen(false);
+          setTenSanPham("");
+          setMaThuongHieu("");
+          setLoaiSanPham("");
+          setMoTa("");
+          setChatLieu("");
+          setGioiTinh("");
+          setImages([]);
+          setColors([{ color: "#ffffff", image: null, sizes: [{ size: kichThuocList.length > 0 ? kichThuocList[0] : "", price: "", giaNhap: "", quantity: 1 }] }]);
+          setSelectedHashTags([]);
+          setErrors({});
+          setIsMoTaModalOpen(true);
         });
       } else {
         const errorData = await response.json();
@@ -403,13 +508,13 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
   return (
     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-      <DialogContent className="max-w-7xl p-6 bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl p-6 bg-white rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-800">
             Thêm sản phẩm mới
           </DialogTitle>
         </DialogHeader>
-        <div className="py-4">
+        <div className="py-4 shadow-lg max-h-[80vh] overflow-y-auto">
           <div className="grid grid-cols-3 gap-6">
             <div className="col-span-2 space-y-6">
               <div className="space-y-4">
@@ -424,13 +529,12 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                         setTenSanPham(e.target.value);
                         setErrors({ ...errors, tenSanPham: "" });
                       }}
-                      className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       placeholder="Nhập tên sản phẩm"
+                      maxLength={100}
                     />
                     {errors.tenSanPham && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.tenSanPham}
-                      </p>
+                      <p className="text-red-500 text-sm mt-1">{errors.tenSanPham}</p>
                     )}
                   </div>
                   <div>
@@ -439,10 +543,17 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                     </label>
                     <Input
                       value={chatLieu}
-                      onChange={(e) => setChatLieu(e.target.value)}
-                      className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={(e) => {
+                        setChatLieu(e.target.value);
+                        setErrors({ ...errors, chatLieu: "" });
+                      }}
+                      className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       placeholder="Nhập chất liệu"
+                      maxLength={50}
                     />
+                    {errors.chatLieu && (
+                      <p className="text-red-500 text-sm mt-1">{errors.chatLieu}</p>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -456,7 +567,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                         setMaThuongHieu(e.target.value);
                         setErrors({ ...errors, maThuongHieu: "" });
                       }}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     >
                       <option value="">Chọn thương hiệu</option>
                       {thuongHieuList.map((thuongHieu) => (
@@ -469,9 +580,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                       ))}
                     </select>
                     {errors.maThuongHieu && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.maThuongHieu}
-                      </p>
+                      <p className="text-red-500 text-sm mt-1">{errors.maThuongHieu}</p>
                     )}
                   </div>
                   <div>
@@ -484,7 +593,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                         setLoaiSanPham(e.target.value);
                         setErrors({ ...errors, loaiSanPham: "" });
                       }}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     >
                       <option value="">Chọn loại sản phẩm</option>
                       {loaiSanPhamList.map((loai) => (
@@ -492,14 +601,12 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                           key={loai.maLoaiSanPham}
                           value={loai.maLoaiSanPham}
                         >
-                          {loai.tenLoaiSanPham}
+                          {loai.tenLoaiSanPham} ({loai.kiHieu})
                         </option>
                       ))}
                     </select>
                     {errors.loaiSanPham && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.loaiSanPham}
-                      </p>
+                      <p className="text-red-500 text-sm mt-1">{errors.loaiSanPham}</p>
                     )}
                   </div>
                 </div>
@@ -519,7 +626,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                             setGioiTinh(e.target.value);
                             setErrors({ ...errors, gioiTinh: "" });
                           }}
-                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                          className="h-4 w-4 text-purple-500 focus:ring-purple-500 border-gray-300"
                         />
                         <span className="text-gray-700">Nam</span>
                       </label>
@@ -533,7 +640,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                             setGioiTinh(e.target.value);
                             setErrors({ ...errors, gioiTinh: "" });
                           }}
-                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                          className="h-4 w-4 text-purple-500 focus:ring-purple-500 border-gray-300"
                         />
                         <span className="text-gray-700">Nữ</span>
                       </label>
@@ -547,15 +654,13 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                             setGioiTinh(e.target.value);
                             setErrors({ ...errors, gioiTinh: "" });
                           }}
-                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                          className="h-4 w-4 text-purple-500 focus:ring-purple-500 border-gray-300"
                         />
                         <span className="text-gray-700">Unisex</span>
                       </label>
                     </div>
                     {errors.gioiTinh && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.gioiTinh}
-                      </p>
+                      <p className="text-red-500 text-sm mt-1">{errors.gioiTinh}</p>
                     )}
                   </div>
                 </div>
@@ -568,7 +673,8 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                   </label>
                   <Button
                     onClick={handleAddColor}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                    className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                    disabled={!loaiSanPham}
                   >
                     <Plus size={16} />
                     Thêm Màu Sắc
@@ -617,7 +723,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                                 className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
                               />
                               <span className="font-medium text-gray-700">
-                                Màu {colorIndex + 1}
+                                Màu {colorIndex + 1} ({colorItem.color.slice(1).toUpperCase()})
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -686,14 +792,18 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                                       e.target.value
                                     )
                                   }
-                                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                                  disabled={!loaiSanPham || kichThuocList.length === 0}
                                 >
-                                  <option value="S">S</option>
-                                  <option value="M">M</option>
-                                  <option value="L">L</option>
-                                  <option value="XL">XL</option>
-                                  <option value="XXL">XXL</option>
-                                  <option value="XXXL">XXXL</option>
+                                  {kichThuocList.length === 0 ? (
+                                    <option value="">Chọn loại sản phẩm trước</option>
+                                  ) : (
+                                    kichThuocList.map((size) => (
+                                      <option key={size} value={size}>
+                                        {size}
+                                      </option>
+                                    ))
+                                  )}
                                 </select>
                               </div>
                               <div className="col-span-3">
@@ -710,7 +820,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                                       e.target.value
                                     )
                                   }
-                                  className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                  className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                                 />
                               </div>
                               <div className="col-span-3">
@@ -727,7 +837,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                                       e.target.value
                                     )
                                   }
-                                  className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                  className="w-full p-2 border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                                 />
                               </div>
                               <div className="col-span-3">
@@ -786,6 +896,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                             variant="outline"
                             size="sm"
                             className="flex items-center gap-2"
+                            disabled={!loaiSanPham || kichThuocList.length === 0}
                           >
                             <Plus size={14} />
                             Thêm Kích Thước
@@ -805,7 +916,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                 <div
                   className={`relative w-full h-48 border-2 border-dashed rounded-lg transition-all duration-200 ${
                     isDragging
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-purple-500 bg-purple-50"
                       : images.length > 0
                       ? "border-green-500 bg-green-50"
                       : "border-gray-300 hover:border-gray-400"
@@ -862,14 +973,15 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
               <div>
                 <label className="block mb-2 font-medium text-gray-700">Mô Tả Ngắn Gọn</label>
                 <textarea
-                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
                   value={moTa}
                   onChange={(e) => setMoTa(e.target.value)}
                   placeholder="Nhập mô tả ngắn gọn về sản phẩm..."
+                  maxLength={500}
                 />
                 <Button
                   onClick={() => setIsMoTaModalOpen(true)}
-                  className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg"
+                  className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg"
                 >
                   Nhập Mô Tả Chi Tiết
                 </Button>
@@ -882,7 +994,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                     value={hashTagSearch}
                     onChange={(e) => setHashTagSearch(e.target.value)}
                     placeholder="Tìm kiếm hashtag..."
-                    className="pl-10 w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="pl-10 w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
                 <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
@@ -899,7 +1011,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                           type="checkbox"
                           checked={selectedHashTags.some((tag) => tag.ID === hashTag.maHashTag)}
                           readOnly
-                          className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300"
+                          className="h-4 w-4 text-purple-500 focus:ring-purple-500 border-gray-300"
                         />
                         <span>{hashTag.tenHashTag}</span>
                       </div>
@@ -913,12 +1025,12 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
                       {selectedHashTags.map((tag) => (
                         <div
                           key={tag.ID}
-                          className="flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full"
+                          className="flex items-center gap-1 bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded-full"
                         >
                           <span>{tag.Name}</span>
                           <button
                             onClick={() => handleHashTagToggle({ maHashTag: tag.ID, tenHashTag: tag.Name })}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-purple-600 hover:text-purple-800"
                           >
                             <X size={14} />
                           </button>
