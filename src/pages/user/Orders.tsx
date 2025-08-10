@@ -188,14 +188,58 @@ const NotificationComponent = ({ notification, onClose }: {
 };
 
 // OrderItem Component
-// ...existing code...
-
 const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentStates, setCommentStates] = useState<{ [key: number]: CommentState }>({});
   const [isCommenting, setIsCommenting] = useState<{ [key: number]: boolean }>({});
   const statusInfo = orderStatuses[mapStatus(order.trangThaiDonHang)] || orderStatuses.pending;
   const StatusIcon = statusInfo.icon;
+  const [productImages, setProductImages] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      const idsToFetch = new Set<string>();
+      for (const item of order.sanPhams) {
+        if (!item.laCombo) {
+          if (item.maSanPham && !item.hinhAnh) {
+            idsToFetch.add(item.maSanPham);
+          }
+        } else {
+          if (item.combo?.sanPhamsTrongCombo) {
+            for (const sub of item.combo.sanPhamsTrongCombo) {
+              if (sub.maSanPham && !sub.hinhAnh) {
+                idsToFetch.add(sub.maSanPham);
+              }
+            }
+          }
+        }
+      }
+
+      const imagesMap: { [key: string]: string } = {};
+      for (const id of idsToFetch) {
+        try {
+          const response = await axios.get(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${id}`);
+          const data = response.data;
+          if (Array.isArray(data) && data.length > 0 && data[0].hinhAnhs?.length > 0) {
+            imagesMap[id] = `data:image/jpeg;base64,${data[0].hinhAnhs[0]}`;
+          }
+        } catch (error) {
+          console.error(`Error fetching image for ${id}`, error);
+        }
+      }
+      setProductImages(imagesMap);
+    };
+    fetchImages();
+  }, [order.sanPhams]);
+
+  const getComboImage = (item: Product) => {
+    if (item.hinhAnh) return item.hinhAnh;
+    if (item.combo?.sanPhamsTrongCombo?.length > 0) {
+      const firstSub = item.combo.sanPhamsTrongCombo[0];
+      return productImages[firstSub.maSanPham] || firstSub.hinhAnh || "https://via.placeholder.com/150";
+    }
+    return "https://via.placeholder.com/150";
+  };
 
   const getPaymentStatusDisplay = () => {
     if (order.paymentStatusText) return order.paymentStatusText;
@@ -243,7 +287,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
         <div className="col-span-12 sm:col-span-2">
           <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
             <img
-              src={item.hinhAnh || "https://via.placeholder.com/150"}
+              src={item.laCombo ? getComboImage(item) : (item.maSanPham ? productImages[item.maSanPham] || item.hinhAnh || "https://via.placeholder.com/150" : "https://via.placeholder.com/150")}
               alt={item.laCombo ? 'Combo Preview' : 'Product Preview'}
               className="w-full h-full object-cover"
             />
@@ -302,7 +346,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
                         {comboProduct.hinhAnh && (
                           <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                             <img
-                              src={comboProduct.hinhAnh}
+                              src={productImages[comboProduct.maSanPham] || comboProduct.hinhAnh}
                               alt={comboProduct.tenSanPham}
                               className="w-full h-full object-cover"
                               onError={(e) => {

@@ -10,6 +10,8 @@ import HeroSection from "@/components/default/HeroSection";
 import Newsletter from "@/components/default/Newsletter";
 import Features from "@/components/default/Features";
 import CategoryView from "@/components/default/CategoryView";
+import { BlogList } from "@/components/default/BlogList";
+
 import {
   Carousel,
   CarouselContent,
@@ -1070,9 +1072,7 @@ const Index = () => {
             </Link>
           </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Blog content placeholder */}
-        </div>
+        <BlogList />
       </section>
 
       <Newsletter />
