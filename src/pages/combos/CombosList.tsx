@@ -783,14 +783,14 @@ const CombosList = () => {
                           Chi tiết
                         </Link>
                       </Button>
-                      <Button 
+                      {/* <Button 
                         onClick={() => handleBuyNow(combo)} 
                         size="sm" 
                         className="flex-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
                       >
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         Thêm vào giỏ
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 </CardContent>

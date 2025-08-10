@@ -351,7 +351,7 @@ const ProductCard = ({
       )}
       style={{ transitionDelay: `${index * 150}ms` }}
     >
-      <Card className="overflow-hidden group relative">
+      <Card className="overflow-hidden group relative" style={{height: "650px"}}>
         <div className="relative aspect-square">
           <Link to={`/products/${product.id}`}>
             <img
@@ -515,18 +515,18 @@ const ProductCard = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex mt-auto absolute absolute bottom-2 left-2 right-2 ">
             <Button asChild variant="outline" size="sm" className="flex-1">
               <Link to={`/products/${product.id}`}>Chi tiết</Link>
             </Button>
-            <Button
+            {/* <Button
               size="sm"
               className="flex-1 bg-crocus-500 hover:bg-crocus-600"
               onClick={handleBuyNow}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
               Mua ngay
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>

@@ -43,7 +43,7 @@ interface LoaiSanPham {
   maLoaiSanPham: number;
   tenLoaiSanPham: string;
   kiHieu: string;
-  kichThuoc: string[];
+  kichThuoc?: string[] | null; // Updated to List<string>?
   hinhAnh?: string | null;
   trangThai: number;
 }
@@ -353,17 +353,17 @@ const AdminLoaiSanPham = () => {
       valid = false;
     }
 
-    if (kichThuocMoi.length === 0 || kichThuocMoi.every(size => !size.trim())) {
+    const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
+    if (trimmedSizes.length === 0) {
       newErrors.kichThuoc = "Phải nhập ít nhất một kích thước!";
       valid = false;
     } else {
-      const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase());
-      const uniqueSizes = new Set(trimmedSizes.filter(size => size));
-      if (uniqueSizes.size !== trimmedSizes.filter(size => size).length) {
+      const uniqueSizes = new Set(trimmedSizes);
+      if (uniqueSizes.size !== trimmedSizes.length) {
         newErrors.kichThuoc = "Các kích thước không được trùng lặp!";
         valid = false;
       }
-      if (trimmedSizes.some(size => size && !/^[A-Z0-9]{1,3}$/.test(size))) {
+      if (trimmedSizes.some(size => !/^[A-Z0-9]{1,3}$/.test(size))) {
         newErrors.kichThuoc = "Kích thước phải là chữ cái in hoa hoặc số (1-3 ký tự, ví dụ: S, M, XL, 2XL)!";
         valid = false;
       }
@@ -390,8 +390,8 @@ const AdminLoaiSanPham = () => {
       valid = false;
     }
 
-    if (kichThuocMoi.some(size => size.trim())) {
-      const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
+    const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
+    if (trimmedSizes.length > 0) {
       const uniqueSizes = new Set(trimmedSizes);
       if (uniqueSizes.size !== trimmedSizes.length) {
         newErrors.kichThuoc = "Các kích thước mới không được trùng lặp!";
@@ -403,7 +403,7 @@ const AdminLoaiSanPham = () => {
       }
       const existingSizes = loaiSanPhamDangSua?.entries
         .filter(entry => entry.trangThai === 1)
-        .flatMap(entry => entry.kichThuoc.map(size => size.toUpperCase())) || [];
+        .flatMap(entry => entry.kichThuoc || []).map(size => size.toUpperCase()) || [];
       if (trimmedSizes.some(size => existingSizes.includes(size))) {
         newErrors.kichThuoc = "Kích thước mới không được trùng với kích thước hiện tại!";
         valid = false;
@@ -437,7 +437,7 @@ const AdminLoaiSanPham = () => {
         body: JSON.stringify({
           tenLoaiSanPham: tenLoaiSanPhamMoi.trim(),
           kiHieu: kiHieuUpper,
-          kichThuoc: trimmedSizes,
+          kichThuoc: trimmedSizes.length > 0 ? trimmedSizes : null, // Send null if no sizes
           hinhAnh: base64Image,
           trangThai: 1,
         }),
@@ -498,11 +498,10 @@ const AdminLoaiSanPham = () => {
       const kiHieuUpper = loaiSanPhamDangSua.kiHieu.toUpperCase();
       const trimmedSizes = kichThuocMoi.map(size => size.trim().toUpperCase()).filter(size => size);
 
-      // Update existing active entries with new sizes appended
       const updatePromises = loaiSanPhamDangSua.entries
         .filter(entry => entry.trangThai === 1)
         .map(entry => {
-          const updatedKichThuoc = [...entry.kichThuoc, ...trimmedSizes].filter((size, index, self) =>
+          const updatedKichThuoc = [...(entry.kichThuoc || []), ...trimmedSizes].filter((size, index, self) =>
             size && self.indexOf(size) === index
           ); // Ensure uniqueness
           return fetch(`${API_URL}/api/LoaiSanPham/${entry.maLoaiSanPham}`, {
@@ -515,7 +514,7 @@ const AdminLoaiSanPham = () => {
               maLoaiSanPham: entry.maLoaiSanPham,
               tenLoaiSanPham: loaiSanPhamDangSua.tenLoaiSanPham.trim(),
               kiHieu: kiHieuUpper,
-              kichThuoc: updatedKichThuoc,
+              kichThuoc: updatedKichThuoc.length > 0 ? updatedKichThuoc : null, // Send null if no sizes
               hinhAnh: base64Image,
               trangThai: 1,
             }),
@@ -587,7 +586,7 @@ const AdminLoaiSanPham = () => {
               maLoaiSanPham: entry.maLoaiSanPham,
               tenLoaiSanPham: entry.tenLoaiSanPham,
               kiHieu: entry.kiHieu,
-              kichThuoc: entry.kichThuoc,
+              kichThuoc: entry.kichThuoc || null, // Handle null case
               hinhAnh: getBase64(entry.hinhAnh),
               trangThai: 0,
             }),
@@ -657,7 +656,7 @@ const AdminLoaiSanPham = () => {
               maLoaiSanPham: entry.maLoaiSanPham,
               tenLoaiSanPham: entry.tenLoaiSanPham,
               kiHieu: entry.kiHieu,
-              kichThuoc: entry.kichThuoc,
+              kichThuoc: entry.kichThuoc || null, // Handle null case
               hinhAnh: getBase64(entry.hinhAnh),
               trangThai: 1,
             }),
@@ -881,7 +880,7 @@ const AdminLoaiSanPham = () => {
                             <TableCell>{group.tenLoaiSanPham}</TableCell>
                             <TableCell>{group.kiHieu}</TableCell>
                             <TableCell>
-                              {group.entries.map(entry => entry.kichThuoc.join(", ")).join("; ")}
+                              {group.entries.map(entry => (entry.kichThuoc || []).join(", ") || "Không có").join("; ")}
                             </TableCell>
                             <TableCell>
                               <DropdownMenu>
@@ -1038,7 +1037,7 @@ const AdminLoaiSanPham = () => {
                             <TableCell>{group.tenLoaiSanPham}</TableCell>
                             <TableCell>{group.kiHieu}</TableCell>
                             <TableCell>
-                              {group.entries.map(entry => entry.kichThuoc.join(", ")).join("; ")}
+                              {group.entries.map(entry => (entry.kichThuoc || []).join(", ") || "Không có").join("; ")}
                             </TableCell>
                             <TableCell>
                               <DropdownMenu>
@@ -1334,7 +1333,7 @@ const AdminLoaiSanPham = () => {
                     .map((entry, index) => (
                       <div key={index} className="flex items-center gap-2 mb-2">
                         <Input
-                          value={entry.kichThuoc.join(", ") || ""}
+                          value={(entry.kichThuoc || []).join(", ") || "Không có"}
                           disabled={true}
                         />
                         <Button
@@ -1503,7 +1502,7 @@ const AdminLoaiSanPham = () => {
                     {loaiSanPhamChiTiet.entries.map((entry, index) => (
                       <div key={index} className="flex items-center gap-2 mb-2">
                         <Input
-                          value={entry.kichThuoc.join(", ") || "Không có"}
+                          value={(entry.kichThuoc || []).join(", ") || "Không có"}
                           disabled
                         />
                       </div>

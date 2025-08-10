@@ -85,6 +85,7 @@ import VnpayReturn from "./router/Vnpayreturn";
 
 import ChiTietKhuyenMai from "./components/user/KhuyenMai/KhuyenMaiDetail";
 import ListKhuyenMai from "./pages/admin/AdminEvent";
+import DetailEvent from "./components/user/KhuyenMai/KhuyenMaiDetail";
 const GoogleCallbackHandler = () => {
   const { setAuth } = useAuth();
   const location = useLocation();
@@ -208,12 +209,12 @@ const App = () => (
                 <Route path="diachitime" element={<DiaChiTime />} />
 
                 <Route path="KhuyenMais"></Route>
-                 <Route path="KhuyenMais/:id" element={<ChiTietKhuyenMai />}></Route>
+                 <Route path="KhuyenMais/:id" element={<DetailEvent />}></Route>
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>
                 <Route index element={<StaffOrders />} />
-
+                 <Route path="events" element ={<ListKhuyenMai/>} />
                 <Route path="orders" element={<StaffOrders />} />
                 <Route path="inventory" element={<AdminInventory />} />
                 <Route path="hashtag" element={<AdminHashTag />} />
