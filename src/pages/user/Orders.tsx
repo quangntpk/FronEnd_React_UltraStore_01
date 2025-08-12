@@ -3,24 +3,13 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, Star, CreditCard, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, Package, Truck, CheckCircle, ChevronDown, ChevronUp, Star, CreditCard, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import Swal from 'sweetalert2';
 
 // Interfaces
 interface CancelOrderResponse {
@@ -113,6 +102,7 @@ interface CommentState {
   content: string;
   rating: number;
 }
+
 interface Comment {
   maBinhLuan: number;
   maSanPham: string;
@@ -132,7 +122,7 @@ interface OrderItemProps {
   order: Order;
   onCancel: (orderId: string) => void;
   onAddComment: (orderId: string, productId: number, content: string, rating: number) => Promise<boolean>;
-  commentedProducts: Set<number>;
+  commentedProducts: Set<string>;
 }
 
 // Constants
@@ -213,9 +203,6 @@ const NotificationComponent = ({ notification, onClose }: {
   );
 };
 
-
-
-
 // OrderItem Component
 const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -292,7 +279,11 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
   const handleAddComment = async (productId: number) => {
     const comment = commentStates[productId];
     if (!comment || !comment.content || comment.rating < 1 || comment.rating > 5) {
-      alert("Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!"
+      });
       return;
     }
 
@@ -307,201 +298,204 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
     setIsCommenting((prev) => ({ ...prev, [productId]: false }));
   };
 
-  const renderProductInfo = (item: Product) => (
-    <div key={item.maChiTietDh} className="flex flex-col gap-4">
-      <a
-        href={`http://localhost:8080/${item.laCombo ? 'combos' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
-        className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
-      >
-        <div className="col-span-12 sm:col-span-2">
-          <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-            <img
-              src={item.laCombo ? getComboImage(item) : (item.maSanPham ? productImages[item.maSanPham] || item.hinhAnh || "https://via.placeholder.com/150" : "https://via.placeholder.com/150")}
-              alt={item.laCombo ? 'Combo Preview' : 'Product Preview'}
-              className="w-full h-full object-cover"
-            />
+  const renderProductInfo = (item: Product) => {
+    const productKey = `${order.maDonHang}-${item.laCombo ? item.maCombo : item.maSanPham}`;
+    return (
+      <div key={item.maChiTietDh} className="flex flex-col gap-4">
+        <a
+          href={`http://localhost:8080/${item.laCombo ? 'combos' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
+          className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
+        >
+          <div className="col-span-12 sm:col-span-2">
+            <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+              <img
+                src={item.laCombo ? getComboImage(item) : (item.maSanPham ? productImages[item.maSanPham] || item.hinhAnh || "https://via.placeholder.com/150" : "https://via.placeholder.com/150")}
+                alt={item.laCombo ? 'Combo Preview' : 'Product Preview'}
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-span-12 sm:col-span-7">
-          <div className="font-medium text-gray-800 mb-2">
-            {item.laCombo ? item.combo?.tenCombo : item.tenSanPham || 'N/A'}
-          </div>
-          
-          <div className="text-sm text-gray-600 space-y-2">
-            <div className="flex items-center">
-              <span className="font-medium">Số lượng:</span>
-              <span className="ml-2">{item.soLuong || 0} x {formatCurrency(item.gia || 0)}</span>
+          <div className="col-span-12 sm:col-span-7">
+            <div className="font-medium text-gray-800 mb-2">
+              {item.laCombo ? item.combo?.tenCombo : item.tenSanPham || 'N/A'}
             </div>
             
-            {!item.laCombo && (item.mauSac || item.kichThuoc) && (
-              <div className="flex items-center space-x-4">
-                {item.mauSac && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-600">Màu:</span>
-                    <div className="flex items-center space-x-1">
-                      {item.mauSacHex && (
-                        <div 
-                          className="w-4 h-4 rounded-full border border-gray-300"
-                          style={{ backgroundColor: item.mauSacHex }}
-                          title={item.mauSac}
-                        />
-                      )}
-                      <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded">
-                        {item.mauSac}
+            <div className="text-sm text-gray-600 space-y-2">
+              <div className="flex items-center">
+                <span className="font-medium">Số lượng:</span>
+                <span className="ml-2">{item.soLuong || 0} x {formatCurrency(item.gia || 0)}</span>
+              </div>
+              
+              {!item.laCombo && (item.mauSac || item.kichThuoc) && (
+                <div className="flex items-center space-x-4">
+                  {item.mauSac && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-600">Màu:</span>
+                      <div className="flex items-center space-x-1">
+                        {item.mauSacHex && (
+                          <div 
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: item.mauSacHex }}
+                            title={item.mauSac}
+                          />
+                        )}
+                        <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded">
+                          {item.mauSac}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {item.kichThuoc && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-600">Size:</span>
+                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {item.kichThuoc}
                       </span>
                     </div>
-                  </div>
-                )}
-                
-                {item.kichThuoc && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-600">Size:</span>
-                    <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {item.kichThuoc}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {item.laCombo && item.combo?.sanPhamsTrongCombo && (
-              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                <div className="text-xs font-medium text-gray-700 mb-2">Sản phẩm trong combo:</div>
-                <div className="space-y-2">
-                  {item.combo.sanPhamsTrongCombo.map((comboProduct, index) => (
-                    <div key={index} className="flex items-start justify-between text-xs text-gray-600 bg-white p-3 rounded border">
-                      <div className="flex items-center space-x-3">
-                        {comboProduct.hinhAnh && (
-                          <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                            <img
-                              src={productImages[comboProduct.maSanPham] || comboProduct.hinhAnh}
-                              alt={comboProduct.tenSanPham}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = "/placeholder.svg";
-                              }}
-                            />
-                          </div>
-                        )}
-                        
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            <span className="font-medium text-gray-800">{comboProduct.tenSanPham || 'Sản phẩm không có tên'}</span>
-                          </div>
+                  )}
+                </div>
+              )}
+              
+              {item.laCombo && item.combo?.sanPhamsTrongCombo && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="text-xs font-medium text-gray-700 mb-2">Sản phẩm trong combo:</div>
+                  <div className="space-y-2">
+                    {item.combo.sanPhamsTrongCombo.map((comboProduct, index) => (
+                      <div key={index} className="flex items-start justify-between text-xs text-gray-600 bg-white p-3 rounded border">
+                        <div className="flex items-center space-x-3">
+                          {comboProduct.hinhAnh && (
+                            <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                              <img
+                                src={productImages[comboProduct.maSanPham] || comboProduct.hinhAnh}
+                                alt={comboProduct.tenSanPham}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/placeholder.svg";
+                                }}
+                              />
+                            </div>
+                          )}
                           
-                          <div className="flex items-center space-x-2 mt-1">
-                            {comboProduct.mauSac && (
-                              <div className="flex items-center space-x-1">
-                                <span className="text-gray-500">Màu:</span>
-                                {comboProduct.mauSacHex && (
-                                  <div 
-                                    className="w-3 h-3 rounded-full border border-gray-300"
-                                    style={{ backgroundColor: comboProduct.mauSacHex }}
-                                    title={comboProduct.mauSac}
-                                  />
-                                )}
-                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-                                  {comboProduct.mauSac}
-                                </span>
-                              </div>
-                            )}
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              <span className="font-medium text-gray-800">{comboProduct.tenSanPham || 'Sản phẩm không có tên'}</span>
+                            </div>
                             
-                            {comboProduct.kichThuoc && (
-                              <div className="flex items-center space-x-1">
-                                <span className="text-gray-500">Size:</span>
-                                <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
-                                  {comboProduct.kichThuoc}
-                                </span>
-                              </div>
-                            )}
+                            <div className="flex items-center space-x-2 mt-1">
+                              {comboProduct.mauSac && (
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-gray-500">Màu:</span>
+                                  {comboProduct.mauSacHex && (
+                                    <div 
+                                      className="w-3 h-3 rounded-full border border-gray-300"
+                                      style={{ backgroundColor: comboProduct.mauSacHex }}
+                                      title={comboProduct.mauSac}
+                                    />
+                                  )}
+                                  <span className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+                                    {comboProduct.mauSac}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {comboProduct.kichThuoc && (
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-gray-500">Size:</span>
+                                  <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
+                                    {comboProduct.kichThuoc}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                            x{comboProduct.soLuong || 0}
+                          </span>
+                          <span className="text-gray-600 font-medium">
+                            {formatCurrency(comboProduct.gia || 0)}
+                          </span>
+                        </div>
                       </div>
-                      
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                          x{comboProduct.soLuong || 0}
-                        </span>
-                        <span className="text-gray-600 font-medium">
-                          {formatCurrency(comboProduct.gia || 0)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="col-span-12 sm:col-span-3 text-right">
-          <div className="font-medium text-lg text-gray-800">
-            {formatCurrency(item.thanhTien || 0)}
-          </div>
-        </div>
-      </a>
-
-      {/* Comment Section for completed orders */}
-      {mapStatus(order.trangThaiDonHang) === "completed" && 
-       !commentedProducts.has(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)) && (
-        <div className="ml-4">
-          <h3 className="text-lg font-medium mb-4 text-blue-800">
-            Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
-          </h3>
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <div className="flex items-center mb-4">
-              <span className="mr-2 text-sm font-medium">Đánh giá:</span>
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Star
-                  key={index}
-                  className={cn(
-                    "w-6 h-6 cursor-pointer transition-colors",
-                    index < (commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.rating || 0)
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-300 hover:text-yellow-200"
-                  )}
-                  onClick={() => handleCommentChange(
-                    item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
-                    "rating", 
-                    index + 1
-                  )}
-                />
-              ))}
-            </div>
-            <Textarea
-              value={commentStates[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]?.content || ""}
-              onChange={(e) => handleCommentChange(
-                item.laCombo ? item.maCombo! : parseInt(item.maSanPham!), 
-                "content", 
-                e.target.value
               )}
-              placeholder="Nhập bình luận của bạn..."
-              className="w-full mb-4"
-              rows={4}
-              disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
-            />
-            <Button
-              onClick={() => handleAddComment(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!))}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)]}
-            >
-              {isCommenting[item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)] ? "Đang gửi..." : "Gửi Bình Luận"}
-            </Button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Already commented message */}
-      {mapStatus(order.trangThaiDonHang) === "completed" && 
-       commentedProducts.has(item.laCombo ? item.maCombo! : parseInt(item.maSanPham!)) && (
-        <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
-          <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này trong đơn hàng này.</p>
-        </div>
-      )}
-    </div>
-  );
+          <div className="col-span-12 sm:col-span-3 text-right">
+            <div className="font-medium text-lg text-gray-800">
+              {formatCurrency(item.thanhTien || 0)}
+            </div>
+          </div>
+        </a>
+
+        {/* Comment Section for completed orders */}
+        {mapStatus(order.trangThaiDonHang) === "completed" && 
+         !commentedProducts.has(productKey) && (
+          <div className="ml-4">
+            <h3 className="text-lg font-medium mb-4 text-blue-800">
+              Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
+            </h3>
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+              <div className="flex items-center mb-4">
+                <span className="mr-2 text-sm font-medium">Đánh giá:</span>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star
+                    key={index}
+                    className={cn(
+                      "w-6 h-6 cursor-pointer transition-colors",
+                      index < (commentStates[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]?.rating || 0)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300 hover:text-yellow-200"
+                    )}
+                    onClick={() => handleCommentChange(
+                      item.laCombo ? item.maCombo! : Number(item.maSanPham!), 
+                      "rating", 
+                      index + 1
+                    )}
+                  />
+                ))}
+              </div>
+              <Textarea
+                value={commentStates[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]?.content || ""}
+                onChange={(e) => handleCommentChange(
+                  item.laCombo ? item.maCombo! : Number(item.maSanPham!), 
+                  "content", 
+                  e.target.value
+                )}
+                placeholder="Nhập bình luận của bạn..."
+                className="w-full mb-4"
+                rows={4}
+                disabled={isCommenting[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]}
+              />
+              <Button
+                onClick={() => handleAddComment(item.laCombo ? item.maCombo! : Number(item.maSanPham!))}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isCommenting[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]}
+              >
+                {isCommenting[item.laCombo ? item.maCombo! : Number(item.maSanPham!)] ? "Đang gửi..." : "Gửi Bình Luận"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Already commented message */}
+        {mapStatus(order.trangThaiDonHang) === "completed" && 
+         commentedProducts.has(productKey) && (
+          <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
+            <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này trong đơn hàng này.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="border rounded-lg overflow-hidden mb-4 transition-all duration-200 hover:shadow-md">
@@ -542,7 +536,6 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
           <div className="col-span-6 sm:col-span-2 text-right">
             <div className="font-semibold text-lg text-gray-800">
               {formatCurrency(order.finalAmount || 0)}
-              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(order.finalAmount || 0)}
             </div>
             <span className="text-sm text-gray-500">{order.sanPhams?.length || 0} sản phẩm</span>
           </div>
@@ -571,134 +564,6 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
         <div className="p-4 border-t">
           <div className="space-y-4 mb-6">
             {(order.sanPhams || []).map(renderProductInfo)}
-            {(order.sanPhams || []).map((item) => {
-              const productId = item.laCombo ? item.maCombo?.toString() ?? "0" : item.maSanPham ?? "0";
-              const commentKey = `${order.maDonHang}-${productId}`;
-              const hasCommented = commentedProducts.has(commentKey);
-
-              return (
-                <div key={item.maChiTietDh} className="flex flex-col gap-4">
-                  {/* Product Item */}
-                  <a
-                    href={`http://localhost:8080/${item.laCombo ? "combo" : "products"}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0, 6)}`}
-                    className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
-                  >
-                    {/* Product Image */}
-                    <div className="col-span-12 sm:col-span-2">
-                      <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                        <img
-                          src={item.hinhAnh || "https://via.placeholder.com/150"}
-                          alt={item.laCombo ? "Combo Preview" : "Product Preview"}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="col-span-12 sm:col-span-7">
-                      <div className="font-medium text-gray-800 mb-2">
-                        {item.laCombo ? item.combo?.tenCombo : item.tenSanPham || "N/A"}
-                      </div>
-                      <div className="text-sm text-gray-600 space-y-2">
-                        <div className="flex items-center">
-                          <span className="font-medium">Số lượng:</span>
-                          <span className="ml-2">{item.soLuong || 0} x {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.gia || 0)}</span>
-                        </div>
-                        {!item.laCombo && (item.mauSac || item.kichThuoc) && (
-                          <div className="flex items-center space-x-4">
-                            {item.mauSac && (
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-600">Màu:</span>
-                                <div className="flex items-center space-x-1">
-                                  {item.mauSacHex && (
-                                    <div
-                                      className="w-4 h-4 rounded-full border border-gray-300"
-                                      style={{ backgroundColor: item.mauSacHex }}
-                                      title={item.mauSac}
-                                    />
-                                  )}
-                                  <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded">
-                                    {item.mauSac}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                            {item.kichThuoc && (
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-600">Size:</span>
-                                <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                  {item.kichThuoc}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {item.laCombo && item.combo?.sanPhamsTrongCombo && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="text-xs font-medium text-gray-700 mb-2">Sản phẩm trong combo:</div>
-                            <div className="space-y-2">
-                              {item.combo.sanPhamsTrongCombo.map((comboProduct, index) => (
-                                <div key={index} className="flex items-center justify-between text-xs text-gray-600 bg-white p-2 rounded">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                    <span className="font-medium">{comboProduct.tenSanPham}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-3">
-                                    {comboProduct.mauSac && (
-                                      <span className="bg-gray-100 px-2 py-1 rounded text-xs">
-                                        {comboProduct.mauSac}
-                                      </span>
-                                    )}
-                                    {comboProduct.kichThuoc && (
-                                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                        {comboProduct.kichThuoc}
-                                      </span>
-                                    )}
-                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                                      x{comboProduct.soLuong}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Product Price */}
-                    <div className="col-span-12 sm:col-span-3 text-right">
-                      <div className="font-medium text-lg text-gray-800">
-                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.thanhTien || 0)}
-                      </div>
-                    </div>
-                  </a>
-
-                  {/* Comment Section for completed orders */}
-                  {mapStatus(order.trangThaiDonHang) === "completed" && !hasCommented && (
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium mb-4 text-blue-800">
-                        Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
-                      </h3>
-                      <CmtForm
-                        productId={item.laCombo ? item.maCombo?.toString() ?? "0" : item.maSanPham ?? "0"}
-                        orderId={order.maDonHang.toString()}
-                        onAddComment={(orderId, productId, content, rating, image, imageDescription) =>
-                          onAddComment(orderId, productId, content, rating, image, imageDescription, item.laCombo)
-                        }
-                      />
-                    </div>
-                  )}
-
-                  {/* Already commented message */}
-                  {mapStatus(order.trangThaiDonHang) === "completed" && hasCommented && (
-                    <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
-                      <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này trong đơn hàng này.</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
 
           <div className="border-t pt-4">
@@ -909,8 +774,7 @@ const OrderTrackingTimeline = ({ order }: { order: Order }) => {
               <div 
                 className="absolute top-6 left-12 h-1 bg-blue-500 rounded-full transition-all duration-500 ease-in-out"
                 style={{ 
-                  width: `${Math.max(0, Math.min(100, ((trackingSteps.findIndex(step => step.status === currentStatus) + 1) / visibleSteps.length) * 100))}%`,
-                  right: `${100 - Math.max(0, Math.min(100, ((trackingSteps.findIndex(step => step.status === currentStatus) + 1) / visibleSteps.length) * 100))}%`
+                  width: `${Math.max(0, Math.min(100, ((trackingSteps.findIndex(step => step.status === currentStatus) + 1) / visibleSteps.length) * 100))}%`
                 }}
               ></div>
               
@@ -1013,7 +877,7 @@ const OrderHistory = () => {
     type: "success" | "error"; 
     duration?: number 
   } | null>(null);
-  const [commentedProducts, setCommentedProducts] = useState<Set<number>>(new Set());
+  const [commentedProducts, setCommentedProducts] = useState<Set<string>>(new Set());
 
   const [allOrdersPagination, setAllOrdersPagination] = useState<PaginationInfo>({
     currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
@@ -1042,7 +906,7 @@ const OrderHistory = () => {
   const [canceledOrders, setCanceledOrders] = useState<Order[]>([]);
   const [trackingOrders, setTrackingOrders] = useState<Order[]>([]);
 
-  const searchTrackingOrders = async (query: string) => {
+  const searchOrders = async (query: string, isTracking: boolean = false) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -1052,7 +916,8 @@ const OrderHistory = () => {
       }
 
       if (!query.trim()) {
-        setTrackingOrders(allOrdersData);
+        const setter = isTracking ? setTrackingOrders : setAllOrdersData;
+        setter(allOrdersData);
         return;
       }
 
@@ -1063,23 +928,30 @@ const OrderHistory = () => {
 
       const rawOrders = response.data;
       if (!Array.isArray(rawOrders)) {
-        setTrackingOrders([]);
+        const setter = isTracking ? setTrackingOrders : setAllOrdersData;
+        setter([]);
         return;
       }
 
-      setTrackingOrders(rawOrders);
+      const setter = isTracking ? setTrackingOrders : setAllOrdersData;
+      setter(rawOrders);
 
-    } catch (error: any) {
-      console.error("Error searching tracking orders:", error);
-      if (error.response?.status === 401) {
-        setNotification({ message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", type: "error" });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-      } else {
-        setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!", type: "error" });
-        setTrackingOrders([]);
+    } catch (error: unknown) {
+      console.error("Error searching orders:", error);
+      let errorMessage = "Đã xảy ra lỗi khi tra cứu đơn hàng!";
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        } else {
+          errorMessage = error.response.data?.message || errorMessage;
+        }
       }
+      setNotification({ message: errorMessage, type: "error" });
+      const setter = isTracking ? setTrackingOrders : setAllOrdersData;
+      setter([]);
     }
   };
 
@@ -1146,11 +1018,17 @@ const OrderHistory = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      const allOrders = response.data;
+      let allOrders = response.data;
       if (!Array.isArray(allOrders)) {
         setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
         return;
       }
+
+      // Hide VNPay pending orders
+      allOrders = allOrders.filter(order => !(order.hinhThucThanhToan === "VNPay" && order.trangThaiDonHang === 0));
+
+      // Sort by newest first
+      allOrders.sort((a, b) => new Date(b.ngayDat).getTime() - new Date(a.ngayDat).getTime());
 
       let filteredData = allOrders;
       if (status !== 'all') {
@@ -1175,10 +1053,14 @@ const OrderHistory = () => {
 
       updateTabData(status, paginatedData, mockPagination);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching orders by status:", error);
+      let errorMessage = "Đã xảy ra lỗi khi tải đơn hàng!";
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = error.response.data?.message || errorMessage;
+      }
       setNotification({ 
-        message: error.response?.data?.message || "Đã xảy ra lỗi khi tải đơn hàng!", 
+        message: errorMessage, 
         type: "error" 
       });
     } finally {
@@ -1206,11 +1088,17 @@ const OrderHistory = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
-        const allOrders = response.data;
+        let allOrders = response.data;
         if (!Array.isArray(allOrders)) {
           setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
           return;
         }
+
+        // Hide VNPay pending orders
+        allOrders = allOrders.filter(order => !(order.hinhThucThanhToan === "VNPay" && order.trangThaiDonHang === 0));
+
+        // Sort by newest first
+        allOrders.sort((a, b) => new Date(b.ngayDat).getTime() - new Date(a.ngayDat).getTime());
 
         const filteredOrders = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === newStatus);
         
@@ -1231,265 +1119,14 @@ const OrderHistory = () => {
         updateTabData("all", paginatedData, filterPagination);
         setOrders(allOrders);
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error filtering orders:", error);
-        setNotification({ 
-          message: error.response?.data?.message || "Đã xảy ra lỗi khi lọc đơn hàng!", 
-          type: "error" 
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-         
-
-const OrderHistory = () => {
-  const navigate = useNavigate();
-  
-  // States
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [trackingSearch, setTrackingSearch] = useState('');
-  const [allOrdersSearch, setAllOrdersSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [notification, setNotification] = useState<{ 
-    message: string; 
-    type: "success" | "error"; 
-    duration?: number 
-  } | null>(null);
-  const [commentedProducts, setCommentedProducts] = useState<Set<number>>(new Set());
-
- 
-  const [allOrdersPagination, setAllOrdersPagination] = useState<PaginationInfo>({
-    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
-  });
-  const [pendingPagination, setPendingPagination] = useState<PaginationInfo>({
-    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
-  });
-  const [processingPagination, setProcessingPagination] = useState<PaginationInfo>({
-    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
-  });
-  const [shippingPagination, setShippingPagination] = useState<PaginationInfo>({
-    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
-  });
-  const [completedPagination, setCompletedPagination] = useState<PaginationInfo>({
-    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
-  });
-  const [canceledPagination, setCanceledPagination] = useState<PaginationInfo>({
-    currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false
-  });
-
-  const [allOrdersData, setAllOrdersData] = useState<Order[]>([]);
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
-  const [processingOrders, setProcessingOrders] = useState<Order[]>([]);
-  const [shippingOrders, setShippingOrders] = useState<Order[]>([]);
-  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
-  const [canceledOrders, setCanceledOrders] = useState<Order[]>([]);
-  const [trackingOrders, setTrackingOrders] = useState<Order[]>([]);
-
-  const searchTrackingOrders = async (query: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setNotification({ message: "Vui lòng đăng nhập để tra cứu đơn hàng!", type: "error" });
-        navigate("/login");
-        return;
-      }
-
-      if (!query.trim()) {
-        // Nếu search rỗng, hiển thị lại tất cả đơn hàng
-        setTrackingOrders(allOrdersData);
-        return;
-      }
-
-      const response = await axios.get('http://localhost:5261/api/user/orders/search', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { query: query },
-      });
-
-      const rawOrders = response.data;
-      if (!Array.isArray(rawOrders)) {
-        setTrackingOrders([]);
-        return;
-      }
-
-      setTrackingOrders(rawOrders);
-
-    } catch (error: any) {
-      console.error("Error searching tracking orders:", error);
-      if (error.response?.status === 401) {
-        setNotification({ message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", type: "error" });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-      } else {
-        setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!", type: "error" });
-        setTrackingOrders([]);
-      }
-    }
-  };
-
-  // Helper functions
-  const updateTabData = (status: string, data: Order[], pagination: PaginationInfo) => {
-    const setters = {
-      'all': [setAllOrdersData, setAllOrdersPagination],
-      'pending': [setPendingOrders, setPendingPagination],
-      'processing': [setProcessingOrders, setProcessingPagination],
-      'shipping': [setShippingOrders, setShippingPagination],
-      'completed': [setCompletedOrders, setCompletedPagination],
-      'canceled': [setCanceledOrders, setCanceledPagination]
-    };
-    
-    const [setData, setPagination] = setters[status as keyof typeof setters] || [];
-    if (setData && setPagination) {
-      (setData as React.Dispatch<React.SetStateAction<Order[]>>)(data);
-      (setPagination as React.Dispatch<React.SetStateAction<PaginationInfo>>)(pagination);
-    }
-  };
-
-  const getCurrentPagination = (status: string): PaginationInfo => {
-    const paginationMap = {
-      'all': allOrdersPagination,
-      'pending': pendingPagination,
-      'processing': processingPagination,
-      'shipping': shippingPagination,
-      'completed': completedPagination,
-      'canceled': canceledPagination
-    };
-    return paginationMap[status as keyof typeof paginationMap] || allOrdersPagination;
-  };
-
-  const getTabOrders = (status: string): Order[] => {
-    const ordersMap = {
-      'all': allOrdersData,
-      'pending': pendingOrders,
-      'processing': processingOrders,
-      'shipping': shippingOrders,
-      'completed': completedOrders,
-      'canceled': canceledOrders
-    };
-    return ordersMap[status as keyof typeof ordersMap] || allOrdersData;
-  };
-
-  const getOrderCountByStatus = (status: OrderStatus | "all") => {
-    if (status === "all") return orders.length;
-    return orders.filter(order => mapStatus(order.trangThaiDonHang) === status).length;
-  };
-
-  // API Functions
-  const fetchOrdersByStatus = async (status: string, page: number = 1) => {
-    try {
-      setIsLoading(true);
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const maNguoiDung = userData?.maNguoiDung;
-      if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
-        navigate("/login");
-        return;
-      }
-
-      const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-
-      const allOrders = response.data;
-      if (!Array.isArray(allOrders)) {
-        setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
-        return;
-      }
-
-      let filteredData = allOrders;
-      if (status !== 'all') {
-        filteredData = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === status);
-      }
-
-      const pageSize = 10;
-      const totalRecords = filteredData.length;
-      const totalPages = Math.ceil(totalRecords / pageSize);
-      const startIndex = (page - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedData = filteredData.slice(startIndex, endIndex);
-
-      const mockPagination: PaginationInfo = {
-        currentPage: page,
-        pageSize: pageSize,
-        totalRecords: totalRecords,
-        totalPages: totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1
-      };
-
-      updateTabData(status, paginatedData, mockPagination);
-
-    } catch (error: any) {
-      console.error("Error fetching orders by status:", error);
-      setNotification({ 
-        message: error.response?.data?.message || "Đã xảy ra lỗi khi tải đơn hàng!", 
-        type: "error" 
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFilterChange = async (newStatus: string) => {
-    setFilterStatus(newStatus);
-    
-    if (newStatus === "all") {
-      // Nếu chọn "Tất cả trạng thái", hiển thị tất cả đơn hàng
-      await fetchOrdersByStatus("all", 1);
-    } else {
-      // Lọc theo trạng thái cụ thể
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const maNguoiDung = userData?.maNguoiDung;
-      if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
-        navigate("/login");
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-
-        const allOrders = response.data;
-        if (!Array.isArray(allOrders)) {
-          setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
-          return;
+        let errorMessage = "Đã xảy ra lỗi khi lọc đơn hàng!";
+        if (axios.isAxiosError(error) && error.response) {
+          errorMessage = error.response.data?.message || errorMessage;
         }
-
-        // Lọc theo trạng thái đã chọn
-        const filteredOrders = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === newStatus);
-        
-        const pageSize = 10;
-        const totalRecords = filteredOrders.length;
-        const totalPages = Math.ceil(totalRecords / pageSize);
-        const paginatedData = filteredOrders.slice(0, pageSize);
-
-        const filterPagination: PaginationInfo = {
-          currentPage: 1,
-          pageSize: pageSize,
-          totalRecords: totalRecords,
-          totalPages: totalPages,
-          hasNextPage: totalPages > 1,
-          hasPreviousPage: false
-        };
-
-        updateTabData("all", paginatedData, filterPagination);
-        setOrders(allOrders); // Cập nhật orders để đếm số lượng đúng
-
-      } catch (error: any) {
-        console.error("Error filtering orders:", error);
         setNotification({ 
-          message: error.response?.data?.message || "Đã xảy ra lỗi khi lọc đơn hàng!", 
+          message: errorMessage, 
           type: "error" 
         });
       } finally {
@@ -1511,7 +1148,7 @@ const OrderHistory = () => {
       const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      const rawOrders = response.data;
+      let rawOrders = response.data;
       
       if (!Array.isArray(rawOrders)) {
         setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
@@ -1525,10 +1162,20 @@ const OrderHistory = () => {
         return;
       }
 
+      // Hide VNPay pending orders
+      rawOrders = rawOrders.filter(order => !(order.hinhThucThanhToan === "VNPay" && order.trangThaiDonHang === 0));
+
+      // Sort by newest first
+      rawOrders.sort((a, b) => new Date(b.ngayDat).getTime() - new Date(a.ngayDat).getTime());
+
       setOrders(rawOrders);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching orders:", error);
-      setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!", type: "error" });
+      let errorMessage = "Đã xảy ra lỗi khi tải lịch sử đơn hàng!";
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = error.response.data?.message || errorMessage;
+      }
+      setNotification({ message: errorMessage, type: "error" });
       setOrders([]);
     }
   };
@@ -1544,24 +1191,21 @@ const OrderHistory = () => {
       }
 
       const likedCommentsKey = `likedComments_${maNguoiDung}`;
-      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as number[];
+      const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as string[];
       setCommentedProducts(new Set(storedCommentedProducts));
 
       const response = await axios.get("http://localhost:5261/api/Comment/list", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const comments = response.data || [];
-      // Fix: Ensure comments is an array before filtering
       const userComments = Array.isArray(comments) 
-        ? comments.filter((comment: any) => comment.maNguoiDung === parseInt(maNguoiDung))
+        ? comments.filter((comment: Comment) => comment.maNguoiDung === maNguoiDung)
         : [];
-      const apiCommentedProductIds = new Set(userComments.map((comment: any) => parseInt(comment.maSanPham)));
-      const userComments = comments.filter((comment) => comment.maNguoiDung === parseInt(maNguoiDung));
       const apiCommentedProductKeys = new Set<string>(
         userComments.map((comment) => `${comment.maDonHang}-${comment.maSanPham || comment.maCombo}`)
       );
 
-      const mergedCommentedProductIds = new Set([...apiCommentedProductIds, ...storedCommentedProducts]);
+      const mergedCommentedProductIds = new Set([...apiCommentedProductKeys, ...storedCommentedProducts]);
       setCommentedProducts(mergedCommentedProductIds);
       localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductIds]));
     } catch (error) {
@@ -1570,80 +1214,6 @@ const OrderHistory = () => {
     }
   };
 
-  const searchOrders = async (query: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setNotification({ message: "Vui lòng đăng nhập để tra cứu đơn hàng!", type: "error" });
-        navigate("/login");
-        return;
-      }
-
-      if (!query.trim()) {
-
-        await fetchOrdersByUserId();
-        await fetchOrdersByStatus("all", 1);
-        return;
-      }
-
-      const response = await axios.get('http://localhost:5261/api/user/orders/search', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { query: query },
-      });
-
-      const rawOrders = response.data;
-      if (!Array.isArray(rawOrders)) {
-        setOrders([]);
-        updateTabData("all", [], { currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
-        return;
-      }
-
-      setOrders(rawOrders);
-      
-      const pageSize = 10;
-      const totalRecords = rawOrders.length;
-      const totalPages = Math.ceil(totalRecords / pageSize);
-      const paginatedResults = rawOrders.slice(0, pageSize);
-
-      const searchPagination: PaginationInfo = {
-        currentPage: 1,
-        pageSize: pageSize,
-        totalRecords: totalRecords,
-        totalPages: totalPages,
-        hasNextPage: totalPages > 1,
-        hasPreviousPage: false
-      };
-
-      updateTabData("all", paginatedResults, searchPagination);
-
-    } catch (error: any) {
-      console.error("Error searching orders:", error);
-      if (error.response?.status === 401) {
-        setNotification({ message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", type: "error" });
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-      } else {
-        setNotification({ message: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!", type: "error" });
-        setOrders([]);
-        updateTabData("all", [], { currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
-      }
-    }
-  };
-
-  
-
-  const handleAddComment = async (orderId: string, productId: number, content: string, rating: number) => {
-
-  const handleAddComment = async (
-    orderId: string,
-    productId: string,
-    content: string,
-    rating: number,
-    image?: string,
-    imageDescription?: string,
-    isCombo: boolean = false
-  ) => {
   const handleAddComment = async (orderId: string, productId: number, content: string, rating: number) => {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
@@ -1656,23 +1226,6 @@ const OrderHistory = () => {
         return false;
       }
 
-      if (!maNguoiDung) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng đăng nhập để thêm bình luận!",
-        }).then(() => navigate("/login"));
-        return false;
-      }
-
-      if (!token) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Token xác thực không tồn tại. Vui lòng đăng nhập lại!",
-        }).then(() => navigate("/login"));
-        return false;
-      }
       if (!content.trim() || rating < 1 || rating > 5) {
         setNotification({ message: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!", type: "error" });
         return false;
@@ -1699,7 +1252,7 @@ const OrderHistory = () => {
       if (response.status === 201) {
         setCommentedProducts((prev) => {
           const newSet = new Set(prev);
-          newSet.add(productId);
+          newSet.add(`${orderId}-${productId}`);
           const likedCommentsKey = `likedComments_${maNguoiDung}`;
           localStorage.setItem(likedCommentsKey, JSON.stringify([...newSet]));
           return newSet;
@@ -1709,18 +1262,10 @@ const OrderHistory = () => {
         return true;
       }
       return false;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding comment:", error);
       let errorMessage = "Có lỗi xảy ra khi thêm bình luận!";
-      if (error.response?.status === 401) {
-        errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-
-      if (error.response) {
+      if (axios.isAxiosError(error) && error.response) {
         if (error.response.status === 401) {
           errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
           Swal.fire({
@@ -1737,9 +1282,9 @@ const OrderHistory = () => {
         } else {
           errorMessage = `Lỗi server: ${error.response.status} - ${error.response.statusText}`;
         }
-      } else if (error.request) {
+      } else if (axios.isAxiosError(error) && error.request) {
         errorMessage = "Không nhận được phản hồi từ server. Vui lòng kiểm tra kết nối mạng!";
-      } else {
+      } else if (error instanceof Error) {
         errorMessage = `Lỗi: ${error.message}`;
       }
       setNotification({ message: errorMessage, type: "error" });
@@ -1747,67 +1292,6 @@ const OrderHistory = () => {
     }
   };
 
-  const searchOrders = async (query: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng đăng nhập để tra cứu đơn hàng!",
-          confirmButtonText: "Đăng nhập",
-        }).then(() => navigate("/login"));
-        return;
-      }
-
-      if (!query.trim()) {
-        await fetchOrdersByUserId();
-        return;
-      }
-
-      const response = await axios.get("http://localhost:5261/api/user/orders/search", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: {
-          query,
-        },
-      });
-
-      const rawOrders = response.data;
-      if (!Array.isArray(rawOrders)) {
-        console.error("API did not return an array:", rawOrders);
-        setOrders([]);
-        return;
-      }
-
-      setOrders(rawOrders);
-    } catch (error: any) {
-      console.error("Error searching orders:", error);
-      if (error.response?.status === 401) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
-        }).then(() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigate("/login");
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!",
-        });
-        setOrders([]);
-      }
-      setNotification({ message: errorMessage, type: "error" });
-      return false;
-    }
-  };
-
-
   const handleCancelClick = (orderId: string) => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const token = localStorage.getItem("token");
@@ -1848,74 +1332,6 @@ const OrderHistory = () => {
       const token = localStorage.getItem("token");
       
       if (!maNguoiDung || !token) {
-        setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
-        navigate("/login");
-
-  useEffect(() => {
-    fetchOrdersByUserId();
-    fetchCommentedProducts();
-  }, [navigate]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchQuery.trim()) {
-        searchOrders(searchQuery);
-      } else {
-        fetchOrdersByUserId();
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const filteredOrders = filterStatus === "all" ? orders : orders.filter((order) => mapStatus(order.trangThaiDonHang) === filterStatus);
-
-  const handleCancelClick = (orderId: string) => {
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const token = localStorage.getItem("token");
-    
-    if (!userData?.maNguoiDung || !token) {
-      setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
-      navigate("/login");
-      return;
-    }
-
-    const order = orders.find(o => o.maDonHang.toString() === orderId);
-    if (!order) {
-      setNotification({ message: "Đơn hàng không tồn tại!", type: "error" });
-      return;
-    }
-
-    const orderStatus = mapStatus(order.trangThaiDonHang);
-    if (orderStatus !== "pending" && orderStatus !== "processing") {
-      setNotification({ message: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!", type: "error" });
-      return;
-    }
-
-    setCancelOrderId(orderId);
-    setCancelReason('');
-    setShowCancelModal(true);
-  };
-
-  const handleCancel = async () => {
-    if (!cancelReason.trim()) {
-      setNotification({ message: "Vui lòng nhập lý do hủy!", type: "error" });
-      return;
-    }
-    if (cancelOrderId === null) return;
-
-    try {
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const maNguoiDung = userData?.maNguoiDung;
-      const token = localStorage.getItem("token");
-      
-      if (!maNguoiDung || !token) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng đăng nhập để hủy đơn hàng!",
-        }).then(() => navigate("/login"));
-
         setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
         navigate("/login");
         return;
@@ -1923,48 +1339,9 @@ const OrderHistory = () => {
 
       const orderIdNumber = parseInt(cancelOrderId);
       if (isNaN(orderIdNumber)) {
-
         setNotification({ message: "Mã đơn hàng không hợp lệ!", type: "error" });
         return;
       }
-
-      const cancelRequest: CancelOrderRequest = {
-        lyDoHuy: cancelReason.trim()
-      };
-
-      const response = await axios.put<CancelOrderResponse>(
-        `http://localhost:5261/api/user/orders/cancel/${orderIdNumber}`,
-        cancelRequest,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          },
-          timeout: 10000
-        }
-      );
-
-      setShowCancelModal(false);
-      setCancelReason('');
-      setCancelOrderId(null);
-
-      if (response.data.isAccountLocked) {
-        const lockMessage = response.data.lockoutMessage || 
-          "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
-        
-        setNotification({ message: lockMessage, type: "error" });
-        
-        setTimeout(() => {
-
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Mã đơn hàng không hợp lệ!",
-        });
-        setNotification({ message: "Mã đơn hàng không hợp lệ!", type: "error" });
-        return;
-      });
 
       const cancelRequest: CancelOrderRequest = {
         lyDoHuy: cancelReason.trim()
@@ -2018,88 +1395,90 @@ const OrderHistory = () => {
         await fetchOrdersByUserId();
       }
 
-    }} catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error canceling order:", error);
       
       setShowCancelModal(false);
       setCancelReason('');
       setCancelOrderId(null);
       
-      let errorMessage = "Đã xảy ra lỗi khi hủy đơn hàng!";
+      const constErrorMessage = "Đã xảy ra lỗi khi hủy đơn hàng!";
       
-      if (error.response?.status === 401) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
-        }).then(() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          if (maNguoiDung) {
-            localStorage.removeItem(`likedComments_${maNguoiDung}`);
-          }
-          navigate("/login");
-        });
-      } else if (error.response?.status === 403) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.",
-        });
-      } else if (error.response?.status === 400) {
-        if (error.response?.data?.isAccountLocked) {
-          const lockMessage = error.response.data.lockoutMessage || "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
-
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 401) {
+          const errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
           Swal.fire({
             icon: "error",
-            title: "Tài khoản bị khóa",
-            text: lockMessage,
-            footer: "<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>",
+            title: "Lỗi",
+            text: errorMessage,
           }).then(() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            if (maNguoiDung) {
+              localStorage.removeItem(`likedComments_${maNguoiDung}`);
+            }
+            navigate("/login");
+          });
+        } else if (error.response.status === 403) {
+          Swal.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: "Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.",
+          });
+        } else if (error.response.status === 400) {
+          if (error.response.data?.isAccountLocked) {
+            const lockMessage = error.response.data.lockoutMessage || "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
+
             Swal.fire({
-              icon: "info",
-              title: "Đăng xuất",
-              text: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.",
-              timer: 3000,
-              showConfirmButton: false,
+              icon: "error",
+              title: "Tài khoản bị khóa",
+              text: lockMessage,
+              footer: "<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>",
             }).then(() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("user");
-              if (maNguoiDung) {
-                localStorage.removeItem(`likedComments_${maNguoiDung}`);
-              }
-              navigate("/login");
+              Swal.fire({
+                icon: "info",
+                title: "Đăng xuất",
+                text: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.",
+                timer: 3000,
+                showConfirmButton: false,
+              }).then(() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                if (maNguoiDung) {
+                  localStorage.removeItem(`likedComments_${maNguoiDung}`);
+                }
+                navigate("/login");
+              });
             });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Lỗi",
+              text: error.response.data.message || "Không thể hủy đơn hàng này.",
+            });
+          }
+        } else if (error.response.status === 404) {
+          Swal.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: "Đơn hàng không tồn tại hoặc không thuộc về bạn.",
+          });
+        } else if (error.code === "ECONNABORTED") {
+          Swal.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: "Yêu cầu hủy đơn hàng bị timeout. Vui lòng thử lại.",
           });
         } else {
           Swal.fire({
             icon: "error",
             title: "Lỗi",
-            text: error.response.data.message || "Không thể hủy đơn hàng này.",
-
+            text: constErrorMessage,
           });
         }
-      } else if (error.response?.status === 404) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Đơn hàng không tồn tại hoặc không thuộc về bạn.",
-        });
-      } else if (error.code === "ECONNABORTED") {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Yêu cầu hủy đơn hàng bị timeout. Vui lòng thử lại.",
-        });
-      } else {
-        setNotification({ 
-          message: response.data.message || "Đơn hàng đã được hủy thành công!", 
-          type: "success" 
-        })       
-        await fetchOrdersByUserId();
       }
-
-    } 
+      setNotification({ message: constErrorMessage, type: "error" });
+    }
   };
 
   const handleTabPageChange = (status: string, newPage: number) => {
@@ -2119,7 +1498,7 @@ const OrderHistory = () => {
       const pages = [];
       const showPages = 5;
       let startPage = Math.max(1, pagination.currentPage - 2);
-      let endPage = Math.min(pagination.totalPages, startPage + showPages - 1);
+      const endPage = Math.min(pagination.totalPages, startPage + showPages - 1);
       
       if (endPage - startPage < showPages - 1) {
         startPage = Math.max(1, endPage - showPages + 1);
@@ -2166,7 +1545,6 @@ const OrderHistory = () => {
             ))}
           </div>
 
-
           <Button
             variant="outline"
             size="sm"
@@ -2200,44 +1578,29 @@ const OrderHistory = () => {
     loadAllTabsData();
   }, [navigate]);
 
-  // Fix 1: Cập nhật useEffect để load lại dữ liệu khi search rỗng
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      if (allOrdersSearch.trim()) {
-        searchOrders(allOrdersSearch);
-      } else {
-        // Khi search rỗng, load lại dữ liệu và reset filter
-        setFilterStatus("all");
-        fetchOrdersByUserId().then(() => {
-          fetchOrdersByStatus("all", 1);
-        });
-      }
+      searchOrders(allOrdersSearch, false);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [allOrdersSearch]);
+  }, [allOrdersSearch, fetchOrdersByStatus, fetchOrdersByUserId, searchOrders]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      searchTrackingOrders(trackingSearch);
+      searchOrders(trackingSearch, true);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [trackingSearch]);
-
-  useEffect(() => {
-    if (!trackingSearch.trim()) {
-      setTrackingOrders(allOrdersData);
-    }
-  }, [allOrdersData, trackingSearch]);
+  }, [trackingSearch, searchOrders]);
 
   // Render functions
-  const renderEmptyState = (status: string, icon: any, title: string, description: string) => (
+  const renderEmptyState = (status: string, icon: JSX.Element, title: string, description: string) => (
     <div className="text-center py-12 bg-gray-50 rounded-lg">
       {icon}
       <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-500">{description}</p>
-      {status === 'all' && (!searchQuery && !allOrdersSearch) && (
+      {status === 'all-orders' && (!allOrdersSearch) && (
         <Button onClick={() => navigate("/products")} className="mt-4">
           Khám phá sản phẩm
         </Button>
@@ -2261,7 +1624,6 @@ const OrderHistory = () => {
                 className="pl-10 pr-4 py-2 w-full sm:w-64"
               />
             </div>
-            {/* Fix 2: Sử dụng handleFilterChange thay vì setFilterStatus */}
             <Select value={filterStatus} onValueChange={handleFilterChange}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Lọc theo trạng thái" />
@@ -2275,90 +1637,6 @@ const OrderHistory = () => {
                 <SelectItem value="canceled">Đã hủy</SelectItem>
               </SelectContent>
             </Select>
-
-          <div className="colorful-card p-6 rounded-lg shadow-lg">
-            <Tabs defaultValue="all-orders" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8">
-                <TabsTrigger value="all-orders">
-                  <ClipboardList className="mr-2 h-4 w-4" /> Tất cả đơn hàng
-                </TabsTrigger>
-                <TabsTrigger value="tracking">
-                  <Truck className="mr-2 h-4 w-4" /> Theo dõi đơn hàng
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="all-orders">
-                <div className="mb-6 flex justify-between items-center">
-                  <h2 className="text-lg font-medium">Đơn hàng của bạn</h2>
-                  <div className="w-48">
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Trạng thái" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                        <SelectItem value="pending">Chờ xác nhận</SelectItem>
-                        <SelectItem value="processing">Đang xử lý</SelectItem>
-                        <SelectItem value="shipping">Đang giao hàng</SelectItem>
-                        <SelectItem value="completed">Đã hoàn thành</SelectItem>
-                        <SelectItem value="canceled">Đã hủy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {filteredOrders.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredOrders.map((order) => (
-                      <OrderItem
-                        key={order.maDonHang}
-                        order={order}
-                        onCancel={handleCancelClick}
-                        onAddComment={handleAddComment}
-                        commentedProducts={commentedProducts}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border rounded-lg">
-                    <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium">Không có đơn hàng nào</h3>
-                    <p className="text-muted-foreground">Bạn chưa có đơn hàng nào trong trạng thái này</p>
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="tracking">
-                <div className="mb-6">
-                  <h2 className="text-lg font-medium mb-4">Tra cứu đơn hàng</h2>
-                  <div className="flex gap-4">
-                    <Input
-                      type="text"
-                      placeholder="Nhập mã đơn hàng của bạn"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-                {filteredOrders.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredOrders.map((order) => (
-                      <OrderItem
-                        key={order.maDonHang}
-                        order={order}
-                        onCancel={handleCancelClick}
-                        onAddComment={handleAddComment}
-                        commentedProducts={commentedProducts}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border rounded-lg">
-                    <Truck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium">Không tìm thấy đơn hàng</h3>
-                    <p className="text-muted-foreground">Vui lòng nhập mã đơn hàng để kiểm tra</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
           </div>
         </div>
       )}
@@ -2446,7 +1724,6 @@ const OrderHistory = () => {
         {renderTabContent("completed", completedOrders, "Đơn hàng đã hoàn thành")}
 
         <TabsContent value="tracking" className="space-y-6">
-          {/* Thêm header với tìm kiếm cho tab tracking */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Theo dõi đơn hàng</h2>
@@ -2480,14 +1757,12 @@ const OrderHistory = () => {
                   <OrderTrackingTimeline key={order.maDonHang} order={order} />
                 ))}
               </div>
-              {/* Chỉ hiển thị pagination khi không có tìm kiếm */}
               {!trackingSearch.trim() && <TabPaginationComponent status="all" />}
             </>
           )}
         </TabsContent>
       </Tabs>
 
-      {/* Cancel Order Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -2500,24 +1775,19 @@ const OrderHistory = () => {
               </label>
               
               <div className="flex flex-wrap gap-2 mb-3">
-                {cancelReasonsSuggestions.map((suggestion) => (
+                {cancelReasonsSuggestions.map((reason) => (
                   <Button
-                    key={suggestion}
+                    key={reason}
                     type="button"
                     variant="outline"
                     size="sm"
-
-                    onClick={() => setCancelReason(suggestion)}
+                    onClick={() => setCancelReason(reason)}
                     className={cn(
                       "text-xs",
-                      cancelReason === suggestion && "bg-primary text-primary-foreground"
+                      cancelReason === reason && "bg-primary text-primary-foreground"
                     )}
-
-                    onClick={() => handleReasonSuggestionClick(reason)}
-                    className={`text-sm ${cancelReason === reason ? "bg-gray-200" : ""}`}
-
                   >
-                    {suggestion}
+                    {reason}
                   </Button>
                 ))}
               </div>
@@ -2551,41 +1821,11 @@ const OrderHistory = () => {
               </div>
             </div>
           </div>
-
-          
-          <DialogFooter className="flex gap-3 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowCancelModal(false);
-                setCancelReason('');
-                setCancelOrderId(null);
-              }}
-            >
-              Không hủy
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={!cancelReason.trim()}
-            >
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCancelModal(false)}>
-              Đóng
+              Không hủy
             </Button>
-            <Button variant="destructive" onClick={handleCancel}>
-
-              Xác nhận hủy
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={!cancelReason.trim()}
-            >
+            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim()}>
               Xác nhận hủy đơn
             </Button>
           </DialogFooter>
