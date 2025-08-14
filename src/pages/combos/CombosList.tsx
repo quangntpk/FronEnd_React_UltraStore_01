@@ -4,7 +4,7 @@ import { Heart, ShoppingCart, Search, SlidersHorizontal, X, Star, Package, Arrow
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider"
+import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,8 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import Swal from "sweetalert2";
+import { cn } from "@/lib/utils";
 
-// Define interfaces (keeping the same as original)
+// Define interfaces
 interface ApiComboSanPham {
   id: number;
   idSanPham: string;
@@ -91,138 +92,156 @@ const CombosList = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
-  const fetchCombos = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("http://localhost:5261/api/Combo/ComboSanPhamView");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      
-      if (!Array.isArray(data)) {
-        throw new Error("Dữ liệu API không phải là mảng");
-      }
-
-      const transformedCombos = data.map((item: ApiCombo) => {
-        // Tính toán giá gốc từ tổng giá sản phẩm
-        const tongTienSanPham = Array.isArray(item.sanPhams)
-          ? item.sanPhams.reduce((sum, sp) => sum + (sp.donGia * sp.soLuong), 0)
-          : 0;
+    const fetchCombos = async () => {
+      try {
+        setIsLoading(true);
         
-        // Tính phần trăm giảm giá từ giá combo so với tổng giá sản phẩm
-        const daGiam = tongTienSanPham > 0 ? (1 - (item.gia / tongTienSanPham)) * 100 : 0;
+        // Fetch combos
+        const response = await fetch("http://localhost:5261/api/Combo/ComboSanPhamView");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
         
-        // Khuyến mãi thêm
-        const khuyenMai = item.khuyenMaiMax || 0;
-        
-        // Giá cuối cùng sau khi áp dụng khuyến mãi
-        const giaCuoi = item.gia * (1 - khuyenMai / 100);
-        
-        // Số tiền tiết kiệm
-        const tietKiem = tongTienSanPham - giaCuoi;
-        
-        // Phần trăm tiết kiệm tổng
-        const savingsPercentage = tongTienSanPham > 0 ? (tietKiem / tongTienSanPham) * 100 : 0;
-
-        // Tạo occasion dựa trên tên combo
-        let occasion = "Other";
-        const name = item.name?.toLowerCase() || "";
-        if (name.includes("công sở") || name.includes("office") || name.includes("làm việc")) {
-          occasion = "Office";
-        } else if (name.includes("tiệc") || name.includes("formal") || name.includes("sang trọng")) {
-          occasion = "Formal";
-        } else if (name.includes("casual") || name.includes("dạo phố") || name.includes("cuối tuần")) {
-          occasion = "Casual";
-        } else if (name.includes("mùa hè") || name.includes("summer") || name.includes("biển")) {
-          occasion = "Summer";
-        } else if (name.includes("mùa đông") || name.includes("winter") || name.includes("ấm")) {
-          occasion = "Winter";
+        if (!Array.isArray(data)) {
+          throw new Error("Dữ liệu API không phải là mảng");
         }
 
-        return {
-          id: item.maCombo,
-          name: item.name || "Combo không tên",
-          description: item.moTa || "Combo thời trang tuyệt vời",
-          imageSrc: item.hinhAnh ? `data:image/jpeg;base64,${item.hinhAnh}` : "/api/placeholder/400/300",
-          price: Math.round(giaCuoi),
-          products: Array.isArray(item.sanPhams) 
-            ? item.sanPhams.map((sp) => sp.name || "Sản phẩm không tên") 
-            : [],
-          productCount: Array.isArray(item.sanPhams) ? item.sanPhams.length : 0,
-          rating: 4 + Math.random() * 0.9, // Random rating between 4.0-4.9
-          isFavorite: false, // Sẽ được cập nhật sau khi check API yêu thích
-          occasion: occasion,
-          savings: Math.round(tietKiem),
-          savingsPercentage: Math.round(savingsPercentage),
-          daGiamPercentage: Math.round(daGiam),
-          khuyenMaiPercentage: khuyenMai
-        };
-      });
+        // Fetch comments
+        const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
+        if (!commentResponse.ok) {
+          throw new Error("Không thể tải bình luận");
+        }
+        const commentData = await commentResponse.json();
 
-      // Kiểm tra danh sách yêu thích nếu user đã đăng nhập
-      try {
-        const userData: UserData = JSON.parse(localStorage.getItem("user") || "{}");
-        const currentUserId = userData?.maNguoiDung;
-        
-        if (currentUserId) {
-          const token = localStorage.getItem("token");
-          const favoriteResponse = await fetch("http://localhost:5261/api/YeuThich", {
-            headers: { 
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json"
-            },
-          });
+        const transformedCombos = data.map((item: ApiCombo) => {
+          // Tính toán giá gốc từ tổng giá sản phẩm
+          const tongTienSanPham = Array.isArray(item.sanPhams)
+            ? item.sanPhams.reduce((sum, sp) => sum + (sp.donGia * sp.soLuong), 0)
+            : 0;
           
-          if (favoriteResponse.ok) {
-            const yeuThichData = await favoriteResponse.json();
-            
-            // Cập nhật trạng thái yêu thích cho các combo
-            const updatedCombos = transformedCombos.map(combo => {
-              const userFavorite = yeuThichData.find(
-                (yeuThich: any) => yeuThich.maCombo === combo.id && yeuThich.maNguoiDung === currentUserId
-              );
-              return {
-                ...combo,
-                isFavorite: !!userFavorite,
-                likedId: userFavorite?.maYeuThich,
-              };
+          // Tính phần trăm giảm giá từ giá combo so với tổng giá sản phẩm
+          const daGiam = tongTienSanPham > 0 ? (1 - (item.gia / tongTienSanPham)) * 100 : 0;
+          
+          // Khuyến mãi thêm
+          const khuyenMai = item.khuyenMaiMax || 0;
+          
+          // Giá cuối cùng sau khi áp dụng khuyến mãi
+          const giaCuoi = item.gia * (1 - khuyenMai / 100);
+          
+          // Số tiền tiết kiệm
+          const tietKiem = tongTienSanPham - giaCuoi;
+          
+          // Phần trăm tiết kiệm tổng
+          const savingsPercentage = tongTienSanPham > 0 ? (tietKiem / tongTienSanPham) * 100 : 0;
+
+          // Tính average rating từ comments
+          const comboComments = commentData
+            .filter((comment) => 
+              comment.maCombo !== null && 
+              comment.maCombo !== 0 && 
+              comment.maCombo === item.maCombo && 
+              comment.trangThai === 1
+            );
+          const totalRating = comboComments.reduce((sum, comment) => sum + (comment.danhGia || 0), 0);
+          const averageRating = comboComments.length > 0 ? totalRating / comboComments.length : 0;
+
+          // Tạo occasion dựa trên tên combo
+          let occasion = "Other";
+          const name = item.name?.toLowerCase() || "";
+          if (name.includes("công sở") || name.includes("office") || name.includes("làm việc")) {
+            occasion = "Office";
+          } else if (name.includes("tiệc") || name.includes("formal") || name.includes("sang trọng")) {
+            occasion = "Formal";
+          } else if (name.includes("casual") || name.includes("dạo phố") || name.includes("cuối tuần")) {
+            occasion = "Casual";
+          } else if (name.includes("mùa hè") || name.includes("summer") || name.includes("biển")) {
+            occasion = "Summer";
+          } else if (name.includes("mùa đông") || name.includes("winter") || name.includes("ấm")) {
+            occasion = "Winter";
+          }
+
+          return {
+            id: item.maCombo,
+            name: item.name || "Combo không tên",
+            description: item.moTa || "Combo thời trang tuyệt vời",
+            imageSrc: item.hinhAnh ? `data:image/jpeg;base64,${item.hinhAnh}` : "/api/placeholder/400/300",
+            price: Math.round(giaCuoi),
+            products: Array.isArray(item.sanPhams) 
+              ? item.sanPhams.map((sp) => sp.name || "Sản phẩm không tên") 
+              : [],
+            productCount: Array.isArray(item.sanPhams) ? item.sanPhams.length : 0,
+            rating: averageRating,
+            isFavorite: false,
+            occasion: occasion,
+            savings: Math.round(tietKiem),
+            savingsPercentage: Math.round(savingsPercentage),
+            daGiamPercentage: Math.round(daGiam),
+            khuyenMaiPercentage: khuyenMai
+          };
+        });
+
+        // Kiểm tra danh sách yêu thích nếu user đã đăng nhập
+        try {
+          const userData: UserData = JSON.parse(localStorage.getItem("user") || "{}");
+          const currentUserId = userData?.maNguoiDung;
+          
+          if (currentUserId) {
+            const token = localStorage.getItem("token");
+            const favoriteResponse = await fetch(`http://localhost:5261/api/YeuThich?maNguoiDung=${currentUserId}`, {
+              headers: { 
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+              },
             });
             
-            setCombos(updatedCombos);
-            setFilteredCombos(updatedCombos);
+            if (favoriteResponse.ok) {
+              const yeuThichData = await favoriteResponse.json();
+              
+              // Cập nhật trạng thái yêu thích cho các combo
+              const updatedCombos = transformedCombos.map(combo => {
+                const userFavorite = yeuThichData.find(
+                  (yeuThich: any) => yeuThich.maCombo === combo.id && yeuThich.maNguoiDung === currentUserId
+                );
+                return {
+                  ...combo,
+                  isFavorite: !!userFavorite,
+                  likedId: userFavorite?.maYeuThich,
+                };
+              });
+              
+              setCombos(updatedCombos);
+              setFilteredCombos(updatedCombos);
+            } else {
+              setCombos(transformedCombos);
+              setFilteredCombos(transformedCombos);
+            }
           } else {
-            console.log(favoriteResponse)
-            // Nếu không lấy được danh sách yêu thích, vẫn hiển thị combo
             setCombos(transformedCombos);
             setFilteredCombos(transformedCombos);
           }
-        } else {
+        } catch (favoriteError) {
+          console.warn("Không thể kiểm tra danh sách yêu thích:", favoriteError);
           setCombos(transformedCombos);
           setFilteredCombos(transformedCombos);
         }
-      } catch (favoriteError) {
-        console.warn("Không thể kiểm tra danh sách yêu thích:", favoriteError);
-        setCombos(transformedCombos);
-        setFilteredCombos(transformedCombos);
+
+        setError(null);
+      } catch (err) {
+        console.error("Lỗi khi lấy combo:", err);
+        setError(err instanceof Error ? err.message : "Không thể tải combo. Vui lòng thử lại sau.");
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải danh sách combo",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      setError(null);
-    } catch (err) {
-      console.error("Lỗi khi lấy combo:", err);
-      setError(err instanceof Error ? err.message : "Không thể tải combo. Vui lòng thử lại sau.");
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách combo",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  fetchCombos();
-}, []);
+    fetchCombos();
+  }, []);
 
   const uniqueOccasions = useMemo(() => {
     return [...new Set(combos.map((combo) => combo.occasion))].sort();
@@ -342,7 +361,7 @@ const CombosList = () => {
 
       if (!userId) {
         showNotification("Vui lòng đăng nhập để thêm combo vào danh sách yêu thích!", "warning").then(() => {
-          navigate("/login");
+          navigate("/auth/login");
         });
         return;
       }
@@ -360,6 +379,7 @@ const CombosList = () => {
           prev.map((c) => c.id === comboId ? { ...c, isFavorite: false, likedId: undefined } : c)
         );
         showNotification("Đã xóa combo khỏi danh sách yêu thích!", "success");
+        window.dispatchEvent(new Event("favorites-updated")); // Notify UserLayout
       } else {
         const yeuThichData = {
           maCombo: comboId,
@@ -386,6 +406,7 @@ const CombosList = () => {
           prev.map((c) => c.id === comboId ? { ...c, isFavorite: true, likedId: addedFavorite.maYeuThich } : c)
         );
         showNotification("Đã thêm combo vào danh sách yêu thích!", "success");
+        window.dispatchEvent(new Event("favorites-updated")); // Notify UserLayout
       }
     } catch (error) {
       console.error("Lỗi khi cập nhật yêu thích:", error);
@@ -708,11 +729,12 @@ const CombosList = () => {
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`h-4 w-4 ${
+                            className={cn(
+                              "h-4 w-4",
                               i < Math.floor(combo.rating) 
                                 ? "fill-yellow-400 text-yellow-400" 
                                 : "text-gray-300"
-                            }`}
+                            )}
                           />
                         ))}
                       </div>
@@ -809,13 +831,17 @@ const CombosList = () => {
               </div>
               <div className="space-y-2">
                 <div className="text-3xl font-bold text-indigo-600">
-                  {Math.round(filteredCombos.reduce((sum, combo) => sum + combo.rating, 0) / filteredCombos.length * 10) / 10}
+                  {filteredCombos.length > 0 
+                    ? Math.round(filteredCombos.reduce((sum, combo) => sum + combo.rating, 0) / filteredCombos.length * 10) / 10
+                    : 0}
                 </div>
                 <div className="text-gray-600 font-medium">Đánh giá trung bình</div>
               </div>
               <div className="space-y-2">
                 <div className="text-3xl font-bold text-green-600">
-                  {Math.round(filteredCombos.reduce((sum, combo) => sum + combo.savingsPercentage, 0) / filteredCombos.length)}%
+                  {filteredCombos.length > 0 
+                    ? Math.round(filteredCombos.reduce((sum, combo) => sum + combo.savingsPercentage, 0) / filteredCombos.length)
+                    : 0}%
                 </div>
                 <div className="text-gray-600 font-medium">Tiết kiệm trung bình</div>
               </div>

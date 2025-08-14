@@ -11,7 +11,7 @@ import Newsletter from "@/components/default/Newsletter";
 import Features from "@/components/default/Features";
 import CategoryView from "@/components/default/CategoryView";
 import { BlogList } from "@/components/default/BlogList";
-
+import VoucherUser from "@/components/layout/voucher/VoucherUser";
 import {
   Carousel,
   CarouselContent,
@@ -342,7 +342,7 @@ const ProductCard = ({
     return () => observer.disconnect();
   }, []);
 
-  return (
+   return (
     <div
       ref={ref}
       className={cn(
@@ -351,7 +351,7 @@ const ProductCard = ({
       )}
       style={{ transitionDelay: `${index * 150}ms` }}
     >
-      <Card className="overflow-hidden group relative" style={{height: "650px"}}>
+      <Card className="overflow-hidden group relative">
         <div className="relative aspect-square">
           <Link to={`/products/${product.id}`}>
             <img
@@ -385,20 +385,17 @@ const ProductCard = ({
           )}
 
           {/* Favorite Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute top-2 right-2 w-10 h-10 rounded-full bg-white/80 hover:bg-white z-10"
-            onClick={() => toggleFavorite(product.id)}
-            aria-label={product.isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
-            style={{
-              right: product.discountPercent > 0 ? '90px' : '8px'
-            }}
-          >
-            <Heart
-              className={`h-5 w-5 ${product.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
-            />
-          </Button>
+         <Button
+  variant="outline"
+  size="icon"
+  className="absolute top-2 left-2 w-10 h-10 rounded-full bg-white/80 hover:bg-white z-10"
+  onClick={() => toggleFavorite(product.id)}
+  aria-label={product.isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+>
+  <Heart
+    className={`h-5 w-5 ${product.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+  />
+</Button>
         </div>
 
         <CardContent className="p-4">
@@ -515,7 +512,7 @@ const ProductCard = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex mt-auto absolute absolute bottom-2 left-2 right-2 ">
+          <div className="flex gap-2">
             <Button asChild variant="outline" size="sm" className="flex-1">
               <Link to={`/products/${product.id}`}>Chi tiết</Link>
             </Button>
@@ -1007,7 +1004,7 @@ const Index = () => {
       <CategoryView />
       {/* Features */}
       <Features />
-
+   <VoucherUser />
       {/* Featured Products */}
       <section>
         <div className="flex justify-between items-center mb-8">
