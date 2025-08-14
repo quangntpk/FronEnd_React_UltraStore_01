@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -89,7 +90,7 @@ const Comments = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5261/api/Comment/list",{
+      const response = await fetch("http://localhost:5261/api/Comment/list", {
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
@@ -186,10 +187,17 @@ const Comments = () => {
   const filteredComments = (type: "product" | "blog" | "combo") => {
     return comments
       .filter((item) => {
-        const isProductComment = type === "product" && item.maSanPham !== undefined && item.maSanPham !== null;
-        const isBlogComment = type === "blog" && item.maBlog !== undefined && item.maBlog !== null;
-        const isComboComment = type === "combo" && item.maCombo !== undefined && item.maCombo !== null;
-        if (!isProductComment && !isBlogComment && !isComboComment) return false;
+        let matchesType = false;
+
+        if (type === "product") {
+          matchesType = item.maSanPham !== undefined && item.maSanPham !== null;
+        } else if (type === "combo") {
+          matchesType = item.maCombo !== undefined && item.maCombo !== null && (item.maSanPham === undefined || item.maSanPham === null);
+        } else if (type === "blog") {
+          matchesType = item.maBlog !== undefined && item.maBlog !== null && (item.maSanPham === undefined || item.maSanPham === null) && (item.maCombo === undefined || item.maCombo === null);
+        }
+
+        if (!matchesType) return false;
 
         const trangThaiText = item.trangThai === 0 ? "Chưa Duyệt" : item.trangThai === 1 ? "Đã Duyệt" : "";
         return (
@@ -376,13 +384,12 @@ const Comments = () => {
               <TabsTrigger value="productComments" className="flex items-center gap-2">
                 Bình Luận Sản Phẩm
               </TabsTrigger>
-                <TabsTrigger value="comboComments" className="flex items-center gap-2">
+              <TabsTrigger value="comboComments" className="flex items-center gap-2">
                 Bình Luận Combo
               </TabsTrigger>
               <TabsTrigger value="blogComments" className="flex items-center gap-2">
                 Bình Luận Blog
               </TabsTrigger>
-            
             </TabsList>
 
             <TabsContent value="productComments">
@@ -483,7 +490,7 @@ const Comments = () => {
       </Dialog>
 
       <Dialog open={openDetailModal} onOpenChange={setOpenDetailModal}>
-        <DialogContent className="p-6 max-w-3xl w-full">
+        <DialogContent className="p-6 max-w-3xl w-full detail-dialog-content">
           <DialogHeader>
             <DialogTitle>Chi Tiết Bình Luận</DialogTitle>
           </DialogHeader>
@@ -598,6 +605,16 @@ const Comments = () => {
           max-width: 225px;
           height: auto;
           margin-top: 0.5rem;
+        }
+
+        .detail-dialog-content {
+          max-height: 600px;
+          overflow-y: auto;
+        }
+
+        .detail-dialog-content img {
+          max-width: 100%;
+          height: auto;
         }
       `}</style>
     </div>
