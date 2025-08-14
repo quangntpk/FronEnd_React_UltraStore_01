@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { openDB, DBSchema, IDBPDatabase } from "idb";
@@ -70,6 +71,7 @@ const VoucherUser = () => {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const navigate = useNavigate();
 
   // --- Helper Functions ---
 
@@ -110,14 +112,12 @@ const VoucherUser = () => {
 
   const fetchVouchers = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5261/api/Voucher",
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`
-          }
-        }
-      );
+      const response = await fetch("http://localhost:5261/api/Voucher", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
       if (!response.ok) throw new Error("Không thể lấy danh sách voucher");
       const data: Voucher[] = await response.json();
       const currentDate = new Date();
@@ -131,7 +131,7 @@ const VoucherUser = () => {
         })
         .map((voucher) => ({
           ...voucher,
-          tyLe: getTyLeByValue(voucher.giaTri)
+          tyLe: getTyLeByValue(voucher.giaTri),
         }));
 
       setVouchers(validVouchers);
@@ -148,12 +148,18 @@ const VoucherUser = () => {
     const initDB = async () => {
       try {
         const database = await openDB<MyDB>("VoucherDB", 1, {
-          upgrade(db) { db.createObjectStore("userData"); },
+          upgrade(db) {
+            db.createObjectStore("userData");
+          },
         });
         setDb(database);
       } catch (err) {
         console.error("Không thể khởi tạo IndexedDB:", err);
-        toast({ title: "Lỗi", description: "Không thể khởi tạo cơ sở dữ liệu!", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Không thể khởi tạo cơ sở dữ liệu!",
+          variant: "destructive",
+        });
       }
     };
     initDB();
@@ -178,7 +184,11 @@ const VoucherUser = () => {
         }
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu từ IndexedDB:", err);
-        toast({ title: "Lỗi", description: "Không thể tải dữ liệu từ cơ sở dữ liệu!", variant: "destructive" });
+        toast({
+          title: "Lỗi",
+          description: "Không thể tải dữ liệu từ cơ sở dữ liệu!",
+          variant: "destructive",
+        });
       }
     };
 
@@ -235,7 +245,21 @@ const VoucherUser = () => {
   }, [vouchers]);
 
   const handleSpin = useCallback(async () => {
-    if (!isLoggedIn || !userId || !db || timeLeft > 0 || isSpinning || vouchers.length === 0) return;
+    // Check if user is logged in
+    if (!isLoggedIn || !userId) {
+      toast({
+        title: "Cảnh báo",
+        description: "Vui lòng đăng nhập để quay vòng quay may mắn!",
+        variant: "destructive",
+      });
+      navigate("/auth/login");
+      return;
+    }
+
+    // Existing conditions to prevent spinning
+    if (timeLeft > 0 || isSpinning || vouchers.length === 0 || !db) {
+      return;
+    }
 
     // Reset states
     setSelectedVoucher(null);
@@ -249,13 +273,13 @@ const VoucherUser = () => {
       if (!winningVoucher) {
         throw new Error("Không thể xác định voucher chiến thắng.");
       }
-      const winningCoupon = winningVoucher.coupons?.find(c => c.trangThai === 0);
+      const winningCoupon = winningVoucher.coupons?.find((c) => c.trangThai === 0);
       if (!winningCoupon) {
         throw new Error("Voucher chiến thắng không có coupon hợp lệ.");
       }
 
       // 2. Find the index of the winning voucher
-      const winningIndex = vouchers.findIndex(v => v.maVoucher === winningVoucher.maVoucher);
+      const winningIndex = vouchers.findIndex((v) => v.maVoucher === winningVoucher.maVoucher);
       if (winningIndex === -1) {
         throw new Error("Voucher chiến thắng không có trong danh sách.");
       }
@@ -278,135 +302,165 @@ const VoucherUser = () => {
         // 5. Save spin data and update local state
         const currentTime = Date.now();
         setLastSpinTime(currentTime);
-        setSpinCount(prev => prev + 1);
+        setSpinCount((prev) => prev + 1);
 
-        await db.put("userData", {
-          lastSpinTime: currentTime,
-          spinCount: spinCount + 1,
-        }, userId);
+        await db.put(
+          "userData",
+          {
+            lastSpinTime: currentTime,
+            spinCount: spinCount + 1,
+          },
+          userId
+        );
 
         toast({
           title: "🎉 Chúc mừng!",
-          description: `Bạn đã trúng: ${winningVoucher.tenVoucher} (${formatVoucherValue(winningVoucher)})`
+          description: `Bạn đã trúng: ${winningVoucher.tenVoucher} (${formatVoucherValue(winningVoucher)})`,
         });
 
         popupTimeoutRef.current = setTimeout(() => {
           setShowWinnerPopup(false);
         }, 5000);
-
       }, SPIN_DURATION);
-
     } catch (err: any) {
       console.error("Lỗi khi quay:", err);
       toast({
         title: "Lỗi",
         description: err.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       setIsSpinning(false);
     }
-  }, [isLoggedIn, userId, db, timeLeft, isSpinning, vouchers, spinCount, calculateWinningVoucher, formatVoucherValue]);
+  }, [
+    isLoggedIn,
+    userId,
+    db,
+    timeLeft,
+    isSpinning,
+    vouchers,
+    spinCount,
+    calculateWinningVoucher,
+    formatVoucherValue,
+    navigate,
+  ]);
 
   // --- Rendering Functions ---
 
-  const renderWheelSegment = useCallback((voucher: Voucher, index: number) => {
-    const total = vouchers.length;
-    const angle = 360 / total;
-    const startAngle = angle * index;
-    const endAngle = startAngle + angle;
+  const renderWheelSegment = useCallback(
+    (voucher: Voucher, index: number) => {
+      const total = vouchers.length;
+      const angle = 360 / total;
+      const startAngle = angle * index;
+      const endAngle = startAngle + angle;
 
-    const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
-    const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
+      const startAngleRad = ((startAngle - 90) * Math.PI) / 180;
+      const endAngleRad = ((endAngle - 90) * Math.PI) / 180;
 
-    const x1 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.cos(startAngleRad);
-    const y1 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.sin(startAngleRad);
-    const x2 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.cos(endAngleRad);
-    const y2 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.sin(endAngleRad);
+      const x1 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.cos(startAngleRad);
+      const y1 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.sin(startAngleRad);
+      const x2 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.cos(endAngleRad);
+      const y2 = WHEEL_RADIUS + (WHEEL_RADIUS - 20) * Math.sin(endAngleRad);
 
-    const largeArcFlag = angle > 180 ? 1 : 0;
+      const largeArcFlag = angle > 180 ? 1 : 0;
 
-    const pathData = [
-      `M ${WHEEL_RADIUS} ${WHEEL_RADIUS}`,
-      `L ${x1} ${y1}`,
-      `A ${WHEEL_RADIUS - 20} ${WHEEL_RADIUS - 20} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-      'Z'
-    ].join(' ');
+      const pathData = [
+        `M ${WHEEL_RADIUS} ${WHEEL_RADIUS}`,
+        `L ${x1} ${y1}`,
+        `A ${WHEEL_RADIUS - 20} ${WHEEL_RADIUS - 20} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+        'Z',
+      ].join(' ');
 
-    const textAngle = startAngle + angle / 2;
-    const textAngleRad = ((textAngle - 90) * Math.PI) / 180;
-    const textRadius = WHEEL_RADIUS * 0.7;
-    const textX = WHEEL_RADIUS + textRadius * Math.cos(textAngleRad);
-    const textY = WHEEL_RADIUS + textRadius * Math.sin(textAngleRad);
+      const textAngle = startAngle + angle / 2;
+      const textAngleRad = ((textAngle - 90) * Math.PI) / 180;
+      const textRadius = WHEEL_RADIUS * 0.7;
+      const textX = WHEEL_RADIUS + textRadius * Math.cos(textAngleRad);
+      const textY = WHEEL_RADIUS + textRadius * Math.sin(textAngleRad);
 
-    const displayText = voucher.loaiVoucher === 0
-      ? `${voucher.giaTri}%`
-      : voucher.loaiVoucher === 1
-        ? formatCondition(voucher.giaTri)
-        : "Free Ship";
+      const displayText =
+        voucher.loaiVoucher === 0
+          ? `${voucher.giaTri}%`
+          : voucher.loaiVoucher === 1
+            ? formatCondition(voucher.giaTri)
+            : "Free Ship";
 
-    return (
-      <g key={voucher.maVoucher}>
-        <path
-          d={pathData}
-          fill={SEGMENT_COLORS[index % SEGMENT_COLORS.length]}
-          stroke="#FFF"
-          strokeWidth={3}
-        />
-        <text
-          x={textX}
-          y={textY}
-          fontSize="16"
-          fontWeight="bold"
-          fill="#FFF"
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          transform={`rotate(${textAngle}, ${textX}, ${textY})`}
-        >
-          {displayText}
-        </text>
-      </g>
-    );
-  }, [vouchers.length, formatCondition]);
+      return (
+        <g key={voucher.maVoucher}>
+          <path
+            d={pathData}
+            fill={SEGMENT_COLORS[index % SEGMENT_COLORS.length]}
+            stroke="#FFF"
+            strokeWidth={3}
+          />
+          <text
+            x={textX}
+            y={textY}
+            fontSize="16"
+            fontWeight="bold"
+            fill="#FFF"
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            transform={`rotate(${textAngle}, ${textX}, ${textY})`}
+          >
+            {displayText}
+          </text>
+        </g>
+      );
+    },
+    [vouchers.length, formatCondition]
+  );
 
-  const handleSaveCoupon = useCallback(async (couponId: number, maNhap: string) => {
-    if (!userId) {
-      toast({ title: "Lỗi", description: "Vui lòng đăng nhập để lưu mã giảm giá.", variant: "destructive" });
-      return;
-    }
+  const handleSaveCoupon = useCallback(
+    async (couponId: number, maNhap: string) => {
+      if (!userId) {
+        toast({
+          title: "Lỗi",
+          description: "Vui lòng đăng nhập để lưu mã giảm giá.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Không tìm thấy token");
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Không tìm thấy token");
 
-      const response = await fetch(`http://localhost:5261/api/Voucher/Coupon/${couponId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ maNguoiDung: userId }),
-      });
+        const response = await fetch(`http://localhost:5261/api/Voucher/Coupon/${couponId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ maNguoiDung: userId }),
+        });
 
-      if (!response.ok) throw new Error("Không thể lưu mã giảm giá");
+        if (!response.ok) throw new Error("Không thể lưu mã giảm giá");
 
-      setSelectedCoupon(prev => prev ? { ...prev, trangThai: 2, maNguoiDung: userId } : null);
-      setVouchers(prev => prev.map(v => ({
-        ...v,
-        coupons: v.coupons?.map(c => c.id === couponId ? { ...c, trangThai: 2, maNguoiDung: userId } : c)
-      })));
+        setSelectedCoupon((prev) =>
+          prev ? { ...prev, trangThai: 2, maNguoiDung: userId } : null
+        );
+        setVouchers((prev) =>
+          prev.map((v) => ({
+            ...v,
+            coupons: v.coupons?.map((c) =>
+              c.id === couponId ? { ...c, trangThai: 2, maNguoiDung: userId } : c
+            ),
+          }))
+        );
 
-      toast({
-        title: "Thành công",
-        description: `Đã lưu mã ${maNhap} thành công!`
-      });
-    } catch (err: any) {
-      toast({
-        title: "Lỗi",
-        description: err.message,
-        variant: "destructive"
-      });
-    }
-  }, [userId]);
+        toast({
+          title: "Thành công",
+          description: `Đã lưu mã ${maNhap} thành công!`,
+        });
+      } catch (err: any) {
+        toast({
+          title: "Lỗi",
+          description: err.message,
+          variant: "destructive",
+        });
+      }
+    },
+    [userId]
+  );
 
   // --- Component Rendering ---
 
@@ -511,12 +565,7 @@ const VoucherUser = () => {
                   <div className="text-center mb-8">
                     {!isLoggedIn ? (
                       <Button
-                        onClick={() => {
-                          const mockUser = { maNguoiDung: "user_" + Math.random().toString(36).substring(2, 15) };
-                          localStorage.setItem("user", JSON.stringify(mockUser));
-                          setIsLoggedIn(true);
-                          setUserId(mockUser.maNguoiDung);
-                        }}
+                        onClick={() => navigate("/auth/login")}
                         className="px-8 py-4 text-lg font-bold rounded-xl bg-green-500 hover:bg-green-600 text-white"
                       >
                         Đăng nhập để quay

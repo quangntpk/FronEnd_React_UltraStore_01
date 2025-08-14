@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
+import CmtForm from "../products/CmtForm";
 
 // Interfaces
 interface CancelOrderResponse {
@@ -98,30 +99,26 @@ type Order = {
 };
 
 interface CommentState {
-  productId: number;
+  productId: string; // Đổi thành string để hỗ trợ maCombo và maSanPham
   content: string;
   rating: number;
-}
-
-interface Comment {
-  maBinhLuan: number;
-  maSanPham: string;
-  maNguoiDung: number;
-  noiDungBinhLuan: string;
-  soTimBinhLuan: number;
-  danhGia: number;
-  trangThai: number;
-  ngayBinhLuan: string;
-  maDonHang: string;
-  hinhAnh?: string | null;
-  moTaHinhAnh?: string | null;
-  maCombo: number;
+  image?: string | null;
+  imageDescription?: string | null;
+  isCombo?: boolean;
 }
 
 interface OrderItemProps {
   order: Order;
   onCancel: (orderId: string) => void;
-  onAddComment: (orderId: string, productId: number, content: string, rating: number) => Promise<boolean>;
+  onAddComment: (
+    orderId: string,
+    productId: string,
+    content: string,
+    rating: number,
+    image?: string,
+    imageDescription?: string,
+    isCombo?: boolean
+  ) => Promise<boolean>;
   commentedProducts: Set<string>;
 }
 
@@ -206,56 +203,8 @@ const NotificationComponent = ({ notification, onClose }: {
 // OrderItem Component
 const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [commentStates, setCommentStates] = useState<{ [key: number]: CommentState }>({});
-  const [isCommenting, setIsCommenting] = useState<{ [key: number]: boolean }>({});
   const statusInfo = orderStatuses[mapStatus(order.trangThaiDonHang)] || orderStatuses.pending;
   const StatusIcon = statusInfo.icon;
-  const [productImages, setProductImages] = useState<{ [key: string]: string }>({});
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      const idsToFetch = new Set<string>();
-      for (const item of order.sanPhams) {
-        if (!item.laCombo) {
-          if (item.maSanPham && !item.hinhAnh) {
-            idsToFetch.add(item.maSanPham);
-          }
-        } else {
-          if (item.combo?.sanPhamsTrongCombo) {
-            for (const sub of item.combo.sanPhamsTrongCombo) {
-              if (sub.maSanPham && !sub.hinhAnh) {
-                idsToFetch.add(sub.maSanPham);
-              }
-            }
-          }
-        }
-      }
-
-      const imagesMap: { [key: string]: string } = {};
-      for (const id of idsToFetch) {
-        try {
-          const response = await axios.get(`http://localhost:5261/api/SanPham/SanPhamByIDSorted?id=${id}`);
-          const data = response.data;
-          if (Array.isArray(data) && data.length > 0 && data[0].hinhAnhs?.length > 0) {
-            imagesMap[id] = `data:image/jpeg;base64,${data[0].hinhAnhs[0]}`;
-          }
-        } catch (error) {
-          console.error(`Error fetching image for ${id}`, error);
-        }
-      }
-      setProductImages(imagesMap);
-    };
-    fetchImages();
-  }, [order.sanPhams]);
-
-  const getComboImage = (item: Product) => {
-    if (item.hinhAnh) return item.hinhAnh;
-    if (item.combo?.sanPhamsTrongCombo?.length > 0) {
-      const firstSub = item.combo.sanPhamsTrongCombo[0];
-      return productImages[firstSub.maSanPham] || firstSub.hinhAnh || "https://via.placeholder.com/150";
-    }
-    return "https://via.placeholder.com/150";
-  };
 
   const getPaymentStatusDisplay = () => {
     if (order.paymentStatusText) return order.paymentStatusText;
@@ -266,40 +215,11 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
     return "Chưa thanh toán";
   };
 
-  const handleCommentChange = (productId: number, field: keyof CommentState, value: string | number) => {
-    setCommentStates((prev) => ({
-      ...prev,
-      [productId]: {
-        ...prev[productId] || { productId, content: "", rating: 0 },
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleAddComment = async (productId: number) => {
-    const comment = commentStates[productId];
-    if (!comment || !comment.content || comment.rating < 1 || comment.rating > 5) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!"
-      });
-      return;
-    }
-
-    setIsCommenting((prev) => ({ ...prev, [productId]: true }));
-    const success = await onAddComment(order.maDonHang.toString(), productId, comment.content, comment.rating);
-    if (success) {
-      setCommentStates((prev) => ({
-        ...prev,
-        [productId]: { productId, content: "", rating: 0 },
-      }));
-    }
-    setIsCommenting((prev) => ({ ...prev, [productId]: false }));
-  };
-
   const renderProductInfo = (item: Product) => {
-    const productKey = `${order.maDonHang}-${item.laCombo ? item.maCombo : item.maSanPham}`;
+    const productId = item.laCombo ? item.maCombo?.toString() ?? "0" : item.maSanPham ?? "0";
+    const commentKey = `${order.maDonHang}-${productId}`;
+    const hasCommented = commentedProducts.has(commentKey);
+
     return (
       <div key={item.maChiTietDh} className="flex flex-col gap-4">
         <a
@@ -309,7 +229,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
           <div className="col-span-12 sm:col-span-2">
             <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
               <img
-                src={item.laCombo ? getComboImage(item) : (item.maSanPham ? productImages[item.maSanPham] || item.hinhAnh || "https://via.placeholder.com/150" : "https://via.placeholder.com/150")}
+                src={item.hinhAnh || "https://via.placeholder.com/150"}
                 alt={item.laCombo ? 'Combo Preview' : 'Product Preview'}
                 className="w-full h-full object-cover"
               />
@@ -368,7 +288,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
                           {comboProduct.hinhAnh && (
                             <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                               <img
-                                src={productImages[comboProduct.maSanPham] || comboProduct.hinhAnh}
+                                src={comboProduct.hinhAnh}
                                 alt={comboProduct.tenSanPham}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -437,58 +357,23 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
         </a>
 
         {/* Comment Section for completed orders */}
-        {mapStatus(order.trangThaiDonHang) === "completed" && 
-         !commentedProducts.has(productKey) && (
+        {mapStatus(order.trangThaiDonHang) === "completed" && !hasCommented && (
           <div className="ml-4">
             <h3 className="text-lg font-medium mb-4 text-blue-800">
               Viết bình luận cho {item.laCombo ? item.combo?.tenCombo : item.tenSanPham}
             </h3>
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-              <div className="flex items-center mb-4">
-                <span className="mr-2 text-sm font-medium">Đánh giá:</span>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star
-                    key={index}
-                    className={cn(
-                      "w-6 h-6 cursor-pointer transition-colors",
-                      index < (commentStates[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]?.rating || 0)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300 hover:text-yellow-200"
-                    )}
-                    onClick={() => handleCommentChange(
-                      item.laCombo ? item.maCombo! : Number(item.maSanPham!), 
-                      "rating", 
-                      index + 1
-                    )}
-                  />
-                ))}
-              </div>
-              <Textarea
-                value={commentStates[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]?.content || ""}
-                onChange={(e) => handleCommentChange(
-                  item.laCombo ? item.maCombo! : Number(item.maSanPham!), 
-                  "content", 
-                  e.target.value
-                )}
-                placeholder="Nhập bình luận của bạn..."
-                className="w-full mb-4"
-                rows={4}
-                disabled={isCommenting[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]}
-              />
-              <Button
-                onClick={() => handleAddComment(item.laCombo ? item.maCombo! : Number(item.maSanPham!))}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={isCommenting[item.laCombo ? item.maCombo! : Number(item.maSanPham!)]}
-              >
-                {isCommenting[item.laCombo ? item.maCombo! : Number(item.maSanPham!)] ? "Đang gửi..." : "Gửi Bình Luận"}
-              </Button>
-            </div>
+            <CmtForm
+              productId={productId}
+              orderId={order.maDonHang.toString()}
+              onAddComment={(orderId, productId, content, rating, image, imageDescription) =>
+                onAddComment(orderId, productId, content, rating, image, imageDescription, item.laCombo)
+              }
+            />
           </div>
         )}
 
         {/* Already commented message */}
-        {mapStatus(order.trangThaiDonHang) === "completed" && 
-         commentedProducts.has(productKey) && (
+        {mapStatus(order.trangThaiDonHang) === "completed" && hasCommented && (
           <div className="bg-green-50 border border-green-200 p-3 rounded-lg ml-4">
             <p className="text-green-700 text-sm font-medium">✓ Bạn đã bình luận cho sản phẩm này trong đơn hàng này.</p>
           </div>
@@ -505,19 +390,6 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
             <span className="font-medium text-gray-800">Mã đơn hàng: {order.maDonHang || "N/A"}</span>
             <span className="text-sm text-gray-500">Người nhận: {order.tenNguoiNhan || "N/A"}</span>
             <span className="text-sm text-gray-500">Ngày đặt: {formatDate(order.ngayDat)}</span>
-            <span className="text-sm text-gray-500">
-              Ngày đặt: {order.ngayDat
-                ? (() => {
-                    const parts = order.ngayDat.split("/");
-                    if (parts.length === 3) {
-                      const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                      const d = new Date(iso);
-                      return !isNaN(d.getTime()) ? d.toLocaleDateString("vi-VN") : order.ngayDat;
-                    }
-                    return order.ngayDat;
-                  })()
-                : "N/A"}
-            </span>
             <span className="text-sm text-gray-500">SĐT: {order.thongTinNguoiDung?.sdt || "N/A"}</span>
             <span className="text-sm text-gray-500">Phương thức thanh toán: {order.hinhThucThanhToan || "N/A"}</span>
             <span className={`text-sm font-medium ${
@@ -622,7 +494,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
   );
 };
 
-// OrderTrackingTimeline Component
+// OrderTrackingTimeline Component (giữ nguyên như code gốc)
 const OrderTrackingTimeline = ({ order }: { order: Order }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const currentStatus = mapStatus(order.trangThaiDonHang);
@@ -774,7 +646,8 @@ const OrderTrackingTimeline = ({ order }: { order: Order }) => {
               <div 
                 className="absolute top-6 left-12 h-1 bg-blue-500 rounded-full transition-all duration-500 ease-in-out"
                 style={{ 
-                  width: `${Math.max(0, Math.min(100, ((trackingSteps.findIndex(step => step.status === currentStatus) + 1) / visibleSteps.length) * 100))}%`
+                  width: `${Math.max(0, Math.min(100, ((trackingSteps.findIndex(step => step.status === currentStatus) + 1) / visibleSteps.length) * 100))}%`,
+                  right: `${100 - Math.max(0, Math.min(100, ((trackingSteps.findIndex(step => step.status === currentStatus) + 1) / visibleSteps.length) * 100))}%`
                 }}
               ></div>
               
@@ -906,18 +779,21 @@ const OrderHistory = () => {
   const [canceledOrders, setCanceledOrders] = useState<Order[]>([]);
   const [trackingOrders, setTrackingOrders] = useState<Order[]>([]);
 
-  const searchOrders = async (query: string, isTracking: boolean = false) => {
+  const searchTrackingOrders = async (query: string) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setNotification({ message: "Vui lòng đăng nhập để tra cứu đơn hàng!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để tra cứu đơn hàng!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return;
       }
 
       if (!query.trim()) {
-        const setter = isTracking ? setTrackingOrders : setAllOrdersData;
-        setter(allOrdersData);
+        setTrackingOrders(allOrdersData);
         return;
       }
 
@@ -928,30 +804,32 @@ const OrderHistory = () => {
 
       const rawOrders = response.data;
       if (!Array.isArray(rawOrders)) {
-        const setter = isTracking ? setTrackingOrders : setAllOrdersData;
-        setter([]);
+        setTrackingOrders([]);
         return;
       }
 
-      const setter = isTracking ? setTrackingOrders : setAllOrdersData;
-      setter(rawOrders);
+      setTrackingOrders(rawOrders);
 
-    } catch (error: unknown) {
-      console.error("Error searching orders:", error);
-      let errorMessage = "Đã xảy ra lỗi khi tra cứu đơn hàng!";
-      if (axios.isAxiosError(error) && error.response) {
-        if (error.response.status === 401) {
-          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+    } catch (error: any) {
+      console.error("Error searching tracking orders:", error);
+      if (error.response?.status === 401) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+        }).then(() => {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           navigate("/login");
-        } else {
-          errorMessage = error.response.data?.message || errorMessage;
-        }
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!",
+        });
+        setTrackingOrders([]);
       }
-      setNotification({ message: errorMessage, type: "error" });
-      const setter = isTracking ? setTrackingOrders : setAllOrdersData;
-      setter([]);
     }
   };
 
@@ -1009,8 +887,12 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để xem lịch sử đơn hàng!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return;
       }
 
@@ -1018,17 +900,15 @@ const OrderHistory = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      let allOrders = response.data;
+      const allOrders = response.data;
       if (!Array.isArray(allOrders)) {
-        setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Dữ liệu đơn hàng không hợp lệ!",
+        });
         return;
       }
-
-      // Hide VNPay pending orders
-      allOrders = allOrders.filter(order => !(order.hinhThucThanhToan === "VNPay" && order.trangThaiDonHang === 0));
-
-      // Sort by newest first
-      allOrders.sort((a, b) => new Date(b.ngayDat).getTime() - new Date(a.ngayDat).getTime());
 
       let filteredData = allOrders;
       if (status !== 'all') {
@@ -1053,15 +933,12 @@ const OrderHistory = () => {
 
       updateTabData(status, paginatedData, mockPagination);
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Error fetching orders by status:", error);
-      let errorMessage = "Đã xảy ra lỗi khi tải đơn hàng!";
-      if (axios.isAxiosError(error) && error.response) {
-        errorMessage = error.response.data?.message || errorMessage;
-      }
-      setNotification({ 
-        message: errorMessage, 
-        type: "error" 
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error.response?.data?.message || "Đã xảy ra lỗi khi tải đơn hàng!",
       });
     } finally {
       setIsLoading(false);
@@ -1077,8 +954,12 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để xem lịch sử đơn hàng!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return;
       }
 
@@ -1088,17 +969,15 @@ const OrderHistory = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
-        let allOrders = response.data;
+        const allOrders = response.data;
         if (!Array.isArray(allOrders)) {
-          setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
+          Swal.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: "Dữ liệu đơn hàng không hợp lệ!",
+          });
           return;
         }
-
-        // Hide VNPay pending orders
-        allOrders = allOrders.filter(order => !(order.hinhThucThanhToan === "VNPay" && order.trangThaiDonHang === 0));
-
-        // Sort by newest first
-        allOrders.sort((a, b) => new Date(b.ngayDat).getTime() - new Date(a.ngayDat).getTime());
 
         const filteredOrders = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === newStatus);
         
@@ -1119,15 +998,12 @@ const OrderHistory = () => {
         updateTabData("all", paginatedData, filterPagination);
         setOrders(allOrders);
 
-      } catch (error: unknown) {
+      } catch (error: any) {
         console.error("Error filtering orders:", error);
-        let errorMessage = "Đã xảy ra lỗi khi lọc đơn hàng!";
-        if (axios.isAxiosError(error) && error.response) {
-          errorMessage = error.response.data?.message || errorMessage;
-        }
-        setNotification({ 
-          message: errorMessage, 
-          type: "error" 
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: error.response?.data?.message || "Đã xảy ra lỗi khi lọc đơn hàng!",
         });
       } finally {
         setIsLoading(false);
@@ -1140,19 +1016,21 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để xem lịch sử đơn hàng!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để xem lịch sử đơn hàng!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return;
       }
 
       const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      let rawOrders = response.data;
+      const rawOrders = response.data;
       
       if (!Array.isArray(rawOrders)) {
-        setNotification({ message: "Dữ liệu đơn hàng không hợp lệ!", type: "error" });
-        console.error("API did not return an array:", rawOrders);
         Swal.fire({
           icon: "error",
           title: "Lỗi",
@@ -1162,20 +1040,14 @@ const OrderHistory = () => {
         return;
       }
 
-      // Hide VNPay pending orders
-      rawOrders = rawOrders.filter(order => !(order.hinhThucThanhToan === "VNPay" && order.trangThaiDonHang === 0));
-
-      // Sort by newest first
-      rawOrders.sort((a, b) => new Date(b.ngayDat).getTime() - new Date(a.ngayDat).getTime());
-
       setOrders(rawOrders);
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Error fetching orders:", error);
-      let errorMessage = "Đã xảy ra lỗi khi tải lịch sử đơn hàng!";
-      if (axios.isAxiosError(error) && error.response) {
-        errorMessage = error.response.data?.message || errorMessage;
-      }
-      setNotification({ message: errorMessage, type: "error" });
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error.response?.data?.message || "Đã xảy ra lỗi khi tải lịch sử đơn hàng!",
+      });
       setOrders([]);
     }
   };
@@ -1185,61 +1057,161 @@ const OrderHistory = () => {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       if (!maNguoiDung) {
-        setNotification({ message: "Vui lòng đăng nhập để kiểm tra bình luận!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để kiểm tra bình luận!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return;
       }
 
       const likedCommentsKey = `likedComments_${maNguoiDung}`;
       const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as string[];
-      setCommentedProducts(new Set(storedCommentedProducts));
+      setCommentedProducts(new Set<string>(storedCommentedProducts));
 
       const response = await axios.get("http://localhost:5261/api/Comment/list", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const comments = response.data || [];
       const userComments = Array.isArray(comments) 
-        ? comments.filter((comment: Comment) => comment.maNguoiDung === maNguoiDung)
+        ? comments.filter((comment: any) => comment.maNguoiDung === parseInt(maNguoiDung))
         : [];
       const apiCommentedProductKeys = new Set<string>(
-        userComments.map((comment) => `${comment.maDonHang}-${comment.maSanPham || comment.maCombo}`)
+        userComments.map((comment: any) => `${comment.maDonHang}-${comment.maSanPham || comment.maCombo}`)
       );
 
-      const mergedCommentedProductIds = new Set([...apiCommentedProductKeys, ...storedCommentedProducts]);
-      setCommentedProducts(mergedCommentedProductIds);
-      localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductIds]));
+      const mergedCommentedProductKeys = new Set<string>([...apiCommentedProductKeys, ...storedCommentedProducts]);
+      setCommentedProducts(mergedCommentedProductKeys);
+      localStorage.setItem(likedCommentsKey, JSON.stringify([...mergedCommentedProductKeys]));
     } catch (error) {
       console.error("Error fetching commented products:", error);
-      setNotification({ message: "Đã xảy ra lỗi khi kiểm tra bình luận!", type: "error" });
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Đã xảy ra lỗi khi kiểm tra bình luận!",
+      });
     }
   };
 
-  const handleAddComment = async (orderId: string, productId: number, content: string, rating: number) => {
+  const searchOrders = async (query: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để tra cứu đơn hàng!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
+        return;
+      }
+
+      if (!query.trim()) {
+        await fetchOrdersByUserId();
+        await fetchOrdersByStatus("all", 1);
+        return;
+      }
+
+      const response = await axios.get('http://localhost:5261/api/user/orders/search', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { query: query },
+      });
+
+      const rawOrders = response.data;
+      if (!Array.isArray(rawOrders)) {
+        setOrders([]);
+        updateTabData("all", [], { currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
+        return;
+      }
+
+      setOrders(rawOrders);
+      
+      const pageSize = 10;
+      const totalRecords = rawOrders.length;
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      const paginatedResults = rawOrders.slice(0, pageSize);
+
+      const searchPagination: PaginationInfo = {
+        currentPage: 1,
+        pageSize: pageSize,
+        totalRecords: totalRecords,
+        totalPages: totalPages,
+        hasNextPage: totalPages > 1,
+        hasPreviousPage: false
+      };
+
+      updateTabData("all", paginatedResults, searchPagination);
+
+    } catch (error: any) {
+      console.error("Error searching orders:", error);
+      if (error.response?.status === 401) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: error.response?.data?.message || "Đã xảy ra lỗi khi tra cứu đơn hàng!",
+        });
+        setOrders([]);
+        updateTabData("all", [], { currentPage: 1, pageSize: 10, totalRecords: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
+      }
+    }
+  };
+
+  const handleAddComment = async (
+    orderId: string,
+    productId: string,
+    content: string,
+    rating: number,
+    image?: string,
+    imageDescription?: string,
+    isCombo: boolean = false
+  ) => {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const maNguoiDung = userData?.maNguoiDung;
       const token = localStorage.getItem("token");
 
       if (!maNguoiDung || !token) {
-        setNotification({ message: "Vui lòng đăng nhập để thêm bình luận!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để thêm bình luận!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return false;
       }
 
       if (!content.trim() || rating < 1 || rating > 5) {
-        setNotification({ message: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!", type: "error" });
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng nhập nội dung bình luận và chọn đánh giá từ 1 đến 5 sao!",
+        });
         return false;
       }
 
       const commentData = {
-        maSanPham: productId.toString(),
+        maSanPham: isCombo ? null : productId,
+        maCombo: isCombo ? parseInt(productId) : 0,
         maNguoiDung: maNguoiDung,
         noiDungBinhLuan: content,
         danhGia: rating,
         ngayBinhLuan: new Date().toISOString(),
         trangThai: 0,
         soTimBinhLuan: 0,
-        maDonHang: orderId
+        maDonHang: orderId,
+        hinhAnh: image || null,
+        moTaHinhAnh: imageDescription || null,
       };
 
       const response = await axios.post("http://localhost:5261/api/Comment/add", commentData, {
@@ -1257,37 +1229,40 @@ const OrderHistory = () => {
           localStorage.setItem(likedCommentsKey, JSON.stringify([...newSet]));
           return newSet;
         });
-        setNotification({ message: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!", type: "success" });
+        Swal.fire({
+          icon: "success",
+          title: "Thành công",
+          text: "Bình luận của bạn đã được ghi lại và đang chờ duyệt!",
+          timer: 3000,
+          showConfirmButton: false,
+        });
         await fetchCommentedProducts();
         return true;
       }
       return false;
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Error adding comment:", error);
       let errorMessage = "Có lỗi xảy ra khi thêm bình luận!";
-      if (axios.isAxiosError(error) && error.response) {
-        if (error.response.status === 401) {
-          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
-          Swal.fire({
-            icon: "error",
-            title: "Lỗi",
-            text: errorMessage,
-          }).then(() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            navigate("/login");
-          });
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
-        } else {
-          errorMessage = `Lỗi server: ${error.response.status} - ${error.response.statusText}`;
-        }
-      } else if (axios.isAxiosError(error) && error.request) {
-        errorMessage = "Không nhận được phản hồi từ server. Vui lòng kiểm tra kết nối mạng!";
-      } else if (error instanceof Error) {
-        errorMessage = `Lỗi: ${error.message}`;
+      if (error.response?.status === 401) {
+        errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: errorMessage,
+          confirmButtonText: "Đăng nhập",
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        });
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       }
-      setNotification({ message: errorMessage, type: "error" });
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: errorMessage,
+      });
       return false;
     }
   };
@@ -1297,20 +1272,32 @@ const OrderHistory = () => {
     const token = localStorage.getItem("token");
     
     if (!userData?.maNguoiDung || !token) {
-      setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
-      navigate("/login");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Vui lòng đăng nhập để hủy đơn hàng!",
+        confirmButtonText: "Đăng nhập",
+      }).then(() => navigate("/login"));
       return;
     }
 
     const order = orders.find(o => o.maDonHang.toString() === orderId);
     if (!order) {
-      setNotification({ message: "Đơn hàng không tồn tại!", type: "error" });
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Đơn hàng không tồn tại!",
+      });
       return;
     }
 
     const orderStatus = mapStatus(order.trangThaiDonHang);
     if (orderStatus !== "pending" && orderStatus !== "processing") {
-      setNotification({ message: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!", type: "error" });
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Chỉ có thể hủy đơn hàng khi chưa xác nhận hoặc đang xử lý!",
+      });
       return;
     }
 
@@ -1321,7 +1308,11 @@ const OrderHistory = () => {
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
-      setNotification({ message: "Vui lòng nhập lý do hủy!", type: "error" });
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Vui lòng nhập lý do hủy!",
+      });
       return;
     }
     if (cancelOrderId === null) return;
@@ -1332,14 +1323,22 @@ const OrderHistory = () => {
       const token = localStorage.getItem("token");
       
       if (!maNguoiDung || !token) {
-        setNotification({ message: "Vui lòng đăng nhập để hủy đơn hàng!", type: "error" });
-        navigate("/login");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng đăng nhập để hủy đơn hàng!",
+          confirmButtonText: "Đăng nhập",
+        }).then(() => navigate("/login"));
         return;
       }
 
       const orderIdNumber = parseInt(cancelOrderId);
       if (isNaN(orderIdNumber)) {
-        setNotification({ message: "Mã đơn hàng không hợp lệ!", type: "error" });
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Mã đơn hàng không hợp lệ!",
+        });
         return;
       }
 
@@ -1368,49 +1367,18 @@ const OrderHistory = () => {
         const lockMessage = response.data.lockoutMessage || 
           "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá 3 lần trong vòng 30 ngày. Tài khoản sẽ được mở khóa sau 3 ngày.";
         
-        setNotification({ message: lockMessage, type: "error" });
-        
-        setTimeout(() => {
-          setNotification({ 
-            message: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.", 
-            type: "error" 
-          });
-        }, 3000);
-        
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        if (maNguoiDung) {
-          localStorage.removeItem(`likedComments_${maNguoiDung}`);
-        }
-        
-        setTimeout(() => {
-          navigate("/login");
-        }, 6000);
-      } else {
-        setNotification({ 
-          message: response.data.message || "Đơn hàng đã được hủy thành công!", 
-          type: "success" 
-        });
-        
-        await fetchOrdersByUserId();
-      }
-
-    } catch (error: unknown) {
-      console.error("Error canceling order:", error);
-      
-      setShowCancelModal(false);
-      setCancelReason('');
-      setCancelOrderId(null);
-      
-      const constErrorMessage = "Đã xảy ra lỗi khi hủy đơn hàng!";
-      
-      if (axios.isAxiosError(error) && error.response) {
-        if (error.response.status === 401) {
-          const errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+        Swal.fire({
+          icon: "error",
+          title: "Tài khoản bị khóa",
+          text: lockMessage,
+          footer: "<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>",
+        }).then(() => {
           Swal.fire({
-            icon: "error",
-            title: "Lỗi",
-            text: errorMessage,
+            icon: "info",
+            title: "Đăng xuất",
+            text: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.",
+            timer: 3000,
+            showConfirmButton: false,
           }).then(() => {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
@@ -1419,65 +1387,55 @@ const OrderHistory = () => {
             }
             navigate("/login");
           });
-        } else if (error.response.status === 403) {
-          Swal.fire({
-            icon: "error",
-            title: "Lỗi",
-            text: "Bạn không có quyền hủy đơn hàng này. Vui lòng kiểm tra lại thông tin đăng nhập.",
-          });
-        } else if (error.response.status === 400) {
-          if (error.response.data?.isAccountLocked) {
-            const lockMessage = error.response.data.lockoutMessage || "Tài khoản của bạn đã bị khóa do hủy đơn hàng quá nhiều lần. Tài khoản sẽ được mở khóa sau 3 ngày.";
-
-            Swal.fire({
-              icon: "error",
-              title: "Tài khoản bị khóa",
-              text: lockMessage,
-              footer: "<p>Tài khoản sẽ được tự động mở khóa sau 3 ngày.</p>",
-            }).then(() => {
-              Swal.fire({
-                icon: "info",
-                title: "Đăng xuất",
-                text: "Bạn sẽ được đăng xuất khỏi hệ thống. Vui lòng đợi 3 ngày để đăng nhập lại.",
-                timer: 3000,
-                showConfirmButton: false,
-              }).then(() => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-                if (maNguoiDung) {
-                  localStorage.removeItem(`likedComments_${maNguoiDung}`);
-                }
-                navigate("/login");
-              });
-            });
-          } else {
-            Swal.fire({
-              icon: "error",
-              title: "Lỗi",
-              text: error.response.data.message || "Không thể hủy đơn hàng này.",
-            });
+        });
+      } else {
+        let successMessage = response.data.message || "Đơn hàng đã được hủy thành công!";
+        if (response.data.remainingCancellations !== undefined) {
+          if (response.data.remainingCancellations === 1) {
+            successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 1 lần hủy đơn hàng. Nếu hủy thêm 1 lần nữa, tài khoản sẽ bị khóa trong 3 ngày.";
+          } else if (response.data.remainingCancellations === 2) {
+            successMessage += " ⚠️ Cảnh báo: Bạn chỉ còn 2 lần hủy đơn hàng. Hãy cẩn thận khi đặt hàng để tránh bị khóa tài khoản.";
           }
-        } else if (error.response.status === 404) {
-          Swal.fire({
-            icon: "error",
-            title: "Lỗi",
-            text: "Đơn hàng không tồn tại hoặc không thuộc về bạn.",
-          });
-        } else if (error.code === "ECONNABORTED") {
-          Swal.fire({
-            icon: "error",
-            title: "Lỗi",
-            text: "Yêu cầu hủy đơn hàng bị timeout. Vui lòng thử lại.",
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Lỗi",
-            text: constErrorMessage,
-          });
         }
+        Swal.fire({
+          icon: "success",
+          title: "Thành công",
+          text: successMessage,
+          timer: 5000,
+          showConfirmButton: false,
+        });
+        
+        await fetchOrdersByUserId();
       }
-      setNotification({ message: constErrorMessage, type: "error" });
+
+    } catch (error: any) {
+      console.error("Error canceling order:", error);
+      
+      setShowCancelModal(false);
+      setCancelReason('');
+      setCancelOrderId(null);
+      
+      let errorMessage = "Đã xảy ra lỗi khi hủy đơn hàng!";
+      
+      if (error.response?.status === 401) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+        });
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: errorMessage,
+      });
     }
   };
 
@@ -1498,7 +1456,7 @@ const OrderHistory = () => {
       const pages = [];
       const showPages = 5;
       let startPage = Math.max(1, pagination.currentPage - 2);
-      const endPage = Math.min(pagination.totalPages, startPage + showPages - 1);
+      let endPage = Math.min(pagination.totalPages, startPage + showPages - 1);
       
       if (endPage - startPage < showPages - 1) {
         startPage = Math.max(1, endPage - showPages + 1);
@@ -1580,27 +1538,40 @@ const OrderHistory = () => {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      searchOrders(allOrdersSearch, false);
+      if (allOrdersSearch.trim()) {
+        searchOrders(allOrdersSearch);
+      } else {
+        setFilterStatus("all");
+        fetchOrdersByUserId().then(() => {
+          fetchOrdersByStatus("all", 1);
+        });
+      }
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [allOrdersSearch, fetchOrdersByStatus, fetchOrdersByUserId, searchOrders]);
+  }, [allOrdersSearch]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      searchOrders(trackingSearch, true);
+      searchTrackingOrders(trackingSearch);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [trackingSearch, searchOrders]);
+  }, [trackingSearch]);
+
+  useEffect(() => {
+    if (!trackingSearch.trim()) {
+      setTrackingOrders(allOrdersData);
+    }
+  }, [allOrdersData, trackingSearch]);
 
   // Render functions
-  const renderEmptyState = (status: string, icon: JSX.Element, title: string, description: string) => (
+  const renderEmptyState = (status: string, icon: any, title: string, description: string) => (
     <div className="text-center py-12 bg-gray-50 rounded-lg">
       {icon}
       <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-500">{description}</p>
-      {status === 'all-orders' && (!allOrdersSearch) && (
+      {status === 'all' && (!searchQuery && !allOrdersSearch) && (
         <Button onClick={() => navigate("/products")} className="mt-4">
           Khám phá sản phẩm
         </Button>
@@ -1775,19 +1746,19 @@ const OrderHistory = () => {
               </label>
               
               <div className="flex flex-wrap gap-2 mb-3">
-                {cancelReasonsSuggestions.map((reason) => (
+                {cancelReasonsSuggestions.map((suggestion) => (
                   <Button
-                    key={reason}
+                    key={suggestion}
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setCancelReason(reason)}
+                    onClick={() => setCancelReason(suggestion)}
                     className={cn(
                       "text-xs",
-                      cancelReason === reason && "bg-primary text-primary-foreground"
+                      cancelReason === suggestion && "bg-primary text-primary-foreground"
                     )}
                   >
-                    {reason}
+                    {suggestion}
                   </Button>
                 ))}
               </div>
@@ -1808,25 +1779,35 @@ const OrderHistory = () => {
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">Lưu ý quan trọng</h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Đơn hàng chỉ có thể hủy khi chưa được giao hàng</li>
-                      <li>Sau khi hủy, bạn sẽ không thể khôi phục đơn hàng</li>
-                      <li>Việc hủy đơn hàng quá nhiều có thể ảnh hưởng đến tài khoản</li>
-                    </ul>
-                  </div>
-                </div>
+             <div className="ml-3">
+  <h3 className="text-sm font-medium text-yellow-800">Lưu ý quan trọng</h3>
+  <div className="mt-2 text-sm text-yellow-700">
+    <ul className="list-disc pl-5">
+      <li>Bạn chỉ được hủy tối đa 3 đơn hàng trong vòng 30 ngày.</li>
+      <li>Nếu vượt quá giới hạn, tài khoản của bạn sẽ bị khóa trong 3 ngày.</li>
+    </ul>
+  </div>
+</div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelModal(false)}>
-              Không hủy
+          <DialogFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCancelModal(false);
+                setCancelReason('');
+                setCancelOrderId(null);
+              }}
+            >
+              Đóng
             </Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim()}>
-              Xác nhận hủy đơn
+            <Button
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={!cancelReason.trim()}
+            >
+              Xác nhận hủy
             </Button>
           </DialogFooter>
         </DialogContent>

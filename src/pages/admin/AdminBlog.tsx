@@ -191,11 +191,15 @@ const AdminBlog = () => {
     if (!blogToDelete) return;
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/Blog/${blogToDelete.maBlog}`,
         {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
         }
       );
       if (response.status === 204) {
@@ -258,10 +262,14 @@ const AdminBlog = () => {
       const existingSlugs = blogs.map((blog) => blog.slug || "");
       const newSlug = generateSlug(newBlog.tieuDe, existingSlugs);
       const newMoTaHinhAnh = generateMoTaHinhAnh(newBlog.tieuDe);
+      const token = localStorage.getItem("token");
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog/CreateBlog`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           ...newBlog,
           maNguoiDung,
@@ -338,12 +346,16 @@ const AdminBlog = () => {
         .map((blog) => blog.slug || "");
       const newSlug = generateSlug(editBlog.tieuDe, existingSlugs);
       const newMoTaHinhAnh = generateMoTaHinhAnh(editBlog.tieuDe);
+      const token = localStorage.getItem("token");
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/Blog/${editBlog.maBlog}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({
             ...editBlog,
             ngayTao: new Date(editBlog.ngayTao).toISOString(),

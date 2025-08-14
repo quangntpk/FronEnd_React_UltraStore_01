@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Tag, Package, Percent, Eye, Edit, Trash2, Plus, Search, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Clock, CheckCircle, XCircle, Filter, X } from 'lucide-react';
 import PromotionForm from '@/components/admin/EventAdmin/CreateEvent';
 import EditPromotionForm from '@/components/admin/EventAdmin/EditEvent';
+import ViewEvent from '@/components/admin/EventAdmin/ViewEvent';
 
 const ListKhuyenMai = () => {
   const [khuyenMaiList, setKhuyenMaiList] = useState([]);
@@ -15,7 +16,9 @@ const ListKhuyenMai = () => {
   const [currentSlides, setCurrentSlides] = useState({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState(null);
+  const [selectedPromotion, setSelectedPromotion] = useState(null);
 
   const ITEMS_PER_PAGE = 6;
 
@@ -195,6 +198,11 @@ const ListKhuyenMai = () => {
     setIsEditModalOpen(!isEditModalOpen);
   };
 
+  const toggleViewModal = (promo) => {
+    setSelectedPromotion(promo);
+    setIsViewModalOpen(!isViewModalOpen);
+  };
+
   const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     if (totalPages <= 1) return null;
 
@@ -326,6 +334,20 @@ const ListKhuyenMai = () => {
               promotionId={selectedPromotionId} 
               onClose={() => toggleEditModal(null)} 
             />
+          </div>
+        </div>
+      )}
+
+      {isViewModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => toggleViewModal(null)}
+              className="absolute top-4 right-4 p-2 text-gray-600 hover:bg-gray-100 rounded-full"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <ViewEvent promotion={selectedPromotion} />
           </div>
         </div>
       )}
@@ -525,7 +547,7 @@ const ListKhuyenMai = () => {
                     const itemsToShow = promo.danhSachKhuyenMai?.slice(currentSlide * 3, (currentSlide + 1) * 3) || [];
 
                     return (
-                      <div key={promo.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden border-l-4 border-purple-500">
+                      <div key={promo.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden border-l-4 border-purple-500 flex flex-col">
                         {promo.hinhAnh && (
                           <div className="relative h-64 overflow-hidden">
                             <img
@@ -703,12 +725,12 @@ const ListKhuyenMai = () => {
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto">
                             <div className="text-sm text-gray-500">
                               ID: {promo.id}
                             </div>
                             <div className="flex items-center space-x-2">
-                              <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                              <button onClick={() => toggleViewModal(promo)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                 <Eye className="h-4 w-4" />
                               </button>
                               <button 

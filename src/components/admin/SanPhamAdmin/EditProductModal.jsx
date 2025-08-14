@@ -569,7 +569,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
                         <p className="text-red-500 text-sm mt-1">{errors.maThuongHieu}</p>
                       )}
                     </div>
-                    <div>
+                    <div hidden>
                       <label className="block mb-2 font-medium text-gray-700">Loại Sản Phẩm</label>
                       <select
                         value={loaiSanPham}

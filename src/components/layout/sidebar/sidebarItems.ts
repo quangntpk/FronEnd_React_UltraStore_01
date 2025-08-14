@@ -4,7 +4,7 @@ import {
   HelpCircle, CreditCard, Megaphone, MessageSquare,
   Calendar, Globe, Shield, Heart, ClipboardList, Newspaper, MessageCircle,
   TruckIcon as Truck, TagIcon as Tag, LayersIcon as Layers,
-  LayoutGrid
+  LayoutGrid, TicketPercent as badge
 } from "lucide-react";
 
 interface SidebarItemType {
@@ -22,6 +22,7 @@ export const adminItems: SidebarItemType[] = [
   { title: "Sản phẩm", icon: Package, path: "/admin/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/admin/combos", color: "text-teal-600" },
   { title: "Thương hiệu", icon: Tag, path: "/admin/thuonghieu", color: "text-indigo-600" },
+  { title: "Khuyến Mại", icon: badge, path: "/admin/events", color: "text-gray-600" },
   { title: "Loại sản phẩm", icon: LayoutGrid, path: "/admin/loaisanpham", color: "text-teal-600" },
   { title: "HashTag", icon: Globe, path: "/admin/hashtag", color: "text-teal-600" },
   { title: "Tài khoản", icon: Users, path: "/admin/users", color: "text-red-600" },
@@ -39,6 +40,7 @@ export const staffItems: SidebarItemType[] = [
   { title: "Mua offline", icon: CreditCard, path: "/staff/buy", color: "text-red-600" },
   { title: "Sản phẩm", icon: Package, path: "/staff/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/staff/combos", color: "text-teal-600" },
+  { title: "Khuyến Mại", icon: badge, path: "/staff/events", color: "text-gray-600" },
   { title: "Thương hiệu", icon: Tag, path: "/staff/thuonghieu", color: "text-indigo-600" },
   { title: "Loại sản phẩm", icon: LayoutGrid, path: "/staff/loaisanpham", color: "text-teal-600" },
   { title: "HashTag", icon: Globe, path: "/staff/hashtag", color: "text-teal-600" },

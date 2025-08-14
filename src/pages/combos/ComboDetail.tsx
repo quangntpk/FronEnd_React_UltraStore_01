@@ -285,7 +285,7 @@ const ComboDetail = () => {
 
     if (!userId) {
       showNotification("Vui lòng đăng nhập để thêm combo vào danh sách yêu thích!", "warning").then(() => {
-        navigate("/login");
+        navigate("/auth/login");
       });
       return;
     }
@@ -498,16 +498,19 @@ const ComboDetail = () => {
               {combo.products.map((product: any) => (
                 <Card key={product.id} className="overflow-hidden">
                   <CardContent className="p-4">
+
                     <div className="flex items-start gap-4">
+                      <Link to={`/products/${product.id}`}>
                       <img 
                         src={product.image} 
                         alt={product.name}
                         className="w-16 h-16 object-cover rounded-md"
-                      />
+                      /></Link>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h4 className="font-medium text-gray-900 truncate">{product.name}</h4>
+                                                  <Link to={`/products/${product.id}`}>
+                            <h4 className="font-medium text-gray-900 truncate">{product.name}</h4></Link>
                             <div className="text-sm text-gray-500 space-y-1">
                               <div>Thương hiệu: {product.brand}</div>
                               <div>Loại: {product.category}</div>
@@ -584,6 +587,8 @@ const ComboDetail = () => {
                         </div>
                       </div>
                     </div>
+
+                    
                   </CardContent>
                 </Card>
               ))}
