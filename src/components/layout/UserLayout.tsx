@@ -84,7 +84,7 @@ const UserLayout = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userID}`);
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userID}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -127,7 +127,7 @@ const UserLayout = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5261/api/YeuThich?maNguoiDung=${userID}`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich?maNguoiDung=${userID}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (!response.ok) {

@@ -113,7 +113,7 @@ const HoaDonPage = () => {
         
         if (!maNguoiDung) {
           // Nếu không có user, thử API public bill
-          const response = await axios.get(`http://localhost:5261/api/user/orders/bill/${orderId}`);
+          const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/bill/${orderId}`);
           // ✅ FIX: Type assertion với validation
           const orderData = response.data as Order;
           if (orderData && typeof orderData === 'object' && orderData.maDonHang) {
@@ -123,7 +123,7 @@ const HoaDonPage = () => {
           }
         } else {
           // Nếu có user, lấy từ orders để có đầy đủ thông tin
-          const response = await axios.get(`http://localhost:5261/api/user/orders/${maNguoiDung}`, {
+          const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/${maNguoiDung}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           });
           
@@ -136,7 +136,7 @@ const HoaDonPage = () => {
               setOrder(targetOrder);
             } else {
               // Fallback to bill API if not found in user orders
-              const billResponse = await axios.get(`http://localhost:5261/api/user/orders/bill/${orderId}`);
+              const billResponse = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/bill/${orderId}`);
               const billData = billResponse.data as Order;
               if (billData && typeof billData === 'object' && billData.maDonHang) {
                 setOrder(billData);
@@ -155,7 +155,7 @@ const HoaDonPage = () => {
         
         // Try fallback API
         try {
-          const response = await axios.get(`http://localhost:5261/api/user/orders/bill/${orderId}`);
+          const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/bill/${orderId}`);
           // ✅ FIX: Type assertion với validation
           const fallbackData = response.data as Order;
           if (fallbackData && typeof fallbackData === 'object' && fallbackData.maDonHang) {
@@ -183,7 +183,7 @@ const HoaDonPage = () => {
       
       try {
         setQrLoading(true);
-        const response = await axios.get(`http://localhost:5261/api/OrderNotification/test-qr-base64/${order.maDonHang}`);
+        const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/OrderNotification/test-qr-base64/${order.maDonHang}`);
         
         // ✅ FIX: Type assertion cho QR response
         const qrData = response.data as QRCodeResponse;

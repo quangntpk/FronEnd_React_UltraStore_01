@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
 import Swal from "sweetalert2";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
+const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
 
 const Newsletter = () => {
   const [email, setEmail] = useState<string>("");

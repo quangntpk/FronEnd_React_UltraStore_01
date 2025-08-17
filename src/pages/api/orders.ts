@@ -1,6 +1,6 @@
 // src/pages/api/orders.ts
 export const fetchOrders = async (search: string = '') => {
-    const API_URL = import.meta.env.VITE_API_URL; // VITE_API_URL = http://localhost:5261/api
+    const API_URL = import.meta.env.VITE_API_URL; // VITE_API_URL = https://bicacuatho.azurewebsites.net/api
     const response = await fetch(`${API_URL}/Orders${search ? `?search=${encodeURIComponent(search)}` : ''}`);
     if (!response.ok) throw new Error('Failed to fetch orders');
     return response.json();

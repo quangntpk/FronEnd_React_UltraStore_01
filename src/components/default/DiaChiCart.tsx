@@ -112,7 +112,7 @@ const AddressForm = ({
     const [isLoadingLeadTime, setIsLoadingLeadTime] = useState<boolean>(false);
     const [shippingFee, setShippingFee] = useState<ShippingOrderFee | null>(null);
     const [isLoadingShippingFee, setIsLoadingShippingFee] = useState<boolean>(false);
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
+    const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem("token");
@@ -471,7 +471,7 @@ const DiaChiCart = () => {
 
     const location = useLocation();
     const navigate = useNavigate();
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
+    const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem("token");

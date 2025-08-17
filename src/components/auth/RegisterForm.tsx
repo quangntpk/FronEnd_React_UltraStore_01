@@ -133,7 +133,7 @@ export const RegisterForm = () => {
 
 
     try {
-      const response = await axios.post("http://localhost:5261/api/XacThuc/DangKy", {
+      const response = await axios.post("https://bicacuatho.azurewebsites.net/api/XacThuc/DangKy", {
         hoTen: fullName,
         email,
         taiKhoan: account,
@@ -182,7 +182,7 @@ export const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5261/api/XacThuc/VerifyOtpActivate", {
+      const response = await axios.post("https://bicacuatho.azurewebsites.net/api/XacThuc/VerifyOtpActivate", {
         email,
         otp,
       });

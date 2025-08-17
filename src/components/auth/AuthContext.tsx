@@ -49,7 +49,7 @@ const setAuth = (newToken: string | null, newUser: User | null) => {
   const logout = async () => {
     try {
       await axios.post(
-        "http://localhost:5261/api/XacThuc/DangXuat",
+        "https://bicacuatho.azurewebsites.net/api/XacThuc/DangXuat",
         {},
         {
           headers: {

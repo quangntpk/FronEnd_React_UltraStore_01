@@ -29,7 +29,7 @@ const EditComboModal = ({ isEditModalOpen, setIsEditModalOpen, comboId }) => {
         setSearchLoading(true);
         try {
            const token = localStorage.getItem("token");
-          const response = await fetch(`http://localhost:5261/api/Combo/ComboSanPhamViewAdmin?id=${comboId}`, {
+          const response = await fetch(`https://https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamViewAdmin?id=${comboId}`, {
             method: "GET",
             headers: { "Content-Type": "application/json" },
             Authorization: token ? `Bearer ${token}` : undefined,
@@ -83,7 +83,7 @@ const EditComboModal = ({ isEditModalOpen, setIsEditModalOpen, comboId }) => {
         setSearchLoading(true);
         try {
            const token = localStorage.getItem("token");
-          const response = await fetch("http://localhost:5261/api/SanPham/ListSanPham", {
+          const response = await fetch("https://https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
             Authorization: token ? `Bearer ${token}` : undefined,
@@ -265,7 +265,7 @@ const EditComboModal = ({ isEditModalOpen, setIsEditModalOpen, comboId }) => {
           SoLuong: product.SoLuong,
         })),
       };
-      const response = await fetch("http://localhost:5261/api/Combo/EditComboSanPham", {
+      const response = await fetch("https://https://bicacuatho.azurewebsites.net/api/Combo/EditComboSanPham", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(comboDataToSend),

@@ -140,7 +140,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
       const token = localStorage.getItem('token');
 
       // Gọi API lấy chi tiết đơn hàng
-      const response = await axios.get(`http://localhost:5261/api/orders`, {
+      const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

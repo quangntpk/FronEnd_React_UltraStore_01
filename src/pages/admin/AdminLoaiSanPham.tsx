@@ -56,7 +56,7 @@ interface GroupedLoaiSanPham {
 }
 
 const ITEMS_PER_PAGE = 10;
-const API_URL = "http://localhost:5261";
+const API_URL = "https://bicacuatho.azurewebsites.net";
 
 const formatBase64Image = (base64String: string | null | undefined): string => {
   if (!base64String) return "/placeholder-image.jpg";

@@ -403,7 +403,7 @@ const EditMoTaEvent = ({ promotionId, initialData, onSave, onCancel }) => {
         }))
       });
 
-      const response = await fetch(`http://localhost:5261/api/KhuyenMai/MoTaKhuyenMaiUpdate`, {
+      const response = await fetch(`https://https://bicacuatho.azurewebsites.net/api/KhuyenMai/MoTaKhuyenMaiUpdate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

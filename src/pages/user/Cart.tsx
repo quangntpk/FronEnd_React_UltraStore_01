@@ -350,7 +350,7 @@ const CartPage = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:5261/api/DanhSachDiaChi/maNguoiDung/${userId}`
+          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`
         );
         const data = await response.json();
         setAddresses(
@@ -397,13 +397,13 @@ const CartPage = () => {
       }
 
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-        `http://localhost:5261/api/Cart/CopyGioHang?id=${userId}`
+        `https://bicacuatho.azurewebsites.net/api/Cart/CopyGioHang?id=${userId}`
       )}&size=200x200`;
       setQrCodeUrl(qrUrl);
 
       try {
         const response = await fetch(
-          `http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userId}`
+          `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
         );
         const data = await response.json();
         setCartId(data.id);
@@ -474,7 +474,7 @@ const CartPage = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:5261/api/DanhSachDiaChi/maNguoiDung/${userId}`
+          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`
         );
         const data = await response.json();
         setAddresses(
@@ -713,7 +713,7 @@ const handleSelectAddress = async (address: Address) => {
 
     try {
       if (change > 0) {
-        await fetch("http://localhost:5261/api/Cart/TangSoLuongSanPham", {
+        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/TangSoLuongSanPham", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -721,7 +721,7 @@ const handleSelectAddress = async (address: Address) => {
           body: JSON.stringify(info),
         });
       } else {
-        await fetch("http://localhost:5261/api/Cart/GiamSoLuongSanPham", {
+        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/GiamSoLuongSanPham", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -778,7 +778,7 @@ const handleSelectAddress = async (address: Address) => {
         IDCombo: null,
       };
       try {
-        await fetch("http://localhost:5261/api/Cart/XoaSanPham", {
+        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaSanPham", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -832,7 +832,7 @@ const handleSelectAddress = async (address: Address) => {
       };
 
       try {
-        await fetch("http://localhost:5261/api/Cart/XoaCombo", {
+        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaCombo", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -909,7 +909,7 @@ const handleSelectAddress = async (address: Address) => {
 
     try {
       const response = await fetch(
-        `http://localhost:5261/api/Voucher/Validate?code=${encodeURIComponent(
+        `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(
           promoCode
         )}&cartId=${cartId}`,
         {
@@ -991,7 +991,7 @@ const handleSelectAddress = async (address: Address) => {
 
     try {
       const response = await fetch(
-        `http://localhost:5261/api/Cart/GioHangByKhachHang?id=${userId}`
+        `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
       );
       const data = await response.json();
       setCartId(data.id);
@@ -1025,7 +1025,7 @@ const handleSelectAddress = async (address: Address) => {
 
       if (promoCode) {
         const voucherResponse = await fetch(
-          `http://localhost:5261/api/Voucher/Validate?code=${encodeURIComponent(
+          `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(
             promoCode
           )}&cartId=${data.id}`,
           {
@@ -1107,7 +1107,7 @@ const handleSelectAddress = async (address: Address) => {
       console.log("Sending paymentRequest:", paymentRequest);
 
       const paymentResponse = await fetch(
-        "http://localhost:5261/api/CheckOut/process-payment",
+        "https://bicacuatho.azurewebsites.net/api/CheckOut/process-payment",
         {
           method: "POST",
           headers: {

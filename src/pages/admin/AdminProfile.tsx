@@ -45,7 +45,7 @@ const Profile = () => {
     const fetchUserProfile = async () => {
       console.log("Token:", token);
       try {
-        const response = await axios.get<AdminData>("http://localhost:5261/api/UpdateProfile/profile", {
+        const response = await axios.get<AdminData>("https://bicacuatho.azurewebsites.net/api/UpdateProfile/profile", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -188,7 +188,7 @@ const Profile = () => {
 
     try {
       await axios.put(
-        `http://localhost:5261/api/UpdateProfile/update-profile/${userId}`,
+        `https://bicacuatho.azurewebsites.net/api/UpdateProfile/update-profile/${userId}`,
         formData,
         {
           headers: {
@@ -199,7 +199,7 @@ const Profile = () => {
       );
 
       // Lấy lại dữ liệu mới từ API sau khi cập nhật
-      const response = await axios.get<AdminData>("http://localhost:5261/api/UpdateProfile/profile", {
+      const response = await axios.get<AdminData>("https://bicacuatho.azurewebsites.net/api/UpdateProfile/profile", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -282,7 +282,7 @@ const Profile = () => {
 
     try {
       await axios.put(
-        `http://localhost:5261/api/UpdateProfile/update-password/${userId}`,
+        `https://bicacuatho.azurewebsites.net/api/UpdateProfile/update-password/${userId}`,
         formData,
         {
           headers: {

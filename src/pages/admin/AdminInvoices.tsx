@@ -118,7 +118,7 @@ const Vouchers = () => {
     try {
       setLoading(true);
          const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5261/api/Voucher`,{
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Voucher`,{
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +157,7 @@ const Vouchers = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5261/api/Voucher/${voucherToDelete.maVoucher}`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Voucher/${voucherToDelete.maVoucher}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ const Vouchers = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5261/api/Voucher`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Voucher`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : undefined,
@@ -292,7 +292,7 @@ const Vouchers = () => {
       console.log("Sending payload to update voucher:", JSON.stringify(payload, null, 2)); // Debug payload
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:5261/api/Voucher`, {        
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Voucher`, {        
         method: 'PUT',
         headers: { 'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : undefined,

@@ -800,7 +800,7 @@ const Index = () => {
         setLoadingCombos(true);
 
         // Lấy danh sách bình luận
-        const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
+        const commentResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Không thể tải bình luận");
         const commentData = await commentResponse.json();
 
@@ -815,7 +815,7 @@ const Index = () => {
         const currentUserId = userData?.maNguoiDung;
         let yeuThichData: any[] = [];
         if (currentUserId) {
-          const yeuThichResponse = await fetch("http://localhost:5261/api/YeuThich", {
+          const yeuThichResponse = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
           });
           if (yeuThichResponse.ok) {
@@ -824,7 +824,7 @@ const Index = () => {
         }
 
         // Lấy danh sách sản phẩm
-        const productResponse = await fetch("http://localhost:5261/api/SanPham/ListSanPham");
+        const productResponse = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham");
         if (!productResponse.ok) {
           throw new Error("Không thể tải sản phẩm");
         }
@@ -835,7 +835,7 @@ const Index = () => {
         setErrorProducts(null);
 
         // Lấy danh sách combo
-        const comboResponse = await fetch("http://localhost:5261/api/Combo/ComboSanPhamView");
+        const comboResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView");
         if (!comboResponse.ok) {
           throw new Error("Không thể tải combo");
         }
@@ -885,7 +885,7 @@ const Index = () => {
       }
 
       if (product?.isFavorite) {
-        const response = await fetch(`http://localhost:5261/api/YeuThich/${product.likedId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich/${product.likedId}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
@@ -903,7 +903,7 @@ const Index = () => {
           soLuongYeuThich: 1,
           ngayYeuThich: new Date().toISOString(),
         };
-        const response = await fetch("http://localhost:5261/api/YeuThich", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -944,7 +944,7 @@ const Index = () => {
       }
 
       if (combo?.isFavorite) {
-        const response = await fetch(`http://localhost:5261/api/YeuThich/${combo.likedId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich/${combo.likedId}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
@@ -962,7 +962,7 @@ const Index = () => {
           soLuongYeuThich: 1,
           ngayYeuThich: new Date().toISOString(),
         };
-        const response = await fetch("http://localhost:5261/api/YeuThich", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

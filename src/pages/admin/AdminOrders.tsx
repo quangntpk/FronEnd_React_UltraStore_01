@@ -215,7 +215,7 @@ const AdminOrders: React.FC = () => {
       const token = localStorage.getItem('token');
       
       const response = await axios.get<CurrentUser>(
-        'http://localhost:5261/api/orders/current-user',
+        'https://bicacuatho.azurewebsites.net/api/orders/current-user',
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -300,7 +300,7 @@ const AdminOrders: React.FC = () => {
       if (activeTab === 'canceled') {
         // Special API for cancelled orders with pagination
         const response = await axios.get<CancelledOrdersResponse>(
-          `http://localhost:5261/api/orders/cancelled?page=${pageToUse}&pageSize=${ordersPerPage}`, 
+          `https://bicacuatho.azurewebsites.net/api/orders/cancelled?page=${pageToUse}&pageSize=${ordersPerPage}`, 
           {
             headers: { Authorization: `Bearer ${token}` }
           }
@@ -343,7 +343,7 @@ const AdminOrders: React.FC = () => {
         }
       } else {
         // Main API for all other orders
-        const response = await axios.get<Order[]>('http://localhost:5261/api/orders', {
+        const response = await axios.get<Order[]>('https://bicacuatho.azurewebsites.net/api/orders', {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -356,7 +356,7 @@ const AdminOrders: React.FC = () => {
         // Get cancelled count from separate API call
         try {
           const cancelledResponse = await axios.get<CancelledOrdersResponse>(
-            'http://localhost:5261/api/orders/cancelled?page=1&pageSize=1',
+            'https://bicacuatho.azurewebsites.net/api/orders/cancelled?page=1&pageSize=1',
             { headers: { Authorization: `Bearer ${token}` } }
           );
           counts.canceled = cancelledResponse.data.pagination.totalRecords;
@@ -501,7 +501,7 @@ const AdminOrders: React.FC = () => {
       console.log('Sending userId:', currentUser.maNguoiDung);
 
       const response = await axios.put(
-        `http://localhost:5261/api/orders/approve/${id}`,
+        `https://bicacuatho.azurewebsites.net/api/orders/approve/${id}`,
         { userId: currentUser.maNguoiDung },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -540,7 +540,7 @@ const AdminOrders: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:5261/api/orders/cancel/${cancelOrderId}`,
+        `https://bicacuatho.azurewebsites.net/api/orders/cancel/${cancelOrderId}`,
         JSON.stringify(cancelReason),
         {
           headers: {

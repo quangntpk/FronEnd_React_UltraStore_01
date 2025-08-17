@@ -15,7 +15,7 @@ interface LoaiSanPhamView {
   hinhAnh?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5261";
+const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
 
 const CategoryView = () => {
   const [loaiSanPhams, setLoaiSanPhams] = useState<LoaiSanPhamView[]>([]);

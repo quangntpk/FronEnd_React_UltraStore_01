@@ -96,7 +96,7 @@ const Comments = ({ productId }) => {
     const fetchComments = async () => {
       try {
         const baseProductId = productId.length >= 6 ? productId.substring(0, 6) : null;
-        const commentResponse = await fetch("http://localhost:5261/api/Comment/list");
+        const commentResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
         const commentData = await commentResponse.json();
         const productComments = commentData
@@ -166,7 +166,7 @@ const Comments = ({ productId }) => {
     };
 
     try {
-      const response = await fetch("http://localhost:5261/api/Comment/add", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +193,7 @@ const Comments = ({ productId }) => {
     if (!commentToDelete) return;
 
     try {
-      const response = await fetch(`http://localhost:5261/api/Comment/delete/${commentToDelete}`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Comment/delete/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
       });
@@ -229,8 +229,8 @@ const Comments = ({ productId }) => {
 
     const isLiked = likedComments.has(maBinhLuan);
     const endpoint = isLiked
-      ? `http://localhost:5261/api/Comment/Unlike/${maBinhLuan}`
-      : `http://localhost:5261/api/Comment/Like/${maBinhLuan}`;
+      ? `https://bicacuatho.azurewebsites.net/api/Comment/Unlike/${maBinhLuan}`
+      : `https://bicacuatho.azurewebsites.net/api/Comment/Like/${maBinhLuan}`;
 
     try {
       const response = await fetch(endpoint, {

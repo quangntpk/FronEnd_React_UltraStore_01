@@ -25,7 +25,7 @@ const ListKhuyenMai = () => {
   const fetchKhuyenMaiList = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5261/api/KhuyenMai/ListKhuyenMaiAdmin');
+      const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/ListKhuyenMaiAdmin');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
