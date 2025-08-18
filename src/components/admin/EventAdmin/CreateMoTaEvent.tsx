@@ -440,7 +440,7 @@ const KhuyenMaiForm = ({ onCancel }) => {
       });
 
       // Send to backend
-      const response = await fetch('https://https://bicacuatho.azurewebsites.net/api/KhuyenMai/MoTaKhuyenMaiCreate', {
+      const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/MoTaKhuyenMaiCreate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

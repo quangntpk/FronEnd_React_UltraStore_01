@@ -83,7 +83,7 @@ import DiaChiTime from "./components/default/DiaChiTime";
 import VnpayReturn from "./router/Vnpayreturn";
 
 
-import ChiTietKhuyenMai from "./components/user/KhuyenMai/KhuyenMaiDetail";
+import KhuyenMaiList from "./components/user/KhuyenMai/KhuyenMaiList";
 import ListKhuyenMai from "./pages/admin/AdminEvent";
 import DetailEvent from "./components/user/KhuyenMai/KhuyenMaiDetail";
 const GoogleCallbackHandler = () => {
@@ -208,8 +208,8 @@ const App = () => (
                 <Route path="search" element={<Search />} />
                 <Route path="diachitime" element={<DiaChiTime />} />
 
-                <Route path="KhuyenMais"></Route>
-                 <Route path="KhuyenMais/:id" element={<DetailEvent />}></Route>
+                <Route path="KhuyenMais" element={<KhuyenMaiList/>}></Route>
+                <Route path="KhuyenMais/:id" element={<DetailEvent />}></Route>
               </Route>
 
               <Route path="/staff" element={<AdminLayout role="staff" />}>

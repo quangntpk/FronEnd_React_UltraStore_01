@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, Component, ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Star, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
+import { Heart, ShoppingCart, Star, ChevronLeft, ChevronRight, Sun, Moon ,CalendarDays, Tag, Eye, Trash2} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,92 @@ import {
 } from "@/components/ui/carousel";
 import { CartItem } from "@/types/cart";
 import Swal from "sweetalert2";
+interface PromotionItem {
+  id: number;
+  idSanPham?: string;
+  idCombo?: number;
+  tenSanPhamCombo: string;
+  giaMoi: number;
+  percent: number;
+  giaGoc: number;
+  hinhAnh: string[];
+}
 
+interface PromotionData {
+  id: number;
+  tenKhuyenMai: string;
+  ngayBatDau: string;
+  ngayKetThuc: string;
+  percentChung: number;
+  hinhAnh: string[];
+  danhSachKhuyenMai: PromotionItem[];
+  moTa: {
+    header: {
+      title: string;
+    };
+    Picture: Array<{
+      url: string;
+    }>;
+    title: Array<{
+      name: string;
+      subtitle: Array<{
+        name: string;
+        description: {
+          content: string;
+        };
+        picture: {
+          url: string;
+        };
+      }>;
+      picture: {
+        url: string;
+      };
+    }>;
+  };
+}
+interface PromotionItem {
+  id: number;
+  idSanPham?: string;
+  idCombo?: number;
+  tenSanPhamCombo: string;
+  giaMoi: number;
+  percent: number;
+  giaGoc: number;
+  hinhAnh: string[];
+}
+
+interface PromotionData {
+  id: number;
+  tenKhuyenMai: string;
+  ngayBatDau: string;
+  ngayKetThuc: string;
+  percentChung: number;
+  hinhAnh: string[];
+  danhSachKhuyenMai: PromotionItem[];
+  moTa: {
+    header: {
+      title: string;
+    };
+    Picture: Array<{
+      url: string;
+    }>;
+    title: Array<{
+      name: string;
+      subtitle: Array<{
+        name: string;
+        description: {
+          content: string;
+        };
+        picture: {
+          url: string;
+        };
+      }>;
+      picture: {
+        url: string;
+      };
+    }>;
+  };
+}
 // Định nghĩa interface cho dữ liệu từ API (Products)
 interface ApiProduct {
   id: string;
@@ -294,7 +379,321 @@ const transformComboApiData = (apiData: ApiCombo[], yeuThichData: any[]): Combo[
     };
   });
 };
+const PromotionCard = ({ promotion }: { promotion: PromotionData }) => {
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
+  const calculateDaysRemaining = (endDate: string) => {
+    try {
+      const today = new Date();
+      const end = new Date(endDate);
+      const diffTime = end.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.max(0, diffDays);
+    } catch {
+      return 0;
+    }
+  };
+
+  const getDiscountPercent = () => {
+    // Nếu percentChung có giá trị (khác null/undefined/0), sử dụng percentChung
+    if (promotion.percentChung && promotion.percentChung > 0) {
+      return promotion.percentChung;
+    }
+    
+    // Nếu percentChung null hoặc 0, tìm % giảm giá lớn nhất trong danhSachKhuyenMai
+    if (promotion.danhSachKhuyenMai && promotion.danhSachKhuyenMai.length > 0) {
+      const maxPercent = Math.max(...promotion.danhSachKhuyenMai.map(item => item.percent || 0));
+      return maxPercent;
+    }
+    
+    return 0;
+  };
+
+  const getMainImage = () => {
+    if (promotion.moTa?.Picture && promotion.moTa.Picture.length > 0) {
+      return promotion.moTa.Picture[0].url;
+    }
+    if (promotion.hinhAnh && promotion.hinhAnh.length > 0) {
+      return promotion.hinhAnh[0];
+    }
+    return null;
+  };
+
+  const daysRemaining = calculateDaysRemaining(promotion.ngayKetThuc);
+  const mainImage = getMainImage();
+  const discountPercent = getDiscountPercent();
+
+  return (
+    <Card className="overflow-hidden h-full relative">
+      {/* Header với ảnh nền */}
+      <div className="relative h-48 bg-gradient-to-br from-purple-400 via-pink-500 to-red-500">
+        {mainImage && (
+          <img
+            src={mainImage.startsWith('data:') ? mainImage : `data:image/jpeg;base64,${mainImage}`}
+            alt={promotion.tenKhuyenMai}
+            className="w-full h-full object-cover"
+          />
+        )}
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/40" />
+        
+        {/* Discount badge */}
+        <div className="absolute top-4 right-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-3 min-w-[80px] min-h-[80px] flex flex-col items-center justify-center shadow-lg z-10">
+          <div className="text-xs font-medium leading-tight text-center">
+            Giảm tới
+          </div>
+          <div className="text-lg font-bold leading-none">
+            {discountPercent > 0 ? discountPercent : 'Tới'}%
+          </div>
+        </div>
+        
+
+        {/* Status badge */}
+        <div className="absolute top-4 left-4">
+          <Badge className={`${daysRemaining > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white`}>
+            {daysRemaining > 0 ? 'Đang diễn ra' : 'Đã kết thúc'}
+          </Badge>
+        </div>
+
+        {/* Title overlay */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <h3 className="text-white font-bold text-lg mb-2 line-clamp-2">
+            {promotion.tenKhuyenMai}
+          </h3>
+        </div>
+      </div>
+
+      <CardContent className="p-4">
+        {/* Thời gian */}
+        <div className="flex items-center gap-4 mb-4 text-sm">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-blue-500" />
+            <span className="text-gray-600">
+              {formatDate(promotion.ngayBatDau)} - {formatDate(promotion.ngayKetThuc)}
+            </span>
+          </div>
+        </div>
+
+        {/* Thông tin áp dụng */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Tag className="w-4 h-4 text-green-500" />
+            <span className="text-sm font-medium">
+              {promotion.percentChung && promotion.percentChung > 0 
+                ? `Giảm giá chung ${promotion.percentChung}% toàn bộ sản phẩm` 
+                : `Giảm giá theo sản phẩm (tối đa ${discountPercent}%)`
+              }
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              Áp dụng cho: {promotion.percentChung && promotion.percentChung > 0 
+                ? 'Toàn bộ sản phẩm' 
+                : `${promotion.danhSachKhuyenMai.length} sản phẩm`
+              }
+            </span>
+            <span className="text-sm font-medium text-blue-600">
+              Còn lại: {daysRemaining} ngày
+            </span>
+          </div>
+        </div>
+
+        {/* Danh sách sản phẩm khuyến mãi - chỉ hiển thị khi không phải giảm giá chung */}
+        {(!promotion.percentChung || promotion.percentChung === 0) && 
+         promotion.danhSachKhuyenMai && promotion.danhSachKhuyenMai.length > 0 && (
+          <div className="mb-4">
+            <h4 className="font-semibold text-gray-800 mb-3 text-sm">
+              Sản phẩm và Combo khuyến mãi:
+            </h4>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {promotion.danhSachKhuyenMai.slice(0, 3).map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  {item.hinhAnh && item.hinhAnh.length > 0 && (
+                    <img
+                      src={item.hinhAnh[0].startsWith('data:') ? item.hinhAnh[0] : `data:image/jpeg;base64,${item.hinhAnh[0]}`}
+                      alt={item.tenSanPhamCombo}
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {item.tenSanPhamCombo}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-red-600">
+                        {item.giaMoi.toLocaleString('vi-VN')} VND
+                      </span>
+                      {item.giaGoc > item.giaMoi && (
+                        <span className="text-xs text-gray-500 line-through">
+                          {item.giaGoc.toLocaleString('vi-VN')} VND
+                        </span>
+                      )}
+                      <Badge variant="secondary" className="text-xs px-2 py-0">
+                        -{item.percent}%
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {promotion.danhSachKhuyenMai.length > 3 && (
+                <div className="text-center text-sm text-gray-500 py-2">
+                  +{promotion.danhSachKhuyenMai.length - 3} sản phẩm khác
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
+            <Tag className="w-5 h-5 text-purple-600" />
+            <span className="text-sm text-purple-800 font-medium">
+              {promotion.percentChung && promotion.percentChung > 0
+                ? `Giảm giá ${promotion.percentChung}% cho toàn bộ sản phẩm và combo`
+                : `Giảm giá cho ${promotion.danhSachKhuyenMai.length} sản phẩm được chọn`
+              }
+            </span>
+          </div>
+          
+          <div className="text-xs text-gray-600 bg-yellow-50 p-2 rounded">
+            {promotion.percentChung && promotion.percentChung > 0
+              ? `Tất cả sản phẩm và combo trong cửa hàng được giảm giá ${promotion.percentChung}%`
+              : `Giảm giá từ 1% đến ${discountPercent}% cho các sản phẩm được chọn`
+            }
+          </div>
+        </div>
+
+        {/* View Details Button */}
+        <div className="flex gap-2 mt-4 absolute bottom-4 left-4 right-4">
+          <Button variant="outline" className="flex-1" size="sm">
+            <Eye className="w-4 h-4 mr-2" />
+            Xem chi tiết
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Component chính cho slider
+const PromotionSlider = () => {
+  const [promotions, setPromotions] = useState<PromotionData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/ListKhuyenMaiUser');
+        
+        if (!response.ok) {
+          throw new Error('Không thể tải danh sách khuyến mãi');
+        }
+        
+        const data = await response.json();
+        setPromotions(data || []);
+        setError(null);
+      } catch (err) {
+        console.error('Lỗi khi lấy dữ liệu khuyến mãi:', err);
+        setError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPromotions();
+  }, []);
+
+  // Group promotions into pairs for slides
+  const groupedPromotions = [];
+  for (let i = 0; i < promotions.length; i += 2) {
+    groupedPromotions.push(promotions.slice(i, i + 2));
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-32 mx-auto mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+        <p className="mt-4 text-gray-600">Đang tải khuyến mãi...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 py-8">
+        <p>Lỗi: {error}</p>
+        <Button 
+          variant="outline" 
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          Thử lại
+        </Button>
+      </div>
+    );
+  }
+
+  if (promotions.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-8">
+        <Tag className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+        <p>Hiện tại không có khuyến mãi nào</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="mb-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">Khuyến mãi hot</h2>
+        <Button asChild variant="link" className="text-crocus-600">
+          <Link to="/promotions">
+            Xem tất cả <span aria-hidden="true">→</span>
+          </Link>
+        </Button>
+      </div>
+
+      <Carousel className="w-full">
+        <CarouselContent>
+          {groupedPromotions.map((pair, index) => (
+            <CarouselItem key={index} className="basis-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pair.map((promotion) => (
+                  <PromotionCard key={promotion.id} promotion={promotion} />
+                ))}
+                {/* Fill empty space if only one promotion in pair */}
+                {pair.length === 1 && <div className="hidden md:block"></div>}
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="left-4" />
+        <CarouselNext className="right-4" />
+      </Carousel>
+    </section>
+  );
+};
 // Component cho ProductCard
 const ProductCard = ({
   product,
@@ -351,7 +750,7 @@ const ProductCard = ({
       )}
       style={{ transitionDelay: `${index * 150}ms` }}
     >
-      <Card className="overflow-hidden group relative">
+      <Card className="overflow-hidden group relative" style={{ height: "650px" }}>
         <div className="relative aspect-square">
           <Link to={`/products/${product.id}`}>
             <img
@@ -512,7 +911,7 @@ const ProductCard = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 absolute bottom-4 left-4 right-4">
             <Button asChild variant="outline" size="sm" className="flex-1">
               <Link to={`/products/${product.id}`}>Chi tiết</Link>
             </Button>
@@ -1002,9 +1401,9 @@ const Index = () => {
       {/* Hero Section */}
       <HeroSection />
       <CategoryView />
-      {/* Features */}
+      <PromotionSlider />
       <Features />
-   <VoucherUser />
+      <VoucherUser />
       {/* Featured Products */}
       <section>
         <div className="flex justify-between items-center mb-8">

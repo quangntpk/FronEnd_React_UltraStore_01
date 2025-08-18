@@ -37,7 +37,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     const fetchLoaiSanPham = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://https://bicacuatho.azurewebsites.net/api/LoaiSanPham", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/LoaiSanPham", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

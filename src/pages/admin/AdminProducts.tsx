@@ -369,7 +369,7 @@ const Products = () => {
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Ngưng Bán",
+      confirmButtonText: "Ngừng Bán",
       cancelButtonText: "Hủy",
     }).then(async (result) => {
       if (result.isConfirmed) {
@@ -384,7 +384,7 @@ const Products = () => {
           if (response.ok) {
             Swal.fire({
               title: "Thành công!",
-              text: "Ngưng Bán sản phẩm thành công!",
+              text: "Ngừng Bán sản phẩm thành công!",
               icon: "success",
               timer: 3000,
               timerProgressBar: true,
@@ -395,14 +395,14 @@ const Products = () => {
           } else {
             Swal.fire({
               title: "Lỗi!",
-              text: "Có lỗi xảy ra khi ngưng bán sản phẩm.",
+              text: "Có lỗi xảy ra khi ngừng bán sản phẩm.",
               icon: "error",
             });
           }
         } catch (error) {
           Swal.fire({
             title: "Lỗi!",
-            text: "Có lỗi hệ thống khi ngưng bán.",
+            text: "Có lỗi hệ thống khi ngừng bán.",
             icon: "error",
           });
         }
@@ -617,9 +617,9 @@ const Products = () => {
           </div>
 
           {view === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" style={{ gridAutoRows: "1fr" }}>
               {currentProducts.map((product) => (
-                <Card key={product.id} className="hover-scale overflow-hidden group relative">
+                <Card key={product.id} className="hover-scale overflow-hidden group relative flex flex-col h-full">
                   {selectMode && (
                     <div className="absolute top-2 left-2 z-10">
                       <Checkbox
@@ -629,7 +629,8 @@ const Products = () => {
                       />
                     </div>
                   )}
-                  <div className="aspect-square bg-purple-light flex items-center justify-center">
+                  {/* Phần hình ảnh - co giãn theo nội dung */}
+                  <div className="bg-purple-light flex items-center justify-center flex-1">
                     <img
                       src={
                         product.hinh && product.hinh[0]
@@ -640,13 +641,15 @@ const Products = () => {
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold">{product.name || "Không có tên"}</h3>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          Thương hiệu: {product.thuongHieu || "Không xác định"}
-                        </p>
+                  
+                  {/* Content - phần cố định ở dưới */}
+                  <CardContent className="p-4 flex-shrink-0">
+                    {/* Header với tên và dropdown */}
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 pr-2">
+                        <h3 className="font-semibold text-2xl leading-tight line-clamp-2">
+                          {product.name || "Không có tên"}
+                        </h3>
                       </div>
                       {!selectMode && (
                         <DropdownMenu>
@@ -654,9 +657,9 @@ const Products = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                             >
-                              <MoreVertical className="h-4 w-4" />
+                              <MoreVertical className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -679,32 +682,45 @@ const Products = () => {
                         </DropdownMenu>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Badge className="bg-blue-500 text-white hover:bg-blue-600">
-                        <Tag className="h-3 w-3 mr-1" /> {product.loaiSanPham || "N/A"}
-                      </Badge>
-                      <Badge className="bg-green-500 text-white hover:bg-green-600">
-                        <Tag className="h-3 w-3 mr-1" /> {product.chatLieu || "N/A"}
-                      </Badge>
-                      <Badge
-                        className={product.trangThai === 0 ? "bg-red-500 text-white" : "bg-teal-500 text-white"}
-                      >
-                        {product.trangThai === 0 ? "Tạm Ngưng Bán" : "Đang Bán"}
-                      </Badge>
+
+                    {/* Thương hiệu */}
+                    <div className="mb-3">
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        Thương hiệu: {product.thuongHieu || "Không xác định"}
+                      </p>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {(product.listHashTag || []).slice(0, 3).map((hashtag) => (
-                        <Badge key={hashtag.id} className="bg-purple-500 text-white hover:bg-purple-600">
-                          <Tag className="h-3 w-3 mr-1" /> #{hashtag.name}
+
+                    {/* Badges - luôn nằm ngay dưới thương hiệu */}
+                    <div className="mb-3" style={{height: "50px"}}>
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        <Badge className="bg-blue-500 text-white hover:bg-blue-600 text-xs py-0 px-1">
+                          <Tag className="h-2 w-2 mr-1" /> {product.loaiSanPham || "N/A"}
                         </Badge>
-                      ))}
+                        <Badge className="bg-green-500 text-white hover:bg-green-600 text-xs py-0 px-1">
+                          <Tag className="h-2 w-2 mr-1" /> {product.chatLieu || "N/A"}
+                        </Badge>
+                        <Badge
+                          className={`${product.trangThai === 0 ? "bg-red-500 text-white" : "bg-teal-500 text-white"} text-xs py-0 px-1`}
+                        >
+                          {product.trangThai === 0 ? "Tạm Ngừng" : "Đang Bán"}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1" >
+                        {(product.listHashTag || []).slice(0, 3).map((hashtag) => (
+                          <Badge key={hashtag.id} className="bg-purple-500 text-white hover:bg-purple-600 text-xs py-0 px-1">
+                            <Tag className="h-2 w-2 mr-1" /> #{hashtag.name}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center mt-3">
-                      <span className="font-bold text-purple-600">
+
+                    {/* Giá và số lượng - luôn ở cuối cùng */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-2xl font-bold text-red-600">
                         {(product.donGia/1000)?.toFixed(3) || "0"} VND
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Còn lại: {product.soLuong || 0} sản phẩm
+                        Số lượng còn: {product.soLuong || 0} sản phẩm
                       </span>
                     </div>
                   </CardContent>
@@ -738,11 +754,11 @@ const Products = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.name || "Không có tên"}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
+                    <p className="text-2xl text-muted-foreground line-clamp-1">
                       Thương hiệu: {product.thuongHieu || "Không xác định"}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2" style={{height: "150px"}}>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className="bg-blue-500 text-white hover:bg-blue-600">
                         <Tag className="h-3 w-3 mr-1" /> {product.loaiSanPham || "N/A"}
@@ -760,7 +776,7 @@ const Products = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-purple-600">
+                    <div className="text-2xl font-bold text-red-600">
                       {(product.donGia / 1000)?.toFixed(3) || "0"} VND
                     </div>
                     <div className="text-xs text-muted-foreground">
