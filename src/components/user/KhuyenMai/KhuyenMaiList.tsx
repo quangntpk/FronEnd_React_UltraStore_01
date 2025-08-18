@@ -344,7 +344,7 @@ return (
                     <option value="urgent" className="text-gray-800">🚨 Cực gấp (≤1 ngày)</option>
                     <option value="ending-soon" className="text-gray-800">⚠️ Sắp hết (2-7 ngày)</option>
                     <option value="active" className="text-gray-800">✨ Còn thời gian (8-30 ngày)</option>
-                    <option value="long-term" className="text-gray-800">🔮 Dài hạn (>30 ngày)</option>
+                    <option value="long-term" className="text-gray-800">🔮 Dài hạn (&gt;30 ngày)</option>
                   </select>
                 </div>
               </div>
