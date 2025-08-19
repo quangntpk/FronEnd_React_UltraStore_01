@@ -71,25 +71,25 @@ jobs:
           ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
-      - name: Create server.js if not exists
+      - name: Create server.cjs if not exists
         run: |
-          # Server.js should already exist in the repo now
-          ls -la server.js || echo "Warning: server.js not found"
+          # Server.cjs should already exist in the repo now
+          ls -la server.cjs || echo "Warning: server.cjs not found"
 
       - name: Create deployment package
         run: |
           mkdir deployment-package
           cp -r dist/ deployment-package/
-          cp server.js deployment-package/
+          cp server.cjs deployment-package/
           
           # Create production package.json
           cat << 'EOF' > deployment-package/package.json
           {
             "name": "fashionhub-production",
             "version": "1.0.0",
-            "main": "server.js",
+            "main": "server.cjs",
             "scripts": {
-              "start": "node server.js"
+              "start": "node server.cjs"
             },
             "dependencies": {
               "express": "^4.18.2",
