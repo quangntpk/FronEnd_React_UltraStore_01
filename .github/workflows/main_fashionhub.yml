@@ -22,13 +22,12 @@ jobs:
 
       - name: npm install and fix dependencies
         run: |
-          npm install
-          # Cập nhật các gói để tránh phiên bản cũ
+          npm install --legacy-peer-deps  # Sử dụng --legacy-peer-deps để né lỗi ERESOLVE
           npm install @vitejs/plugin-react-swc@3.5.0 --save-dev
           npm install vite@latest lovable-tagger@latest react-quill@latest --save
-          npm uninstall xlsx --save  # Xóa xlsx nếu không cần thiết
-          npm install exceljs --save  # Thay thế bằng exceljs
-          npm audit fix --force  # Áp dụng bản vá, chấp nhận thay đổi lớn
+          npm uninstall xlsx --save
+          npm install exceljs --save
+          npm audit fix --force
           echo "Running vite build..."
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
