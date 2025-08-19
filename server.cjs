@@ -16,7 +16,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files from the dist directory
-const staticPath = path.join(__dirname, 'dist');
+const staticPath = path.join(__dirname, 'dist'); // Ensure dist is in the same directory
 app.use(express.static(staticPath, {
   maxAge: '1d', // Cache static assets for 1 day
   etag: false

@@ -71,10 +71,6 @@ jobs:
           ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
-      - name: Create server.cjs if not exists
-        run: |
-          ls -la server.cjs || echo "Warning: server.cjs not found"
-
       - name: Create deployment package
         run: |
           mkdir deployment-package
@@ -100,7 +96,7 @@ jobs:
           }
           EOF
 
-          # Install production dependencies
+          # Install production dependencies in the deployment package
           cd deployment-package
           npm install --production --legacy-peer-deps
           cd ..
