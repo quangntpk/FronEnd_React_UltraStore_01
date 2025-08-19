@@ -26,14 +26,14 @@ jobs:
       - name: npm install and build
         run: |
           npm install
-          CI=false npm run build --if-present || echo "Build failed, check package.json scripts"
-          ls -la  # Debug: Kiểm tra thư mục build có tồn tại
+          CI=false vite build --if-present || echo "Build failed, check vite configuration"
+          ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: build/
+          path: dist/  # Thay đổi từ build/ thành dist/ vì Vite tạo dist/
 
   deploy:
     runs-on: ubuntu-latest
