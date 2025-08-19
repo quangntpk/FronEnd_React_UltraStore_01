@@ -26,14 +26,16 @@ jobs:
       - name: npm install and build
         run: |
           npm install
-          CI=false vite build --if-present || echo "Build failed, check vite configuration"
+          echo "Running vite build..."
+          CI=false vite build || { echo "Vite build failed"; exit 1; }
           ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
+          if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: dist/  # Thay đổi từ build/ thành dist/ vì Vite tạo dist/
+          path: dist/
 
   deploy:
     runs-on: ubuntu-latest
