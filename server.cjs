@@ -22,13 +22,12 @@ app.use(express.static(staticPath, {
   etag: false
 }));
 
-// API routes (if you have any backend endpoints)
+// API routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Handle React routing - return all requests to React app
-// This must be the last route
+// Handle React routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticPath, 'index.html'));
 });

@@ -73,7 +73,6 @@ jobs:
 
       - name: Create server.cjs if not exists
         run: |
-          # Server.cjs should already exist in the repo now
           ls -la server.cjs || echo "Warning: server.cjs not found"
 
       - name: Create deployment package
@@ -101,7 +100,7 @@ jobs:
           }
           EOF
 
-          # Install production dependencies in deployment-package
+          # Install production dependencies
           cd deployment-package
           npm install --production --legacy-peer-deps
           cd ..
@@ -133,7 +132,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_05BE2F3777B44714AE907F61B4DCD33C }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1617E5DD0A844789AE7AA1CAD9F5C9FC }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
