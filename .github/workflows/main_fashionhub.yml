@@ -101,6 +101,11 @@ jobs:
           }
           EOF
 
+          # Install production dependencies in deployment-package
+          cd deployment-package
+          npm install --production --legacy-peer-deps
+          cd ..
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
