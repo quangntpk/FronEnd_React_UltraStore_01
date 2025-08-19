@@ -23,10 +23,10 @@ jobs:
       - name: npm install and fix dependencies
         run: |
           npm install --legacy-peer-deps
-          npm install @vitejs/plugin-react-swc@3.5.0 --save-dev
-          npm install vite@latest lovable-tagger@latest react-quill@latest --save
+          npm install @vitejs/plugin-react-swc@3.5.0 --legacy-peer-deps --save-dev
+          npm install vite@latest lovable-tagger@latest react-quill@latest --legacy-peer-deps --save
           npm uninstall xlsx --save
-          npm install exceljs --save
+          npm install exceljs --legacy-peer-deps --save
           npm audit fix --force
           echo "Running vite build..."
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
@@ -34,7 +34,7 @@ jobs:
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
       - name: List installed packages
-        run: npm list --depth=0  # Thêm bước này để liệt kê các gói đã cài
+        run: npm list --depth=0
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
