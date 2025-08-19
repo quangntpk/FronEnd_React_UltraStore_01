@@ -1,26 +1,51 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 8080;
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:8080', 'https://fashionhub.azurewebsites.net'],
+  credentials: true
+}));
+
+// Parse JSON bodies
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+const staticPath = path.join(__dirname, 'dist');
+app.use(express.static(staticPath, {
+  maxAge: '1d', // Cache static assets for 1 day
+  etag: false
+}));
 
-// Handle React Router - send all requests to index.html
+// API routes (if you have any backend endpoints)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Handle React routing - return all requests to React app
+// This must be the last route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Server is running on http://localhost:${port}`);
+  console.log(`📁 Serving static files from: ${staticPath}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
 });

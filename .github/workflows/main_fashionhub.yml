@@ -23,12 +23,6 @@ jobs:
       - name: npm install and fix dependencies
         run: |
           npm install --legacy-peer-deps
-          npm install express --legacy-peer-deps --save
-          npm install @vitejs/plugin-react-swc@3.5.0 --legacy-peer-deps --save-dev
-          npm install vite@5.4.19 lovable-tagger@latest react-quill@latest --legacy-peer-deps --save
-          npm uninstall xlsx --save
-          npm install exceljs --legacy-peer-deps --save
-          npm audit fix --force || true
 
       - name: Create vite.config.js if not exists
         run: |
@@ -76,18 +70,23 @@ jobs:
           ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
+      - name: Create server.js if not exists
+        run: |
+          # Server.js should already exist in the repo now
+          ls -la server.js || echo "Warning: server.js not found"
+
       - name: Create deployment package
         run: |
           mkdir deployment-package
           cp -r dist/ deployment-package/
           cp server.js deployment-package/
-          cp package.json deployment-package/
           
-          # Create a minimal package.json for production
+          # Create production package.json
           cat << 'EOF' > deployment-package/package.json
           {
             "name": "fashionhub-production",
             "version": "1.0.0",
+            "main": "server.js",
             "scripts": {
               "start": "node server.js"
             },
