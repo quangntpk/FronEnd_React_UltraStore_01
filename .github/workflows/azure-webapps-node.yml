@@ -109,6 +109,6 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'FashionHub' # Đảm bảo tên chính xác
+          app-name: 'FashionHUb' # Đảm bảo tên chính xác
           slot-name: 'Production'
           package: node-app
