@@ -28,51 +28,44 @@ jobs:
           npm uninstall xlsx --save
           npm install exceljs --legacy-peer-deps --save
           npm audit fix --force || true
+
       - name: Create vite.config.js if not exists
         run: |
           if [ ! -f vite.config.js ]; then
             cat << 'EOF' > vite.config.js
-import { defineConfig } from "vite";
- Check failure on line 36 in .github/workflows/main_fashionhub.yml
+          import { defineConfig } from "vite";
+          import react from "@vitejs/plugin-react-swc";
+          import path from "path";
+          import { componentTagger } from "lovable-tagger";
 
-
-GitHub Actions
-/ .github/workflows/main_fashionhub.yml
-Invalid workflow file
-
-You have an error in your yaml syntax on line 36
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
-
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-    proxy: {
-      "/api/ghn": {
-        target: "https://dev-online-gateway.ghn.vn",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ghn/, ""),
-      },
-    },
-  },
-  plugins: [
-    react(),
-    mode === "development" && componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  build: {
-    rollupOptions: {
-      external: ["react-quill/dist/quill.snow.css"]  # Loại bỏ xlsx vì đã uninstall
-    }
-  },
-}));
-EOF
+          export default defineConfig(({ mode }) => ({
+            server: {
+              host: "::",
+              port: 8080,
+              proxy: {
+                "/api/ghn": {
+                  target: "https://dev-online-gateway.ghn.vn",
+                  changeOrigin: true,
+                  rewrite: (path) => path.replace(/^\/api\/ghn/, ""),
+                },
+              },
+            },
+            plugins: [
+              react(),
+              mode === "development" && componentTagger(),
+            ].filter(Boolean),
+            resolve: {
+              alias: {
+                "@": path.resolve(__dirname, "./src"),
+              },
+            },
+            build: {
+              rollupOptions: {
+                external: ["react-quill/dist/quill.snow.css"]
+              }
+            },
+          }));
+          EOF
           fi
 
       - name: Running vite build...
@@ -81,6 +74,7 @@ EOF
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -114,4 +108,4 @@ EOF
         with:
           app-name: 'FashionHub'
           slot-name: 'Production'
-          package: node-app  # Chỉ định rõ thư mục artifact
+          package: node-app
