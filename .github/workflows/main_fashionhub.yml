@@ -24,54 +24,54 @@ jobs:
         run: |
           npm install --legacy-peer-deps
 
+      - name: Create vite.config.js if not exists
+        run: |
+          if [ ! -f vite.config.js ]; then
+            cat << 'EOF' > vite.config.js
+          import { defineConfig } from "vite";
+          import react from "@vitejs/plugin-react-swc";
+          import path from "path";
+          import { componentTagger } from "lovable-tagger";
+
+          export default defineConfig(({ mode }) => ({
+            server: { host: "::", port: 8080 },
+            plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+            resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+            build: { rollupOptions: { external: ["react-quill/dist/quill.snow.css"] } },
+          }));
+          EOF
+          fi
+
       - name: Running vite build...
         run: |
           echo "Running vite build..."
-          npm run build
+          CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la
-          if [ ! -d "dist/" ]; then 
-            echo "Error: dist/ directory not found"; 
-            exit 1; 
-          fi
-          echo "✅ Build successful. Dist contents:"
-          ls -la dist/
+          if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
       - name: Create deployment package
         run: |
           mkdir deployment-package
-          
-          # Copy dist folder completely
-          cp -r dist deployment-package/
-          
-          # Copy server
+          cp -r dist/* deployment-package/  # Copy dist contents directly
           cp server.cjs deployment-package/
           
-          # Simple package.json
+          # Create production package.json with all necessary dependencies
           cat << 'EOF' > deployment-package/package.json
           {
             "name": "fashionhub-production",
             "version": "1.0.0",
             "main": "server.cjs",
-            "scripts": { 
-              "start": "node server.cjs"
-            },
+            "scripts": { "start": "node server.cjs" },
             "dependencies": {
               "express": "^4.18.2",
               "cors": "^2.8.5"
             },
-            "engines": { 
-              "node": "20.x"
-            }
+            "engines": { "node": "20.x" }
           }
           EOF
 
-          echo "📦 Deployment package structure:"
-          ls -la deployment-package/
-          echo "📦 Dist folder in package:"
-          ls -la deployment-package/dist/
-          
           cd deployment-package
-          npm install --production
+          npm install --production --legacy-peer-deps
           cd ..
 
       - name: Upload artifact for deployment job
