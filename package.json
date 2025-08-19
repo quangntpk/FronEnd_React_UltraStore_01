@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "node server.js",
+    "start": "node server.cjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "serve": "serve -s dist -l 8080"
