@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Tag, Package, Percent, Clock, ArrowLeft, Heart, Share2, ShoppingCart, Star, Eye } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-
+import { Link } from 'react-router-dom';
 interface ProductDetail {
   kichThuoc: string;
   soLuong: number;
@@ -140,6 +140,7 @@ const ChiTietKhuyenMai = () => {
             const productResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${productId}`);
             if (productResponse.ok) {
               detailedItem.productDetails = await productResponse.json();
+              console.log(detailedItem.productDetails)
             }
           } catch (error) {
             console.error(`Error fetching product details for ${item.idSanPham}:`, error);
@@ -387,90 +388,118 @@ const ChiTietKhuyenMai = () => {
                     <div className="space-y-6">
                       {products.map((item, index) => (
                         <div key={index} className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                              <h4 className="text-xl font-semibold text-gray-900">{item.tenSanPhamCombo}</h4>
-                              <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-                                -{item.percent}%
-                              </span>
-                            </div>
-                            {item.idSanPham && (
-                              <div className="text-sm text-gray-500">
-                                Màu: {getColorFromId(item.idSanPham)} | Size: {getSizeFromId(item.idSanPham)}
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {/* Product Image Section */}
+                            <div className="flex justify-center">
+                              <div className="w-full max-w-md">
+                                <img 
+                                  src={item.hinhAnh && item.hinhAnh.length > 0 
+                                    ? (item.hinhAnh[0].startsWith('data:') 
+                                        ? item.hinhAnh[0] 
+                                        : `data:image/jpeg;base64,${item.hinhAnh[0]}`)
+                                    : '/placeholder-image.png'
+                                  }
+                                  alt={item.tenSanPhamCombo}
+                                  className="w-full h-80 object-cover rounded-lg shadow-md"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/placeholder-image.png';
+                                  }}
+                                />
                               </div>
-                            )}
-                          </div>
+                            </div>
 
-                          {item.productDetails && item.productDetails.length > 0 && (
+                            {/* Product Info Section */}
                             <div className="space-y-4">
-                              {item.productDetails.map((product, prodIndex) => (
-                                <div key={prodIndex} className="bg-gray-50 rounded-lg p-4">
-                                  <div className="grid md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                      <p className="text-sm text-gray-600 mb-2">
-                                        <span className="font-medium">Thương hiệu:</span> {product.maThuongHieu}
-                                      </p>
-                                      <p className="text-sm text-gray-600 mb-2">
-                                        <span className="font-medium">Chất liệu:</span> {product.chatLieu}
-                                      </p>
-                                      <p className="text-sm text-gray-600 mb-2">
-                                        <span className="font-medium">Màu sắc:</span> {getColorName(product.mauSac)}
-                                      </p>
-                                      <p className="text-sm text-gray-600">
-                                        <span className="font-medium">Loại:</span> {product.loaiSanPham}
-                                      </p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-2xl font-bold text-purple-600">
-                                        {formatCurrency(calculateDiscountedPrice(item.giaGoc, item.percent))}
-                                      </p>
-                                      <p className="text-lg text-gray-500 line-through">
-                                        {formatCurrency(item.giaGoc)}
-                                      </p>
-                                      <p className="text-sm text-green-600 font-medium">
-                                        Tiết kiệm: {formatCurrency(item.giaGoc - calculateDiscountedPrice(item.giaGoc, item.percent))}
-                                      </p>
-                                    </div>
-                                  </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <h4 className="text-xl font-semibold text-gray-900">{item.tenSanPhamCombo}</h4>
+                                  <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    -{item.percent}%
+                                  </span>
+                                </div>
+                              </div>
 
-                                  {/* Size options */}
-                                  <div className="mb-4">
-                                    <p className="text-sm font-medium text-gray-700 mb-2">Kích thước có sẵn:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {product.details.map((detail, detailIndex) => (
-                                        <div key={detailIndex} className="bg-white border border-gray-300 rounded-lg px-3 py-2">
-                                          <span className="font-medium">{detail.kichThuoc.trim()}</span>
-                                          <span className="text-gray-500 text-sm ml-2">({detail.soLuong} còn lại)</span>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-purple-600">
+                                  {formatCurrency(calculateDiscountedPrice(item.giaGoc, item.percent))}
+                                </p>
+                                <p className="text-lg text-gray-500 line-through">
+                                  {formatCurrency(item.giaGoc)}
+                                </p>
+                                <p className="text-sm text-green-600 font-medium">
+                                  Tiết kiệm: {formatCurrency(item.giaGoc - calculateDiscountedPrice(item.giaGoc, item.percent))}
+                                </p>
+                              </div>
+
+                              {item.productDetails && item.productDetails.length > 0 && (
+                                <div className="space-y-4">
+                                  {item.productDetails.map((product, prodIndex) => (
+                                    <div key={prodIndex} className="bg-gray-50 rounded-lg p-4">
+                                      <div className="grid md:grid-cols-1 gap-4 mb-4">
+                                        <div>
+                                          <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-medium">Thương hiệu:</span> {product.maThuongHieu}
+                                          </p>
+                                          <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-medium">Chất liệu:</span> {product.chatLieu}
+                                          </p>
+                                          <p className="text-sm text-gray-600 mb-2">
+                                            <span className="font-medium">Màu sắc:</span> {getColorName(product.mauSac)}
+                                          </p>
+                                          <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Loại:</span> {product.loaiSanPham}
+                                          </p>
                                         </div>
-                                      ))}
-                                    </div>
-                                  </div>
+                                      </div>
 
-                                  {/* Hash tags */}
-                                  {product.listHashTag && product.listHashTag.length > 0 && (
-                                    <div className="mb-4">
-                                      <p className="text-sm font-medium text-gray-700 mb-2">Tags:</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {product.listHashTag.map((tag, tagIndex) => (
-                                          <span key={tagIndex} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                                            #{tag.name}
-                                          </span>
-                                        ))}
+                                      {/* Size options */}
+                                      <div className="mb-4">
+                                        <p className="text-sm font-medium text-gray-700 mb-2">Kích thước có sẵn:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {product.details.map((detail, detailIndex) => (
+                                            <div key={detailIndex} className="bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                              <span className="font-medium">{detail.kichThuoc.trim()}</span>
+                                              <span className="text-gray-500 text-sm ml-2">({detail.soLuong} còn lại)</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      {/* Hash tags */}
+                                      {product.listHashTag && product.listHashTag.length > 0 && (
+                                        <div className="mb-4">
+                                          <p className="text-sm font-medium text-gray-700 mb-2">Tags:</p>
+                                          <div className="flex flex-wrap gap-2">
+                                            {product.listHashTag.map((tag, tagIndex) => (
+                                              <span key={tagIndex} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                                #{tag.name}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-xs text-gray-500">ID: {item.idSanPham}</span>                                   
                                       </div>
                                     </div>
-                                  )}
-
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-500">ID: {item.idSanPham}</span>
-                                    <button className="bg-purple-600 text-white px-6 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors flex items-center">
-                                      <ShoppingCart className="w-4 h-4 mr-2" />
-                                      Thêm vào giỏ
-                                    </button>
-                                  </div>
+                                  ))}
                                 </div>
-                              ))}
+                              )}
+
+                              {/* Updated Button with proper hover effect */}
+                              <div className="mt-4">
+                                <Link 
+                                  to={`/products/${item.idSanPham}`} 
+                                  className="inline-flex items-center justify-center w-full max-w-xs bg-gradient-to-r from-pink-400 via-pink-500 to-purple-500 text-white px-6 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-xl hover:from-transparent hover:via-transparent hover:to-transparent hover:bg-white hover:text-purple-600 border-2 border-transparent hover:border-purple-500"
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Đi đến trang chi tiết
+                                </Link>
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -572,10 +601,14 @@ const ChiTietKhuyenMai = () => {
 
                                   <div className="flex justify-between items-center mt-4">
                                     <span className="text-xs text-gray-500">Combo ID: {item.idCombo}</span>
-                                    <button className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors flex items-center">
-                                      <ShoppingCart className="w-4 h-4 mr-2" />
-                                      Thêm combo vào giỏ
-                                    </button>
+                                    {/* Updated Button for combo */}
+                                    <Link 
+                                      to={`/combos/${item.idCombo}`} 
+                                      className="inline-flex items-center justify-center bg-gradient-to-r from-pink-400 via-pink-500 to-purple-500 text-white px-6 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-xl hover:from-transparent hover:via-transparent hover:to-transparent hover:bg-white hover:text-purple-600 border-2 border-transparent hover:border-purple-500 w-full max-w-xs"
+                                    >
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Đi đến trang chi tiết
+                                    </Link>
                                   </div>
                                 </div>
                               ))}

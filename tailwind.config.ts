@@ -114,7 +114,10 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+			},
+			fontFamily: {
+				arial: ['Arial', 'sans-serif'],
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
