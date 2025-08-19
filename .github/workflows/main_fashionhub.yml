@@ -27,7 +27,7 @@ jobs:
           npm install vite@5.4.19 lovable-tagger@latest react-quill@latest --legacy-peer-deps --save
           npm uninstall xlsx --save
           npm install exceljs --legacy-peer-deps --save
-          npm audit fix --force || true  # Bỏ qua lỗi nếu npm audit fix thất bại
+          npm audit fix --force || true
 
       - name: Create vite.config.js if not exists
         run: |
@@ -59,29 +59,21 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      external: ["react-quill/dist/quill.snow.css"]  # Loại bỏ xlsx vì đã uninstall
+    }
+  },
 }));
 EOF
           fi
-
-      - name: Modify vite.config.js to add external dependencies
-        run: |
-          # Thêm cấu hình external cho xlsx và react-quill/dist/quill.snow.css
-          sed -i '/export default defineConfig((.*) => ({/a\
-  build: {\
-    rollupOptions: {\
-      external: ["xlsx", "react-quill/dist/quill.snow.css"]\
-    }\
-  },' vite.config.js
 
       - name: Running vite build...
         run: |
           echo "Running vite build..."
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
-          ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
+          ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
-
-      - name: List installed packages
-        run: npm list --depth=0
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -101,6 +93,7 @@ EOF
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          path: node-app
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -115,4 +108,4 @@ EOF
         with:
           app-name: 'FashionHub'
           slot-name: 'Production'
-          package: .
+          package: node-app  # Chỉ định rõ thư mục artifact
