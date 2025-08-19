@@ -24,7 +24,9 @@ jobs:
         run: |
           npm install
           npm install @vitejs/plugin-react-swc@3.5.0 --save-dev
-          npm audit fix
+          npm audit fix --force  # Áp dụng bản vá, chấp nhận thay đổi lớn
+          # Cập nhật vite và lovable-tagger lên phiên bản mới nhất
+          npm install vite@latest lovable-tagger@latest --save-dev
           echo "Running vite build..."
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
