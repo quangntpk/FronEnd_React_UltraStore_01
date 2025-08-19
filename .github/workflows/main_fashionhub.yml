@@ -24,10 +24,18 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm install @vitejs/plugin-react-swc@3.5.0 --legacy-peer-deps --save-dev
-          npm install vite@5.4.19 lovable-tagger@latest react-quill@latest --legacy-peer-deps --save  # Giữ vite@5.4.19
+          npm install vite@5.4.19 lovable-tagger@latest react-quill@latest --legacy-peer-deps --save
           npm uninstall xlsx --save
           npm install exceljs --legacy-peer-deps --save
           npm audit fix --force || true  # Bỏ qua lỗi nếu npm audit fix thất bại
+
+      - name: Modify vite.config.js to externalize xlsx
+        run: |
+          # Tạo bản sao tạm của vite.config.js với external cho xlsx
+          sed -i 's/export default defineConfig(/export default defineConfig({\n  build: {\n    rollupOptions: {\n      external: ["xlsx"]\n    }\n  },/' vite.config.js
+
+      - name: Running vite build...
+        run: |
           echo "Running vite build..."
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
