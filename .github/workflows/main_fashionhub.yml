@@ -19,66 +19,181 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
+          cache: 'npm'
 
-      - name: npm install and fix dependencies
+      - name: Clean install dependencies
         run: |
-          npm install --legacy-peer-deps
+          echo "🧹 Cleaning npm cache and node_modules..."
+          npm cache clean --force
+          rm -rf node_modules package-lock.json
+          echo "📦 Installing dependencies..."
+          npm install --legacy-peer-deps --no-audit --no-fund
 
-      - name: Create vite.config.js if not exists
+      - name: Create optimized vite.config.js
         run: |
-          if [ ! -f vite.config.js ]; then
-            cat << 'EOF' > vite.config.js
+          echo "⚙️ Creating production vite config..."
+          cat << 'EOF' > vite.config.production.js
           import { defineConfig } from "vite";
           import react from "@vitejs/plugin-react-swc";
           import path from "path";
-          import { componentTagger } from "lovable-tagger";
 
-          export default defineConfig(({ mode }) => ({
-            server: { host: "::", port: 8080 },
-            plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-            resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-            build: { rollupOptions: { external: ["react-quill/dist/quill.snow.css"] } },
-          }));
+          export default defineConfig({
+            plugins: [react()],
+            resolve: { 
+              alias: { "@": path.resolve(__dirname, "./src") } 
+            },
+            build: { 
+              outDir: "dist",
+              emptyOutDir: true,
+              sourcemap: false,
+              minify: "esbuild",
+              chunkSizeWarningLimit: 1600,
+              rollupOptions: { 
+                external: ["react-quill/dist/quill.snow.css"],
+                output: {
+                  manualChunks: {
+                    vendor: ['react', 'react-dom'],
+                    router: ['react-router-dom']
+                  }
+                }
+              }
+            },
+            define: {
+              'process.env.NODE_ENV': '"production"'
+            }
+          });
           EOF
-          fi
 
-      - name: Running vite build...
+      - name: Build React application
         run: |
-          echo "Running vite build..."
-          CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
+          echo "🏗️ Building React application for production..."
+          NODE_ENV=production npx vite build -c vite.config.production.js
+          
+          echo "📊 Build verification:"
           ls -la
-          if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
+          if [ ! -d "dist/" ]; then 
+            echo "❌ ERROR: dist/ directory not found after build"
+            exit 1
+          fi
+          
+          echo "📂 Dist folder contents:"
+          ls -la dist/
+          
+          if [ ! -f "dist/index.html" ]; then
+            echo "❌ ERROR: index.html not found in dist/"
+            exit 1
+          fi
+          
+          echo "✅ Build successful!"
 
-      - name: Create deployment package
+      - name: Create Azure deployment package
         run: |
+          echo "📦 Creating deployment package..."
           mkdir deployment-package
-          cp -r dist/* deployment-package/  # Copy dist contents directly
+          
+          # ✅ CRITICAL: Copy dist FOLDER (not contents) to match server expectation
+          cp -r dist deployment-package/
           cp server.cjs deployment-package/
           
-          # Create production package.json with all necessary dependencies
+          # Create optimized package.json for Azure
           cat << 'EOF' > deployment-package/package.json
           {
-            "name": "fashionhub-production",
+            "name": "fashionhub-azure",
             "version": "1.0.0",
             "main": "server.cjs",
-            "scripts": { "start": "node server.cjs" },
+            "scripts": { 
+              "start": "node server.cjs"
+            },
             "dependencies": {
               "express": "^4.18.2",
               "cors": "^2.8.5"
             },
-            "engines": { "node": "20.x" }
+            "engines": { 
+              "node": "20.x",
+              "npm": ">=10.0.0"
+            }
           }
           EOF
 
+          # ✅ Create web.config for Azure App Service
+          cat << 'EOF' > deployment-package/web.config
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <system.webServer>
+              <handlers>
+                <add name="iisnode" path="server.cjs" verb="*" modules="iisnode"/>
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name="DynamicContent">
+                    <conditions>
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
+                    </conditions>
+                    <action type="Rewrite" url="server.cjs"/>
+                  </rule>
+                </rules>
+              </rewrite>
+              <iisnode 
+                nodeProcessCommandLine="node"
+                loggingEnabled="true"
+                devErrorsEnabled="true"
+                watchedFiles="*.js"
+              />
+              <defaultDocument>
+                <files>
+                  <clear />
+                  <add value="server.cjs" />
+                </files>
+              </defaultDocument>
+            </system.webServer>
+          </configuration>
+          EOF
+
+          # ✅ Create .deployment file for Azure
+          cat << 'EOF' > deployment-package/.deployment
+          [config]
+          command = npm install --production && node server.cjs
+          EOF
+
+          echo "📊 Deployment package structure:"
+          ls -la deployment-package/
+          echo "📊 Dist folder in package:"
+          ls -la deployment-package/dist/
+          echo "📊 Server file:"
+          ls -la deployment-package/server.cjs
+
+          # Install production dependencies
           cd deployment-package
-          npm install --production --legacy-peer-deps
+          echo "📦 Installing production dependencies..."
+          npm install --production --no-audit --no-fund --legacy-peer-deps
+          
+          echo "📊 Node modules installed:"
+          ls -la node_modules/ | head -10
+          
+          echo "📊 Final package size:"
+          du -sh .
           cd ..
+
+      - name: Verify deployment package
+        run: |
+          echo "🔍 Final verification of deployment package..."
+          
+          # Check critical files exist
+          test -f deployment-package/server.cjs || { echo "❌ server.cjs missing"; exit 1; }
+          test -f deployment-package/package.json || { echo "❌ package.json missing"; exit 1; }
+          test -d deployment-package/dist || { echo "❌ dist folder missing"; exit 1; }
+          test -f deployment-package/dist/index.html || { echo "❌ index.html missing"; exit 1; }
+          test -d deployment-package/node_modules || { echo "❌ node_modules missing"; exit 1; }
+          
+          echo "✅ All critical files present"
+          echo "📊 Package ready for deployment"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: deployment-package/
+          retention-days: 1
 
   deploy:
     runs-on: ubuntu-latest
@@ -86,6 +201,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
       - name: Download artifact from build job
@@ -93,6 +211,14 @@ jobs:
         with:
           name: node-app
           path: node-app
+
+      - name: Verify downloaded artifact
+        run: |
+          echo "🔍 Verifying downloaded artifact..."
+          ls -la node-app/
+          test -f node-app/server.cjs || { echo "❌ server.cjs missing in artifact"; exit 1; }
+          test -d node-app/dist || { echo "❌ dist folder missing in artifact"; exit 1; }
+          echo "✅ Artifact verification successful"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -108,3 +234,16 @@ jobs:
           app-name: 'FashionHub'
           slot-name: 'Production'
           package: node-app
+
+      - name: Post-deployment verification
+        run: |
+          echo "🔍 Waiting for deployment to stabilize..."
+          sleep 30
+          
+          echo "🏥 Testing health endpoint..."
+          curl -f https://fashionhub.azurewebsites.net/health || echo "⚠️ Health check failed"
+          
+          echo "🐛 Testing debug endpoint..."
+          curl -f https://fashionhub.azurewebsites.net/api/debug || echo "⚠️ Debug endpoint failed"
+          
+          echo "✅ Deployment verification completed"
