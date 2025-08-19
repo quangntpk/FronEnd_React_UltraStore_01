@@ -23,7 +23,6 @@ jobs:
       - name: npm install and fix dependencies
         run: |
           npm install --legacy-peer-deps
-          npm install chart.js --legacy-peer-deps --save
 
       - name: Create vite.config.js if not exists
         run: |
@@ -35,31 +34,10 @@ jobs:
           import { componentTagger } from "lovable-tagger";
 
           export default defineConfig(({ mode }) => ({
-            server: {
-              host: "::",
-              port: 8080,
-              proxy: {
-                "/api/ghn": {
-                  target: "https://dev-online-gateway.ghn.vn",
-                  changeOrigin: true,
-                  rewrite: (path) => path.replace(/^\/api\/ghn/, ""),
-                },
-              },
-            },
-            plugins: [
-              react(),
-              mode === "development" && componentTagger(),
-            ].filter(Boolean),
-            resolve: {
-              alias: {
-                "@": path.resolve(__dirname, "./src"),
-              },
-            },
-            build: {
-              rollupOptions: {
-                external: ["react-quill/dist/quill.snow.css"]
-              }
-            },
+            server: { host: "::", port: 8080 },
+            plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+            resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+            build: { rollupOptions: { external: ["react-quill/dist/quill.snow.css"] } },
           }));
           EOF
           fi
@@ -74,29 +52,24 @@ jobs:
       - name: Create deployment package
         run: |
           mkdir deployment-package
-          cp -r dist/ deployment-package/
+          cp -r dist/* deployment-package/  # Copy dist contents directly
           cp server.cjs deployment-package/
           
-          # Create production package.json
+          # Create production package.json with all necessary dependencies
           cat << 'EOF' > deployment-package/package.json
           {
             "name": "fashionhub-production",
             "version": "1.0.0",
             "main": "server.cjs",
-            "scripts": {
-              "start": "node server.cjs"
-            },
+            "scripts": { "start": "node server.cjs" },
             "dependencies": {
               "express": "^4.18.2",
               "cors": "^2.8.5"
             },
-            "engines": {
-              "node": "20.x"
-            }
+            "engines": { "node": "20.x" }
           }
           EOF
 
-          # Install production dependencies in the deployment package
           cd deployment-package
           npm install --production --legacy-peer-deps
           cd ..
