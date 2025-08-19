@@ -1,114 +1,173 @@
-// server.cjs
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 
 const app = express();
-// ✅ SỬA: Azure cần PORT từ environment
-const port = process.env.PORT || 3000; // Đổi từ 8080 thành 3000
+const port = process.env.PORT || 8080;
 
-console.log('🚀 Starting server...');
+console.log('🚀 FashionHub Starting...');
 console.log('📊 Environment:', process.env.NODE_ENV || 'production');
 console.log('🔌 Port:', port);
-console.log('🌍 Platform:', process.platform);
+console.log('🌍 Azure Site:', process.env.WEBSITE_SITE_NAME || 'local');
+console.log('📁 Working Directory:', __dirname);
 
-// Enable CORS với domain Azure
+// CORS
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8080', 'https://fashionhub.azurewebsites.net'],
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:8080', 
+    'https://fashionhub.azurewebsites.net',
+    `https://${process.env.WEBSITE_SITE_NAME}.azurewebsites.net`
+  ].filter(Boolean),
   credentials: true
 }));
 
-// Parse JSON bodies
-app.use(express.json({ limit: '10mb' })); // Giảm limit
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// ✅ THÊM: Basic health check trước khi check dist
-app.get('/api/health', (req, res) => {
+// ✅ Health checks
+app.get('/health', (req, res) => {
   console.log('📊 Health check requested');
+  res.status(200).send('OK');
+});
+
+app.get('/api/health', (req, res) => {
+  const distPath = path.join(__dirname, 'dist');
+  const indexInRoot = path.join(__dirname, 'index.html');
+  const indexInDist = path.join(distPath, 'index.html');
+  
+  console.log('📊 Detailed health check');
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     port: port,
-    env: process.env.NODE_ENV || 'production'
+    env: process.env.NODE_ENV || 'production',
+    azure: !!process.env.WEBSITE_SITE_NAME,
+    structure: {
+      workingDir: __dirname,
+      distFolderExists: fs.existsSync(distPath),
+      indexInRoot: fs.existsSync(indexInRoot),
+      indexInDist: fs.existsSync(indexInDist)
+    }
   });
 });
 
-// ✅ THÊM: Root endpoint cho Azure health probe
-app.get('/', (req, res) => {
-  console.log('🏠 Root endpoint requested');
-  const staticPath = path.join(__dirname, 'dist');
-  const indexPath = path.join(staticPath, 'index.html');
-  
-  if (fs.existsSync(indexPath)) {
-    console.log('✅ Serving index.html');
-    res.sendFile(indexPath);
-  } else {
-    console.log('❌ index.html not found, serving fallback');
-    res.status(200).json({ 
-      message: 'FashionHub Server is running',
-      timestamp: new Date().toISOString(),
-      staticPath: staticPath,
-      indexExists: fs.existsSync(indexPath)
+// ✅ Debug endpoint
+app.get('/api/debug', (req, res) => {
+  try {
+    const files = fs.readdirSync(__dirname);
+    const distFiles = fs.existsSync(path.join(__dirname, 'dist')) 
+      ? fs.readdirSync(path.join(__dirname, 'dist')) 
+      : [];
+    
+    res.json({
+      workingDir: __dirname,
+      rootFiles: files,
+      distFiles: distFiles,
+      hasDistFolder: files.includes('dist'),
+      hasIndexInRoot: files.includes('index.html'),
+      hasServer: files.includes('server.cjs')
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Static files
-const staticPath = path.join(__dirname, 'dist');
-console.log(`📁 Static path: ${staticPath}`);
+// ✅ Static files - kiểm tra nhiều locations
+const distPath = path.join(__dirname, 'dist');
+const indexInRoot = path.join(__dirname, 'index.html');
 
-if (fs.existsSync(staticPath)) {
-  console.log('✅ dist folder found');
-  app.use(express.static(staticPath, {
-    maxAge: '1h',
-    etag: false
+console.log(`📁 Checking paths:`);
+console.log(`   - Dist folder: ${distPath} (exists: ${fs.existsSync(distPath)})`);
+console.log(`   - Index in root: ${indexInRoot} (exists: ${fs.existsSync(indexInRoot)})`);
+
+// Setup static serving
+if (fs.existsSync(distPath)) {
+  console.log('✅ Using dist folder for static files');
+  app.use(express.static(distPath, {
+    maxAge: '1d',
+    etag: true
+  }));
+} else if (fs.existsSync(indexInRoot)) {
+  console.log('✅ Using root directory for static files (flat structure)');
+  app.use(express.static(__dirname, {
+    maxAge: '1d',
+    etag: true
   }));
 } else {
-  console.log('❌ dist folder not found');
+  console.log('❌ No static files found');
 }
 
-// Catch all cho React Router
+// ✅ SPA fallback - kiểm tra multiple locations
 app.get('*', (req, res) => {
-  console.log(`📄 Catch-all for: ${req.path}`);
-  const indexPath = path.join(staticPath, 'index.html');
+  console.log(`📄 SPA fallback for: ${req.path}`);
   
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
+  const indexInDist = path.join(distPath, 'index.html');
+  const indexInRoot = path.join(__dirname, 'index.html');
+  
+  if (fs.existsSync(indexInDist)) {
+    console.log('✅ Serving index.html from dist');
+    res.sendFile(indexInDist);
+  } else if (fs.existsSync(indexInRoot)) {
+    console.log('✅ Serving index.html from root');
+    res.sendFile(indexInRoot);
   } else {
-    res.status(200).json({ 
-      message: 'FashionHub API',
-      timestamp: new Date().toISOString(),
-      path: req.path
+    console.log('❌ No index.html found');
+    res.status(404).json({ 
+      error: 'Application files not found',
+      path: req.path,
+      checkedPaths: [indexInDist, indexInRoot],
+      availableFiles: fs.readdirSync(__dirname)
     });
   }
 });
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error('💥 Error:', err.message);
-  res.status(500).json({ error: 'Internal server error' });
+  console.error('💥 Error:', err.stack);
+  res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
-// ✅ SỬA: Chỉ bind port, không bind IP cụ thể
-const server = app.listen(port, () => {
-  console.log(`✅ Server running on port ${port}`);
-  console.log(`🔗 Health: /api/health`);
-});
-
-// ✅ THÊM: Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('📴 SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
+// Start server với comprehensive error handling
+try {
+  console.log('🚀 Attempting to start server...');
+  
+  const server = app.listen(port, () => {
+    console.log(`✅ Server successfully running on port ${port}`);
+    console.log(`🔗 Health: http://localhost:${port}/health`);
+    console.log(`🐛 Debug: http://localhost:${port}/api/debug`);
+    console.log(`🌐 Live: https://${process.env.WEBSITE_SITE_NAME || 'localhost'}.azurewebsites.net`);
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('📴 SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
+  server.on('error', (err) => {
+    console.error('💥 Server error:', err);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use`);
+    }
+    process.exit(1);
   });
-});
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('📴 SIGTERM received');
+    server.close(() => {
+      console.log('✅ Server closed gracefully');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('📴 SIGINT received');
+    server.close(() => {
+      console.log('✅ Server closed gracefully');  
+      process.exit(0);
+    });
+  });
+
+} catch (err) {
+  console.error('💥 Failed to start server:', err);
+  console.error('Stack trace:', err.stack);
+  process.exit(1);
+}

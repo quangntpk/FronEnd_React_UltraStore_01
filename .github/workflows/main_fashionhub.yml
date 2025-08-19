@@ -48,28 +48,76 @@ jobs:
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
+          echo "Build contents:"
+          ls -la dist/
 
       - name: Create deployment package
         run: |
           mkdir deployment-package
-          cp -r dist/* deployment-package/  # Copy dist contents directly
+          
+          # ✅ SỬA: Copy toàn bộ dist folder VÀ contents trực tiếp
+          if [ -d "dist" ]; then
+            # Copy dist contents to root of deployment package
+            cp -r dist/* deployment-package/
+            # Also copy dist folder for server reference
+            mkdir -p deployment-package/dist
+            cp -r dist/* deployment-package/dist/
+          fi
+          
           cp server.cjs deployment-package/
           
-          # Create production package.json with all necessary dependencies
+          # Create production package.json
           cat << 'EOF' > deployment-package/package.json
           {
             "name": "fashionhub-production",
             "version": "1.0.0",
             "main": "server.cjs",
-            "scripts": { "start": "node server.cjs" },
+            "scripts": { 
+              "start": "node server.cjs",
+              "health": "curl http://localhost:$PORT/health || true"
+            },
             "dependencies": {
               "express": "^4.18.2",
               "cors": "^2.8.5"
             },
-            "engines": { "node": "20.x" }
+            "engines": { 
+              "node": "20.x",
+              "npm": ">=8.0.0"
+            }
           }
           EOF
 
+          # ✅ THÊM: web.config cho Azure
+          cat << 'EOF' > deployment-package/web.config
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <system.webServer>
+              <handlers>
+                <add name="iisnode" path="server.cjs" verb="*" modules="iisnode"/>
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name="DynamicContent">
+                    <conditions>
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
+                    </conditions>
+                    <action type="Rewrite" url="server.cjs"/>
+                  </rule>
+                </rules>
+              </rewrite>
+              <iisnode 
+                nodeProcessCommandLine="node"
+                interceptor="iisnode/interceptor.js" 
+                loggingEnabled="true"
+                devErrorsEnabled="true"
+              />
+            </system.webServer>
+          </configuration>
+          EOF
+
+          echo "Deployment package structure:"
+          ls -la deployment-package/
+          
           cd deployment-package
           npm install --production --legacy-peer-deps
           cd ..
