@@ -24,10 +24,10 @@ jobs:
         run: |
           npm install --legacy-peer-deps
           npm install @vitejs/plugin-react-swc@3.5.0 --legacy-peer-deps --save-dev
-          npm install vite@latest lovable-tagger@latest react-quill@latest --legacy-peer-deps --save
+          npm install vite@5.4.19 lovable-tagger@latest react-quill@latest --legacy-peer-deps --save  # Hạ cấp vite về 5.4.19
           npm uninstall xlsx --save
           npm install exceljs --legacy-peer-deps --save
-          npm audit fix --force
+          npm audit fix --force --legacy-peer-deps
           echo "Running vite build..."
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
