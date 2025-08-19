@@ -22,7 +22,7 @@ jobs:
 
       - name: npm install and fix dependencies
         run: |
-          npm install --legacy-peer-deps  # Sử dụng --legacy-peer-deps để né lỗi ERESOLVE
+          npm install --legacy-peer-deps
           npm install @vitejs/plugin-react-swc@3.5.0 --save-dev
           npm install vite@latest lovable-tagger@latest react-quill@latest --save
           npm uninstall xlsx --save
@@ -32,6 +32,9 @@ jobs:
           CI=false npx vite build --mode production || { echo "Vite build failed"; exit 1; }
           ls -la  # Debug: Kiểm tra thư mục dist có tồn tại
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
+
+      - name: List installed packages
+        run: npm list --depth=0  # Thêm bước này để liệt kê các gói đã cài
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
