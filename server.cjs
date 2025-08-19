@@ -7,50 +7,41 @@ const app = express();
 const port = process.env.PORT || 8080;
 
 console.log('🚀 FashionHub Starting...');
-console.log('📊 Environment:', process.env.NODE_ENV || 'production');
-console.log('🔌 Port:', port);
-console.log('🌍 Azure Site:', process.env.WEBSITE_SITE_NAME || 'local');
+console.log('📊 Port:', port);
 console.log('📁 Working Directory:', __dirname);
 
+// List files to debug
+try {
+  const files = fs.readdirSync(__dirname);
+  console.log('📂 Files in working directory:', files);
+  
+  if (fs.existsSync(path.join(__dirname, 'dist'))) {
+    const distFiles = fs.readdirSync(path.join(__dirname, 'dist'));
+    console.log('📂 Files in dist:', distFiles);
+  }
+} catch (err) {
+  console.error('❌ Cannot read directory:', err.message);
+}
+
 // CORS
-app.use(cors({
-  origin: [
-    'http://localhost:3000', 
-    'http://localhost:8080', 
-    'https://fashionhub.azurewebsites.net',
-    `https://${process.env.WEBSITE_SITE_NAME}.azurewebsites.net`
-  ].filter(Boolean),
-  credentials: true
-}));
+app.use(cors());
 
 // Body parsing
 app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// ✅ Health checks
+// ✅ Health check (SIMPLE)
 app.get('/health', (req, res) => {
-  console.log('📊 Health check requested');
+  console.log('💚 Health check requested');
   res.status(200).send('OK');
 });
 
 app.get('/api/health', (req, res) => {
-  const distPath = path.join(__dirname, 'dist');
-  const indexInRoot = path.join(__dirname, 'index.html');
-  const indexInDist = path.join(distPath, 'index.html');
-  
-  console.log('📊 Detailed health check');
+  console.log('💚 API Health check requested');
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    port: port,
-    env: process.env.NODE_ENV || 'production',
-    azure: !!process.env.WEBSITE_SITE_NAME,
-    structure: {
-      workingDir: __dirname,
-      distFolderExists: fs.existsSync(distPath),
-      indexInRoot: fs.existsSync(indexInRoot),
-      indexInDist: fs.existsSync(indexInDist)
-    }
+    port: port
   });
 });
 
@@ -58,94 +49,87 @@ app.get('/api/health', (req, res) => {
 app.get('/api/debug', (req, res) => {
   try {
     const files = fs.readdirSync(__dirname);
-    const distFiles = fs.existsSync(path.join(__dirname, 'dist')) 
-      ? fs.readdirSync(path.join(__dirname, 'dist')) 
-      : [];
+    const distExists = fs.existsSync(path.join(__dirname, 'dist'));
+    const distFiles = distExists ? fs.readdirSync(path.join(__dirname, 'dist')) : [];
     
     res.json({
       workingDir: __dirname,
       rootFiles: files,
+      distExists: distExists,
       distFiles: distFiles,
-      hasDistFolder: files.includes('dist'),
-      hasIndexInRoot: files.includes('index.html'),
-      hasServer: files.includes('server.cjs')
+      indexInRoot: files.includes('index.html'),
+      indexInDist: distFiles.includes('index.html')
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Static files - kiểm tra nhiều locations
+// ✅ Static files từ dist folder
 const distPath = path.join(__dirname, 'dist');
-const indexInRoot = path.join(__dirname, 'index.html');
+console.log(`📁 Dist path: ${distPath}`);
+console.log(`📁 Dist exists: ${fs.existsSync(distPath)}`);
 
-console.log(`📁 Checking paths:`);
-console.log(`   - Dist folder: ${distPath} (exists: ${fs.existsSync(distPath)})`);
-console.log(`   - Index in root: ${indexInRoot} (exists: ${fs.existsSync(indexInRoot)})`);
-
-// Setup static serving
 if (fs.existsSync(distPath)) {
-  console.log('✅ Using dist folder for static files');
-  app.use(express.static(distPath, {
-    maxAge: '1d',
-    etag: true
-  }));
-} else if (fs.existsSync(indexInRoot)) {
-  console.log('✅ Using root directory for static files (flat structure)');
-  app.use(express.static(__dirname, {
-    maxAge: '1d',
-    etag: true
-  }));
+  console.log('✅ Serving static files from dist');
+  app.use(express.static(distPath));
 } else {
-  console.log('❌ No static files found');
+  console.log('❌ Dist folder not found');
 }
 
-// ✅ SPA fallback - kiểm tra multiple locations
+// ✅ Root endpoint
+app.get('/', (req, res) => {
+  console.log('🏠 Root request');
+  const indexPath = path.join(distPath, 'index.html');
+  
+  if (fs.existsSync(indexPath)) {
+    console.log('✅ Serving index.html from dist');
+    res.sendFile(indexPath);
+  } else {
+    console.log('❌ index.html not found, serving JSON');
+    res.json({ 
+      message: 'FashionHub API Running',
+      timestamp: new Date().toISOString(),
+      note: 'index.html not found in dist folder'
+    });
+  }
+});
+
+// ✅ SPA fallback
 app.get('*', (req, res) => {
   console.log(`📄 SPA fallback for: ${req.path}`);
+  const indexPath = path.join(distPath, 'index.html');
   
-  const indexInDist = path.join(distPath, 'index.html');
-  const indexInRoot = path.join(__dirname, 'index.html');
-  
-  if (fs.existsSync(indexInDist)) {
-    console.log('✅ Serving index.html from dist');
-    res.sendFile(indexInDist);
-  } else if (fs.existsSync(indexInRoot)) {
-    console.log('✅ Serving index.html from root');
-    res.sendFile(indexInRoot);
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
   } else {
-    console.log('❌ No index.html found');
     res.status(404).json({ 
-      error: 'Application files not found',
+      error: 'Application not built',
       path: req.path,
-      checkedPaths: [indexInDist, indexInRoot],
-      availableFiles: fs.readdirSync(__dirname)
+      suggestion: 'Run npm run build first'
     });
   }
 });
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error('💥 Error:', err.stack);
-  res.status(500).json({ error: 'Internal server error', details: err.message });
+  console.error('💥 Error:', err.message);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server với comprehensive error handling
+// ✅ Start server với proper error handling
+console.log('🔄 Starting server...');
+
 try {
-  console.log('🚀 Attempting to start server...');
-  
   const server = app.listen(port, () => {
-    console.log(`✅ Server successfully running on port ${port}`);
+    console.log(`✅ SUCCESS: Server running on http://localhost:${port}`);
     console.log(`🔗 Health: http://localhost:${port}/health`);
     console.log(`🐛 Debug: http://localhost:${port}/api/debug`);
-    console.log(`🌐 Live: https://${process.env.WEBSITE_SITE_NAME || 'localhost'}.azurewebsites.net`);
+    console.log(`🌐 App: http://localhost:${port}/`);
   });
 
   server.on('error', (err) => {
     console.error('💥 Server error:', err);
-    if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${port} is already in use`);
-    }
     process.exit(1);
   });
 
@@ -153,21 +137,20 @@ try {
   process.on('SIGTERM', () => {
     console.log('📴 SIGTERM received');
     server.close(() => {
-      console.log('✅ Server closed gracefully');
+      console.log('✅ Server closed');
       process.exit(0);
     });
   });
 
   process.on('SIGINT', () => {
-    console.log('📴 SIGINT received');
+    console.log('📴 SIGINT received (Ctrl+C)');
     server.close(() => {
-      console.log('✅ Server closed gracefully');  
+      console.log('✅ Server closed');
       process.exit(0);
     });
   });
 
 } catch (err) {
   console.error('💥 Failed to start server:', err);
-  console.error('Stack trace:', err.stack);
   process.exit(1);
 }
