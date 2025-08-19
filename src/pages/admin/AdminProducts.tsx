@@ -16,13 +16,14 @@ import EditProductModal from "@/components/admin/SanPhamAdmin/EditProductModal";
 import CreateSanPhamModal from "@/components/admin/SanPhamAdmin/CreateSanPhamModal";
 import DetailSanPhamModal from "@/components/admin/SanPhamAdmin/DetailSanPhamModal";
 import Swal from "sweetalert2";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs"; // Updated import
 import { previewProductCards, printToPDF } from "@/components/admin/SanPhamAdmin/ProductPrintUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import ProductReportGenerator from "@/components/admin/SanPhamAdmin/ProductReportGenerator";
 import axios from "axios";
 
+// DateRangeModal component remains unchanged
 const DateRangeModal = ({ isOpen, onClose, onSubmit, selectedProductIds }) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -109,9 +110,10 @@ const Products = () => {
       const token = localStorage.getItem("token");
       const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
         method: "GET",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
-         },
+        },
       });
       if (response.ok) {
         const data = await response.json();
@@ -130,16 +132,17 @@ const Products = () => {
 
   const fetchProductLoadInfo = async (id) => {
     try {
-        const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${id}`, {
         method: "GET",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
-         },
+        },
       });
       if (response.ok) {
         const data = await response.json();
-        console.log(data)
+        console.log(data);
         setProductEdit(data || null);
       } else {
         console.error("Lỗi khi lấy chi tiết sản phẩm:", response.status);
@@ -223,7 +226,7 @@ const Products = () => {
     }
 
     try {
-        const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
       const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ReportByDate", {
         method: "POST",
         headers: {
@@ -281,57 +284,130 @@ const Products = () => {
     try {
       const selectedProductsData = [];
       for (const productId of selectedProducts) {
-          const token = localStorage.getItem("token");
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByID?id=${productId}`,{
-        headers: { "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : undefined,
-         },
-      });
+        const token = localStorage.getItem("token");
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByID?id=${productId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+        });
         if (!response.ok) {
           throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
         }
         const data = await response.json();
         selectedProductsData.push(...data);
       }
-      const excelData = selectedProductsData.map((product, index) => {
+
+      // Tạo workbook mới với ExcelJS
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Danh sách sản phẩm');
+
+      // Định nghĩa columns
+      worksheet.columns = [
+        { header: 'STT', key: 'stt', width: 10 },
+        { header: 'Mã sản phẩm', key: 'maSanPham', width: 15 },
+        { header: 'Tên sản phẩm', key: 'tenSanPham', width: 30 },
+        { header: 'Loại sản phẩm', key: 'loaiSanPham', width: 20 },
+        { header: 'Thương hiệu', key: 'thuongHieu', width: 20 },
+        { header: 'Chất liệu', key: 'chatLieu', width: 15 },
+        { header: 'Màu sắc', key: 'mauSac', width: 15 },
+        { header: 'Kích thước', key: 'kichThuoc', width: 15 },
+        { header: 'Đơn giá nhập (VND)', key: 'giaNhap', width: 20 },
+        { header: 'Đơn giá bán (VND)', key: 'giaBan', width: 20 },
+        { header: 'Số lượng còn lại', key: 'soLuongConLai', width: 18 },
+        { header: 'Số lượng đã bán', key: 'soLuongDaBan', width: 18 },
+        { header: 'Trạng thái', key: 'trangThai', width: 15 },
+        { header: 'Mô tả', key: 'moTa', width: 50 },
+      ];
+
+      // Thêm data
+      selectedProductsData.forEach((product, index) => {
         const [baseId, color, size] = product.maSanPham.split("_");
         const productRemain = product.soLuongDaBan != null 
           ? product.soLuong - product.soLuongDaBan 
           : product.soLuong;
-        return {
-          "STT": index + 1,
-          "Mã sản phẩm": baseId || "N/A",
-          "Tên sản phẩm": product.tenSanPham || "Không có tên",
-          "Loại sản phẩm": product.thuongHieu,
-          "Thương hiệu": product.loaiSanPham,
-          "Chất liệu": product.chatLieu || "N/A",
-          "Màu Sắc": color || "N/A",
-          "Kích Thước": size?.trim() || "N/A",
-          "Đơn giá nhập (VND)": product.giaNhap || 0,
-          "Đơn giá bán (VND)": product.gia || 0,
-          "Số lượng Còn lại": productRemain,
-          "Số Lượng Đã bán": product.soLuongDaBan || 0,
-          "Trạng thái": product.trangThai === 0 ? "Tạm ngừng bán" : "Đang bán",
-          "Mô tả": product.moTa || "Không có mô tả",
+
+        worksheet.addRow({
+          stt: index + 1,
+          maSanPham: baseId || "N/A",
+          tenSanPham: product.tenSanPham || "Không có tên",
+          loaiSanPham: product.thuongHieu,
+          thuongHieu: product.loaiSanPham,
+          chatLieu: product.chatLieu || "N/A",
+          mauSac: color || "N/A",
+          kichThuoc: size?.trim() || "N/A",
+          giaNhap: product.giaNhap || 0,
+          giaBan: product.gia || 0,
+          soLuongConLai: productRemain,
+          soLuongDaBan: product.soLuongDaBan || 0,
+          trangThai: product.trangThai === 0 ? "Tạm ngừng bán" : "Đang bán",
+          moTa: product.moTa || "Không có mô tả",
+        });
+      });
+
+      // Định dạng header
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE7E6FF' } // Màu tím nhạt
+        };
+        cell.font = {
+          bold: true,
+          color: { argb: 'FF000000' }
+        };
+        cell.alignment = {
+          horizontal: 'center',
+          vertical: 'middle'
+        };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
         };
       });
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
 
-      const colWidths = [];
-      const headers = Object.keys(excelData[0] || {});
-      headers.forEach((header, index) => {
-        const maxLength = Math.max(
-          header.length,
-          ...excelData.map((row) => String(row[header] || "").length)
-        );
-        colWidths[index] = { width: Math.min(maxLength + 2, 50) };
+      // Định dạng data rows
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) { // Skip header
+          row.eachCell((cell) => {
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+            cell.alignment = {
+              horizontal: 'left',
+              vertical: 'middle'
+            };
+          });
+        }
       });
-      ws["!cols"] = colWidths;
 
-      XLSX.utils.book_append_sheet(wb, ws, "Danh sách sản phẩm");
+      // Định dạng cột giá tiền
+      const giaNhapColumn = worksheet.getColumn('giaNhap');
+      const giaBanColumn = worksheet.getColumn('giaBan');
+      giaNhapColumn.numFmt = '#,##0';
+      giaBanColumn.numFmt = '#,##0';
+
+      // Tạo file và download
       const fileName = `SanPham_${new Date().toISOString().split("T")[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       Swal.fire({
         title: "Thành công!",
@@ -374,12 +450,13 @@ const Products = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-           const token = localStorage.getItem("token");
+          const token = localStorage.getItem("token");
           const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/DeleteSanPham?id=${product.id}`, {
             method: "GET",
-            headers: { "Content-Type": "application/json",
-               Authorization: token ? `Bearer ${token}` : undefined,
-             },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : undefined,
+            },
           });
           if (response.ok) {
             Swal.fire({
@@ -426,9 +503,10 @@ const Products = () => {
           const token = localStorage.getItem("token");
           const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/ActiveSanPham?id=${product.id}`, {
             method: "GET",
-            headers: { "Content-Type": "application/json",
+            headers: {
+              "Content-Type": "application/json",
               Authorization: token ? `Bearer ${token}` : undefined,
-             },
+            },
           });
           if (response.ok) {
             Swal.fire({
