@@ -29,40 +29,49 @@ jobs:
           npm install exceljs --legacy-peer-deps --save
           npm audit fix --force || true  # Bỏ qua lỗi nếu npm audit fix thất bại
 
-      - name: Create or modify vite.config.js to externalize dependencies
+      - name: Create vite.config.js if not exists
         run: |
-          # Kiểm tra và tạo file vite.config.js nếu không tồn tại
           if [ ! -f vite.config.js ]; then
-            echo 'import { defineConfig } from "vite";' > vite.config.js
-            echo 'import react from "@vitejs/plugin-react-swc";' >> vite.config.js
-            echo 'import path from "path";' >> vite.config.js
-            echo 'import { componentTagger } from "lovable-tagger";' >> vite.config.js
-            echo '' >> vite.config.js
-            echo 'export default defineConfig(({ mode }) => ({' >> vite.config.js
-            echo '  server: {' >> vite.config.js
-            echo '    host: "::",' >> vite.config.js
-            echo '    port: 8080,' >> vite.config.js
-            echo '    proxy: {' >> vite.config.js
-            echo '      "/api/ghn": {' >> vite.config.js
-            echo '        target: "https://dev-online-gateway.ghn.vn",' >> vite.config.js
-            echo '        changeOrigin: true,' >> vite.config.js
-            echo '        rewrite: (path) => path.replace(/^\/api\/ghn/, ""),' >> vite.config.js
-            echo '      },' >> vite.config.js
-            echo '    },' >> vite.config.js
-            echo '  },' >> vite.config.js
-            echo '  plugins: [' >> vite.config.js
-            echo '    react(),' >> vite.config.js
-            echo '    mode === "development" && componentTagger(),' >> vite.config.js
-            echo '  ].filter(Boolean),' >> vite.config.js
-            echo '  resolve: {' >> vite.config.js
-            echo '    alias: {' >> vite.config.js
-            echo '      "@": path.resolve(__dirname, "./src"),' >> vite.config.js
-            echo '    },' >> vite.config.js
-            echo '  },' >> vite.config.js
-            echo '}));' >> vite.config.js
+            cat << 'EOF' > vite.config.js
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
+
+export default defineConfig(({ mode }) => ({
+  server: {
+    host: "::",
+    port: 8080,
+    proxy: {
+      "/api/ghn": {
+        target: "https://dev-online-gateway.ghn.vn",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ghn/, ""),
+      },
+    },
+  },
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+  ].filter(Boolean),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+}));
+EOF
           fi
+
+      - name: Modify vite.config.js to add external dependencies
+        run: |
           # Thêm cấu hình external cho xlsx và react-quill/dist/quill.snow.css
-          sed -i 's/export default defineConfig((.*) => ({/export default defineConfig((mode) => ({\n  build: {\n    rollupOptions: {\n      external: ["xlsx", "react-quill/dist/quill.snow.css"]\n    }\n  },/' vite.config.js
+          sed -i '/export default defineConfig((.*) => ({/a\
+  build: {\
+    rollupOptions: {\
+      external: ["xlsx", "react-quill/dist/quill.snow.css"]\
+    }\
+  },' vite.config.js
 
       - name: Running vite build...
         run: |
