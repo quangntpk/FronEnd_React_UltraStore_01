@@ -101,10 +101,14 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_05BE2F3777B44714AE907F61B4DCD33C }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1617E5DD0A844789AE7AA1CAD9F5C9FC }}
 
+      - name: Verify Azure Login
+        run: |
+          az account show
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'FashionHUb'
+          app-name: 'FashionHub' # Đảm bảo tên chính xác
           slot-name: 'Production'
           package: node-app
