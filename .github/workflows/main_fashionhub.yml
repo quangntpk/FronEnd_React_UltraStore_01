@@ -23,6 +23,7 @@ jobs:
       - name: npm install and fix dependencies
         run: |
           npm install --legacy-peer-deps
+          npm install express --legacy-peer-deps --save
           npm install @vitejs/plugin-react-swc@3.5.0 --legacy-peer-deps --save-dev
           npm install vite@5.4.19 lovable-tagger@latest react-quill@latest --legacy-peer-deps --save
           npm uninstall xlsx --save
@@ -75,11 +76,36 @@ jobs:
           ls -la
           if [ ! -d "dist/" ]; then echo "Error: dist/ directory not found"; exit 1; fi
 
+      - name: Create deployment package
+        run: |
+          mkdir deployment-package
+          cp -r dist/ deployment-package/
+          cp server.js deployment-package/
+          cp package.json deployment-package/
+          
+          # Create a minimal package.json for production
+          cat << 'EOF' > deployment-package/package.json
+          {
+            "name": "fashionhub-production",
+            "version": "1.0.0",
+            "scripts": {
+              "start": "node server.js"
+            },
+            "dependencies": {
+              "express": "^4.18.2",
+              "cors": "^2.8.5"
+            },
+            "engines": {
+              "node": "20.x"
+            }
+          }
+          EOF
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: dist/
+          path: deployment-package/
 
   deploy:
     runs-on: ubuntu-latest
