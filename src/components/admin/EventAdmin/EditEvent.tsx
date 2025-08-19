@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, X, Upload, FileText, Search } from 'lucide-react';
 import CreateMoTaEvent from './CreateMoTaEvent';
 import EditMoTaEvent from './EditMoTaEvent';
-
+import Swal from 'sweetalert2';
 const EditPromotionForm = ({ promotionId, onClose }) => {
   const [formData, setFormData] = useState({
     promotionName: '',
@@ -465,16 +465,40 @@ useEffect(() => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update promotion');
+                Swal.fire({
+                    title: "Thất bại!",
+                    text: "Cập nhật thông tin khuyến mãi thất bại!",
+                    icon: "error",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                  })
       }
+      else{
 
+      }
       const result = await response.json();
-      console.log('Promotion updated successfully:', result);
+       
       localStorage.removeItem('promotionDescription');
-      alert('Khuyến mãi đã được cập nhật thành công!');
+               Swal.fire({
+                    title: "Thành công!",
+                    text: "Cập nhật thông tin khuyến mãi thành công!",
+                    icon: "success",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                  })
       onClose();
     } catch (error) {
       console.error('Error updating promotion:', error);
+               Swal.fire({
+                    title: "Thất bại!",
+                    text: "Đã xảy ra lỗi" + error.message+"",
+                    icon: "success",
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                  })
       alert('Lỗi khi cập nhật khuyến mãi: ' + error.message);
     }
   };

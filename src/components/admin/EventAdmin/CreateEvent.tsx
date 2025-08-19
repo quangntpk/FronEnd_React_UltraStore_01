@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Upload, FileText, Search } from 'lucide-react';
 import CreateMoTaEvent from './CreateMoTaEvent';
-
+import Swal from 'sweetalert2';
 const PromotionForm = () => {
   const [formData, setFormData] = useState({
     promotionName: '',
@@ -337,12 +337,22 @@ const PromotionForm = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save promotion');
+          Swal.fire({
+              title: "Thất bại!",
+              text: "Tạo khuyến mại mới thất bại!",
+              icon: "error",
+              timer: 2000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+            })
       }
+      else
+      {
 
-      const result = await response.json();
-      console.log('Promotion saved successfully:', result);
+
       localStorage.removeItem('promotionDescription');
+      }
+              const result = await response.json();
 
       // Reset form after successful submission
       setFormData({
@@ -358,9 +368,26 @@ const PromotionForm = () => {
       setProductDiscounts({});
       setComboDiscounts({});
       setDescriptionFormData(null);
-      alert('Khuyến mãi đã được lưu thành công!');
+            Swal.fire({
+              title: "Thành công!",
+              text: "Tạo Khuyến mại mới thành công!",
+              icon: "success",
+              timer: 2000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+            }).then(() => {
+              window.location.reload();
+            });
     } catch (error) {
       console.error('Error saving promotion:', error);
+                Swal.fire({
+              title: "Thất bại!",
+              text: "Đã xảy ra lỗi khi tạo khuyến mại mới!",
+              icon: "error",
+              timer: 2000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+            })
       alert('Lỗi khi lưu khuyến mãi: ' + error.message);
     }
   };
