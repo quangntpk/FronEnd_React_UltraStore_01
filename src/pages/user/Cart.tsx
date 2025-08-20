@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Check, MapPin } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import GiohangComboSupport from "@/components/user/cart/GioHangComboSupport";
 import { toast } from "sonner";
@@ -50,20 +50,16 @@ interface CheckoutForm {
 interface Province {
   ProvinceID: number;
   ProvinceName: string;
-  CountryID?: number;
-  NameExtension?: string[];
 }
 
 interface District {
-  DistrictID: number; 
-  DistrictName: string; 
-  ProvinceID?: number;
+  DistrictID: number;
+  DistrictName: string;
 }
 
 interface Ward {
-  WardCode: number; 
+  WardCode: string;
   WardName: string;
-  DistrictID?: number; 
 }
 
 interface Address {
@@ -79,201 +75,36 @@ interface Address {
   trangThai: number;
 }
 
-const shippingData = {
-  "Hà Nội": { fee: 40000, time: "3 - 5 ngày" },
-  "TP. Hồ Chí Minh": { fee: 20000, time: "2 - 3 ngày" },
-  "Hải Phòng": { fee: 45000, time: "3 - 5 ngày" },
-  "Đà Nẵng": { fee: 30000, time: "2 - 3 ngày" },
-  "Cần Thơ": { fee: 30000, time: "2 - 4 ngày" },
-  "An Giang": { fee: 35000, time: "3 - 4 ngày" },
-  "Bà Rịa - Vũng Tàu": { fee: 25000, time: "2 - 3 ngày" },
-  "Bắc Giang": { fee: 45000, time: "3 - 5 ngày" },
-  "Bắc Kạn": { fee: 50000, time: "4 - 6 ngày" },
-  "Bạc Liêu": { fee: 35000, time: "3 - 4 ngày" },
-  "Bắc Ninh": { fee: 40000, time: "3 - 5 ngày" },
-  "Bến Tre": { fee: 30000, time: "2 - 4 ngày" },
-  "Bình Định": { fee: 25000, time: "2 - 3 ngày" },
-  "Bình Dương": { fee: 20000, time: "2 - 3 ngày" },
-  "Bình Phước": { fee: 20000, time: "2 - 3 ngày" },
-  "Bình Thuận": { fee: 25000, time: "2 - 3 ngày" },
-  "Cà Mau": { fee: 35000, time: "3 - 5 ngày" },
-  "Cao Bằng": { fee: 50000, time: "4 - 6 ngày" },
-  "Đắk Lắk": { fee: 0, time: "Nội tỉnh" },
-  "Đắk Nông": { fee: 15000, time: "1 - 2 ngày" },
-  "Điện Biên": { fee: 50000, time: "4 - 6 ngày" },
-  "Đồng Nai": { fee: 20000, time: "2 - 3 ngày" },
-  "Đồng Tháp": { fee: 30000, time: "3 - 4 ngày" },
-  "Gia Lai": { fee: 15000, time: "1 - 2 ngày" },
-  "Hà Giang": { fee: 50000, time: "4 - 6 ngày" },
-  "Hà Nam": { fee: 45000, time: "3 - 5 ngày" },
-  "Hà Tĩnh": { fee: 35000, time: "3 - 4 ngày" },
-  "Hải Dương": { fee: 45000, time: "3 - 5 ngày" },
-  "Hậu Giang": { fee: 35000, time: "3 - 4 ngày" },
-  "Hòa Bình": { fee: 45000, time: "3 - 5 ngày" },
-  "Hưng Yên": { fee: 40000, time: "3 - 5 ngày" },
-  "Khánh Hòa": { fee: 25000, time: "2 - 3 ngày" },
-  "Kiên Giang": { fee: 35000, time: "3 - 4 ngày" },
-  "Kon Tum": { fee: 15000, time: "1 - 2 ngày" },
-  "Lai Châu": { fee: 50000, time: "4 - 6 ngày" },
-  "Lâm Đồng": { fee: 20000, time: "1 - 2 ngày" },
-  "Lạng Sơn": { fee: 50000, time: "4 - 6 ngày" },
-  "Lào Cai": { fee: 50000, time: "4 - 6 ngày" },
-  "Long An": { fee: 30000, time: "2 - 4 ngày" },
-  "Nam Định": { fee: 45000, time: "3 - 5 ngày" },
-  "Nghệ An": { fee: 35000, time: "3 - 4 ngày" },
-  "Ninh Bình": { fee: 45000, time: "3 - 5 ngày" },
-  "Ninh Thuận": { fee: 25000, time: "2 - 3 ngày" },
-  "Phú Thọ": { fee: 45000, time: "3 - 5 ngày" },
-  "Phú Yên": { fee: 25000, time: "2 - 3 ngày" },
-  "Quảng Bình": { fee: 35000, time: "3 - 4 ngày" },
-  "Quảng Nam": { fee: 25000, time: "2 - 3 ngày" },
-  "Quảng Ngãi": { fee: 25000, time: "2 - 3 ngày" },
-  "Quảng Ninh": { fee: 50000, time: "4 - 6 ngày" },
-  "Quảng Trị": { fee: 30000, time: "3 - 4 ngày" },
-  "Sóc Trăng": { fee: 35000, time: "3 - 4 ngày" },
-  "Sơn La": { fee: 50000, time: "4 - 6 ngày" },
-  "Tây Ninh": { fee: 25000, time: "2 - 3 ngày" },
-  "Thái Bình": { fee: 45000, time: "3 - 5 ngày" },
-  "Thái Nguyên": { fee: 45000, time: "3 - 5 ngày" },
-  "Thanh Hóa": { fee: 40000, time: "3 - 4 ngày" },
-  "Thừa Thiên Huế": { fee: 30000, time: "2 - 3 ngày" },
-  "Tiền Giang": { fee: 30000, time: "2 - 3 ngày" },
-  "Trà Vinh": { fee: 30000, time: "2 - 3 ngày" },
-  "Tuyên Quang": { fee: 50000, time: "4 - 6 ngày" },
-  "Vĩnh Long": { fee: 30000, time: "2 - 3 ngày" },
-  "Vĩnh Phúc": { fee: 45000, time: "3 - 5 ngày" },
-  "Yên Bái": { fee: 50000, time: "4 - 6 ngày" },
-};
+interface LeadTimeResponse {
+  leadtime: number;
+  leadtime_order: {
+    from_estimate_date: string;
+    to_estimate_date: string;
+  };
+}
 
-const provinceMapping: { [key: string]: string } = {
-  "ha noi": "Hà Nội",
-  "thanh pho ha noi": "Hà Nội",
-  "tp ho chi minh": "TP. Hồ Chí Minh",
-  "thanh pho ho chi minh": "TP. Hồ Chí Minh",
-  "ho chi minh": "TP. Hồ Chí Minh",
-  "hai phong": "Hải Phòng",
-  "thanh pho hai phong": "Hải Phòng",
-  "da nang": "Đà Nẵng",
-  "thanh pho da nang": "Đà Nẵng",
-  "can tho": "Cần Thơ",
-  "thanh pho can tho": "Cần Thơ",
-  "an giang": "An Giang",
-  "tinh an giang": "An Giang",
-  "ba ria vung tau": "Bà Rịa - Vũng Tàu",
-  "tinh ba ria vung tau": "Bà Rịa - Vũng Tàu",
-  "bac giang": "Bắc Giang",
-  "tinh bac giang": "Bắc Giang",
-  "bac kan": "Bắc Kạn",
-  "tinh bac kan": "Bắc Kạn",
-  "bac lieu": "Bạc Liêu",
-  "tinh bac lieu": "Bạc Liêu",
-  "bac ninh": "Bắc Ninh",
-  "tinh bac ninh": "Bắc Ninh",
-  "ben tre": "Bến Tre",
-  "tinh ben tre": "Bến Tre",
-  "binh dinh": "Bình Định",
-  "tinh binh dinh": "Bình Định",
-  "binh duong": "Bình Dương",
-  "tinh binh duong": "Bình Dương",
-  "binh phuoc": "Bình Phước",
-  "tinh binh phuoc": "Bình Phước",
-  "binh thuan": "Bình Thuận",
-  "tinh binh thuan": "Bình Thuận",
-  "ca mau": "Cà Mau",
-  "tinh ca mau": "Cà Mau",
-  "cao bang": "Cao Bằng",
-  "tinh cao bang": "Cao Bằng",
-  "dak lak": "Đắk Lắk",
-  "tinh dak lak": "Đắk Lắk",
-  "dak nong": "Đắk Nông",
-  "tinh dak nong": "Đắk Nông",
-  "dien bien": "Điện Biên",
-  "tinh dien bien": "Điện Biên",
-  "dong nai": "Đồng Nai",
-  "tinh dong nai": "Đồng Nai",
-  "dong thap": "Đồng Tháp",
-  "tinh dong thap": "Đồng Tháp",
-  "gia lai": "Gia Lai",
-  "tinh gia lai": "Gia Lai",
-  "ha giang": "Hà Giang",
-  "tinh ha giang": "Hà Giang",
-  "ha nam": "Hà Nam",
-  "tinh ha nam": "Hà Nam",
-  "ha tinh": "Hà Tĩnh",
-  "tinh ha tinh": "Hà Tĩnh",
-  "hai duong": "Hải Dương",
-  "tinh hai duong": "Hải Dương",
-  "hau giang": "Hậu Giang",
-  "tinh hau giang": "Hậu Giang",
-  "hoa binh": "Hòa Bình",
-  "tinh hoa binh": "Hòa Bình",
-  "hung yen": "Hưng Yên",
-  "tinh hung yen": "Hưng Yên",
-  "khanh hoa": "Khánh Hòa",
-  "tinh khanh hoa": "Khánh Hòa",
-  "kien giang": "Kiên Giang",
-  "tinh kien giang": "Kiên Giang",
-  "kon tum": "Kon Tum",
-  "tinh kon tum": "Kon Tum",
-  "lai chau": "Lai Châu",
-  "tinh lai chau": "Lai Châu",
-  "lam dong": "Lâm Đồng",
-  "tinh lam dong": "Lâm Đồng",
-  "lang son": "Lạng Sơn",
-  "tinh lang son": "Lạng Sơn",
-  "lao cai": "Lào Cai",
-  "tinh lao cai": "Lào Cai",
-  "long an": "Long An",
-  "tinh long an": "Long An",
-  "nam dinh": "Nam Định",
-  "tinh nam dinh": "Nam Định",
-  "nghe an": "Nghệ An",
-  "tinh nghe an": "Nghệ An",
-  "ninh binh": "Ninh Bình",
-  "tinh ninh binh": "Ninh Bình",
-  "ninh thuan": "Ninh Thuận",
-  "tinh ninh thuan": "Ninh Thuận",
-  "phu tho": "Phú Thọ",
-  "tinh phu tho": "Phú Thọ",
-  "phu yen": "Phú Yên",
-  "tinh phu yen": "Phú Yên",
-  "quang binh": "Quảng Bình",
-  "tinh quang binh": "Quảng Bình",
-  "quang nam": "Quảng Nam",
-  "tinh quang nam": "Quảng Nam",
-  "quang ngai": "Quảng Ngãi",
-  "tinh quang ngai": "Quảng Ngãi",
-  "quang ninh": "Quảng Ninh",
-  "tinh quang ninh": "Quảng Ninh",
-  "quang tri": "Quảng Trị",
-  "tinh quang tri": "Quảng Trị",
-  "soc trang": "Sóc Trăng",
-  "tinh soc trang": "Sóc Trăng",
-  "son la": "Sơn La",
-  "tinh son la": "Sơn La",
-  "tay ninh": "Tây Ninh",
-  "tinh tay ninh": "Tây Ninh",
-  "thai binh": "Thái Bình",
-  "tinh thai binh": "Thái Bình",
-  "thai nguyen": "Thái Nguyên",
-  "tinh thai nguyen": "Thái Nguyên",
-  "thanh hoa": "Thanh Hóa",
-  "tinh thanh hoa": "Thanh Hóa",
-  "thua thien hue": "Thừa Thiên Huế",
-  "tinh thua thien hue": "Thừa Thiên Huế",
-  "tien giang": "Tiền Giang",
-  "tinh tien giang": "Tiền Giang",
-  "tra vinh": "Trà Vinh",
-  "tinh tra vinh": "Trà Vinh",
-  "tuyen quang": "Tuyên Quang",
-  "tinh tuyen quang": "Tuyên Quang",
-  "vinh long": "Vĩnh Long",
-  "tinh vinh long": "Vĩnh Long",
-  "vinh phuc": "Vĩnh Phúc",
-  "tinh vinh phuc": "Vĩnh Phúc",
-  "yen bai": "Yên Bái",
-  "tinh yen bai": "Yên Bái",
-};
+interface ShippingFeeResponse {
+  total: number;
+  main_service: number | null;
+  insurance: number | null;
+  cod_fee: number;
+  station_do: number | null;
+  station_pu: number | null;
+  return_fee: number | null;
+  r2s: number | null;
+  return_again: number;
+  coupon: number | null;
+  document_return: number;
+  double_check: number;
+  double_check_deliver: number | null;
+  pick_remote_areas_fee: number;
+  deliver_remote_areas_fee: number;
+  pick_remote_areas_fee_return: number | null;
+  deliver_remote_areas_fee_return: number | null;
+  cod_failed_fee: number;
+}
+
+const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -294,9 +125,16 @@ const CartPage = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [shippingFee, setShippingFee] = useState<number>(0);
+  const [leadTime, setLeadTime] = useState<LeadTimeResponse | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
-  const [isLoading, setIsLoading] = useState(false); // New state for loading
+  const [isLoading, setIsLoading] = useState(false);
   const [isSelectingAddress, setIsSelectingAddress] = useState(false);
+  const [isDeletingAddress, setIsDeletingAddress] = useState<number | null>(null);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingWards, setIsLoadingWards] = useState(false);
+  const [isLoadingShippingFee, setIsLoadingShippingFee] = useState(false);
+  const [isLoadingLeadTime, setIsLoadingLeadTime] = useState(false);
 
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(() => {
     const savedForm = localStorage.getItem("checkoutForm");
@@ -316,27 +154,17 @@ const CartPage = () => {
     return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  const normalizeName = (name: string) => {
-    if (!name) return "";
-    return name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/^(thanh pho|tinh|quan|huyen|phuong|xa)\s+/i, "")
-      .replace(/\s+/g, " ")
-      .trim();
+  const formatDate = (dateString: string) => {
+    const deliveryDate = new Date(dateString);
+    const day = deliveryDate.getDate();
+    const month = deliveryDate.getMonth() + 1;
+    const year = deliveryDate.getFullYear();
+    return `Ngày ${day}, tháng ${month}, năm ${year} nhận hàng`;
   };
 
-  const normalizeShippingName = (name: string) => {
-    if (!name) return "";
-    const normalized = name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/^(thanh pho|tinh)\s+/i, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    return provinceMapping[normalized] || name.trim();
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   useEffect(() => {
@@ -344,43 +172,53 @@ const CartPage = () => {
   }, [checkoutForm]);
 
   useEffect(() => {
+    const fetchProvinces = async () => {
+      setIsLoadingProvinces(true);
+      try {
+        const response = await fetch(`${API_URL}/api/GHN/provinces`, {
+          headers: getAuthHeaders(),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        setProvinces(data.map((item: any) => ({
+          ProvinceID: item.provinceID,
+          ProvinceName: item.provinceName,
+        })));
+      } catch (error) {
+        toast.error("Không thể tải danh sách tỉnh/thành phố");
+        console.error("Error fetching provinces:", error);
+      } finally {
+        setIsLoadingProvinces(false);
+      }
+    };
+
     const fetchAddresses = async () => {
-      const userId = "KH001"; // FIX CỨNG TẠM
+      const userId = localStorage.getItem("userId");
       if (!userId) return;
 
       try {
         const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`
+          `${API_URL}/api/DanhSachDiaChi/maNguoiDung/${userId}`,
+          { headers: getAuthHeaders() }
         );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        setAddresses(
-          data.sort((a: Address, b: Address) => b.trangThai - a.trangThai)
-        );
+        const sortedAddresses = data.sort((a: Address, b: Address) => b.trangThai - a.trangThai);
+        setAddresses(sortedAddresses);
 
-        if (location.state?.newAddress) {
-          handleSelectAddress(location.state.newAddress);
+        // Automatically select the active address (trangThai: 1)
+        const activeAddress = sortedAddresses.find((addr: Address) => addr.trangThai === 1);
+        if (activeAddress && !location.state?.newAddress) {
+          handleSelectAddress(activeAddress, false);
+        } else if (location.state?.newAddress) {
+          handleSelectAddress(location.state.newAddress, false);
         }
       } catch (error) {
-        console.log("364")
-        toast.error("Không thể tải danh sách địa chỉ 365");
+        toast.error("Không thể tải danh sách địa chỉ");
         console.error("Error fetching addresses:", error);
       }
     };
 
-    if (location.state?.fromDiachi) {
-      fetchAddresses();
-      const savedModalState = localStorage.getItem("showAddressModal");
-      if (savedModalState === "true") {
-        setShowAddressModal(true);
-      }
-      const savedScrollY = localStorage.getItem("scrollY");
-      if (savedScrollY) {
-        window.scrollTo(0, parseInt(savedScrollY));
-      }
-    }
-  }, [location]);
-
-  useEffect(() => {
     const fetchCartData = async () => {
       const userId = localStorage.getItem("userId");
       if (!userId) {
@@ -398,14 +236,16 @@ const CartPage = () => {
       }
 
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-        `https://bicacuatho.azurewebsites.net/api/Cart/CopyGioHang?id=${userId}`
+        `${API_URL}/api/Cart/CopyGioHang?id=${userId}`
       )}&size=200x200`;
       setQrCodeUrl(qrUrl);
 
       try {
         const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
+          `${API_URL}/api/Cart/GioHangByKhachHang?id=${userId}`,
+          { headers: getAuthHeaders() }
         );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         setCartId(data.id);
 
@@ -436,261 +276,270 @@ const CartPage = () => {
         }));
         setComboItems(processedComboItems);
 
-        const subtotal = processedCartItems.reduce(
-          (sum, item) => sum + item.tienSanPham * item.soLuong,
-          0
-        ) +
-          processedComboItems.reduce(
-            (sum, item) => sum + item.gia * item.soLuong,
-            0
-          );
-        setFinalAmount(subtotal + shippingFee);
+        const subtotal = calculateSubtotal();
+        setFinalAmount(subtotal + shippingFee - discountAmount);
       } catch (error) {
-        // toast.error("Không thể tải dữ liệu giỏ hàng");
-        // console.error("Error fetching cart:", error);
-      }
-    };
-
-    const fetchProvinces = async () => {
-      try {
-        const response = await fetch("/api/ghn/shiip/public-api/master-data/province", {
-          headers: {
-            Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status} 462`);
-        }
-        const data = await response.json();
-        setProvinces(data.data || []);
-      } catch (error) {
-        console.log("467")
-        toast.error("Không thể tải danh sách tỉnh/thành phố 467");
-        console.error("Error fetching provinces:", error);
-      }
-    };
-
-    const fetchAddresses = async () => {
-      const userId = localStorage.getItem("userId");
-      if (!userId) return;
-
-      try {
-        const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`
-        );
-        const data = await response.json();
-        setAddresses(
-          data.sort((a: Address, b: Address) => b.trangThai - a.trangThai)
-        );
-      } catch (error) {
-        console.log("484")
-        toast.error("Không thể tải danh sách địa chỉ 487");
-        console.error("Error fetching addresses:", error);
+        console.error("Error fetching cart:", error);
       }
     };
 
     fetchCartData();
     fetchProvinces();
     fetchAddresses();
-  }, [navigate]);
 
-  const handleProvinceChange = async (provinceCode: string) => {
-    setCheckoutForm((prev) => ({
-      ...prev,
-      province: provinceCode,
-      district: "",
-      ward: "",
-    }));
-    setDistricts([]);
-    setWards([]);
+    if (location.state?.fromDiachi) {
+      const savedModalState = localStorage.getItem("showAddressModal");
+      if (savedModalState === "true") {
+        setShowAddressModal(true);
+      }
+      const savedScrollY = localStorage.getItem("scrollY");
+      if (savedScrollY) {
+        window.scrollTo(0, parseInt(savedScrollY));
+      }
+    }
+  }, [navigate, location, shippingFee, discountAmount]);
 
-    const selectedProvince = provinces.find(
-      (p) => p.ProvinceID.toString() === provinceCode
-    );
-    if (selectedProvince) {
-      const shippingInfo = shippingData[selectedProvince.ProvinceName.trim()] || {
-        fee: 0,
-        time: "Không xác định",
-      };
-      setShippingFee(shippingInfo.fee);
-      console.log("Province changed:", {
-        province: selectedProvince.ProvinceName,
-        shippingFee: shippingInfo.fee,
+  useEffect(() => {
+    if (!checkoutForm.province) {
+      setDistricts([]);
+      setWards([]);
+      setShippingFee(0);
+      setLeadTime(null);
+      return;
+    }
+
+    const fetchDistricts = async () => {
+      setIsLoadingDistricts(true);
+      try {
+        const response = await fetch(`${API_URL}/api/GHN/districts/${checkoutForm.province}`, {
+          headers: getAuthHeaders(),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        setDistricts(data.map((item: any) => ({
+          DistrictID: item.districtID,
+          DistrictName: item.districtName,
+        })));
+      } catch (error) {
+        toast.error("Không thể tải danh sách quận/huyện");
+        console.error("Error fetching districts:", error);
+      } finally {
+        setIsLoadingDistricts(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [checkoutForm.province]);
+
+  useEffect(() => {
+    if (!checkoutForm.district) {
+      setWards([]);
+      setShippingFee(0);
+      setLeadTime(null);
+      return;
+    }
+
+    const fetchWards = async () => {
+      setIsLoadingWards(true);
+      try {
+        const response = await fetch(`${API_URL}/api/GHN/wards/${checkoutForm.district}`, {
+          headers: getAuthHeaders(),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        setWards(data.map((item: any) => ({
+          WardCode: item.wardCode,
+          WardName: item.wardName,
+        })));
+      } catch (error) {
+        toast.error("Không thể tải danh sách phường/xã");
+        console.error("Error fetching wards:", error);
+      } finally {
+        setIsLoadingWards(false);
+      }
+    };
+
+    fetchWards();
+  }, [checkoutForm.district]);
+
+  useEffect(() => {
+    if (!checkoutForm.district || !checkoutForm.ward) {
+      setShippingFee(0);
+      setLeadTime(null);
+      return;
+    }
+
+    const fetchShippingFeeAndLeadTime = async () => {
+      setIsLoadingShippingFee(true);
+      setIsLoadingLeadTime(true);
+      try {
+        const shippingRequest = {
+          service_type_id: 2,
+          from_district_id: 1552,
+          from_ward_code: "400103",
+          to_district_id: parseInt(checkoutForm.district),
+          to_ward_code: checkoutForm.ward,
+          length: 35,
+          width: 25,
+          height: 10,
+          weight: 1000,
+          insurance_value: 0,
+          coupon: null,
+          items: [],
+        };
+        const shippingResponse = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(shippingRequest),
+        });
+        if (!shippingResponse.ok) throw new Error(`HTTP error! status: ${shippingResponse.status}`);
+        const shippingData: ShippingFeeResponse = await shippingResponse.json();
+        setShippingFee(shippingData.total);
+
+        const leadTimeRequest = {
+          from_district_id: 1552,
+          from_ward_code: "400103",
+          to_district_id: parseInt(checkoutForm.district),
+          to_ward_code: checkoutForm.ward,
+          service_id: 53320,
+        };
+        const leadTimeResponse = await fetch(`${API_URL}/api/GHN/leadtime`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(leadTimeRequest),
+        });
+        if (!leadTimeResponse.ok) throw new Error(`HTTP error! status: ${leadTimeResponse.status}`);
+        const leadTimeData: LeadTimeResponse = await leadTimeResponse.json();
+        setLeadTime(leadTimeData);
+      } catch (error) {
+        toast.error("Không thể tải phí hoặc thời gian giao hàng");
+        console.error("Error fetching shipping fee or lead time:", error);
+        setShippingFee(0);
+        setLeadTime(null);
+      } finally {
+        setIsLoadingShippingFee(false);
+        setIsLoadingLeadTime(false);
+      }
+    };
+
+    fetchShippingFeeAndLeadTime();
+  }, [checkoutForm.district, checkoutForm.ward]);
+
+  const handleSelectAddress = async (address: Address, showToast: boolean = true) => {
+    setIsSelectingAddress(true);
+    try {
+      if (!provinces.length) {
+        return;
+      }
+
+      const province = provinces.find((p) => p.ProvinceName === address.tinh);
+      if (!province) {
+        toast.error(`Không tìm thấy tỉnh/thành phố: ${address.tinh}`);
+        setShowAddressModal(true);
+        return;
+      }
+
+      const districtResponse = await fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, {
+        headers: getAuthHeaders(),
       });
-    } else {
-      console.log("No valid province selected, keeping current shippingFee");
-    }
-
-    const subtotal = calculateSubtotal();
-    setFinalAmount(subtotal - discountAmount + shippingFee);
-
-    if (provinceCode) {
-      try {
-        const response = await fetch(
-          `/api/ghn/shiip/public-api/master-data/district?province_id=${provinceCode}`,
-          {
-            headers: {
-              Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-            },
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status} 538`);
-        }
-        const data = await response.json();
-        console.log("Provinces from API:", data.data);
-        setDistricts(data.data || []);
-      } catch (error) {
-        toast.error("Không thể tải danh sách quận/huyện 544");
-        console.error("Lỗi khi lấy danh sách huyện:", error);
+      if (!districtResponse.ok) throw new Error(`HTTP error! status: ${districtResponse.status}`);
+      const districtData = await districtResponse.json();
+      const district = districtData.find((d: any) => d.districtName === address.quanHuyen);
+      if (!district) {
+        toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen}`);
+        setShowAddressModal(true);
+        return;
       }
+
+      const wardResponse = await fetch(`${API_URL}/api/GHN/wards/${district.districtID}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!wardResponse.ok) throw new Error(`HTTP error! status: ${wardResponse.status}`);
+      const wardData = await wardResponse.json();
+      const ward = wardData.find((w: any) => w.wardName === address.phuongXa);
+      if (!ward) {
+        toast.error(`Không tìm thấy phường/xã: ${address.phuongXa}`);
+        setShowAddressModal(true);
+        return;
+      }
+
+      setCheckoutForm({
+        tenNguoiNhan: address.hoTen,
+        sdt: address.sdt,
+        province: province.ProvinceID.toString(),
+        district: district.districtID.toString(),
+        ward: ward.wardCode,
+        specificAddress: address.diaChi,
+      });
+
+      setDistricts(districtData.map((item: any) => ({
+        DistrictID: item.districtID,
+        DistrictName: item.districtName,
+      })));
+      setWards(wardData.map((item: any) => ({
+        WardCode: item.wardCode,
+        WardName: item.wardName,
+      })));
+
+      const subtotal = calculateSubtotal();
+      setFinalAmount(subtotal - discountAmount + shippingFee);
+
+      setShowAddressModal(false);
+      if (showToast) {
+        toast.success("Đã chọn địa chỉ thành công");
+      }
+    } catch (error) {
+      toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
+      console.error("Error in handleSelectAddress:", error);
+    } finally {
+      setIsSelectingAddress(false);
     }
   };
 
-  const handleDistrictChange = async (districtCode: string) => {
-    setCheckoutForm((prev) => ({
-      ...prev,
-      district: districtCode,
-      ward: "",
-    }));
-    setWards([]);
+  const handleDeleteAddress = async (maDiaChi: number) => {
+    setIsDeletingAddress(maDiaChi);
+    try {
+      const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${maDiaChi}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-    if (districtCode) {
-      try {
-        const response = await fetch(
-          `/api/ghn/shiip/public-api/master-data/ward?district_id=${districtCode}`,
-          {
-            headers: {
-              Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-            },
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status}`);
-        }
-        const data = await response.json();
-        setWards(data.data || []);
-      } catch (error) {
-        toast.error("Không thể tải danh sách phường/xã 574");
-        console.error("Lỗi khi lấy danh sách phường/xã:", error);
+      setAddresses((prevAddresses) =>
+        prevAddresses.filter((address) => address.maDiaChi !== maDiaChi)
+      );
+
+      // If the deleted address was the selected one, clear the checkout form
+      if (
+        checkoutForm.specificAddress === addresses.find((a) => a.maDiaChi === maDiaChi)?.diaChi
+      ) {
+        setCheckoutForm({
+          tenNguoiNhan: "",
+          sdt: "",
+          province: "",
+          district: "",
+          ward: "",
+          specificAddress: "",
+        });
+        setShippingFee(0);
+        setLeadTime(null);
+        setFinalAmount(calculateSubtotal() - discountAmount);
       }
+
+      toast.success("Đã xóa địa chỉ thành công");
+    } catch (error) {
+      toast.error("Xóa địa chỉ thất bại");
+      console.error("Error deleting address:", error);
+    } finally {
+      setIsDeletingAddress(null);
     }
   };
-
-  const extractFeeFromMoTa = (moTa: string): number => {
-  if (!moTa) return 0;
-  const match = moTa.match(/\d+(\.\d{3})?/); 
-  return match ? parseFloat(match[0].replace(".", "")) : 0;
-};
-
-const handleSelectAddress = async (address: Address) => {
-  setIsSelectingAddress(true);
-  try {
-    if (address.trangThai !== 1) {
-      toast.error("Địa chỉ không hoạt động, vui lòng chọn địa chỉ khác");
-      return;
-    }
-
-    if (!provinces.length) {
-      toast.error("Danh sách tỉnh/thành phố chưa tải, vui lòng thử lại");
-      return;
-    }
-
-    const normalizedProvinceName = normalizeName(address.tinh);
-    const mappedProvinceName = provinceMapping[normalizedProvinceName] || normalizedProvinceName;
-    console.log("Normalized Province Name:", normalizedProvinceName);
-    console.log("Mapped Province Name:", mappedProvinceName);
-
-    const province = provinces.find((p) => {
-      const normalizedProvinceFromAPI = normalizeName(p.ProvinceName);
-      const normalizedMappedName = normalizeName(mappedProvinceName);
-      return normalizedProvinceFromAPI === normalizedMappedName;
-    });
-
-    if (!province) {
-      toast.error(`Không tìm thấy tỉnh/thành phố: ${address.tinh}. Vui lòng kiểm tra lại hoặc thêm địa chỉ mới.`);
-      console.log("Available Provinces:", provinces.map(p => p.ProvinceName ? normalizeName(p.ProvinceName) : ""));
-      setShowAddressModal(true);
-      return;
-    }
-
-    const districtResponse = await fetch(
-      `/api/ghn/shiip/public-api/master-data/district?province_id=${province.ProvinceID}`,
-      {
-        headers: {
-          Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-        },
-      }
-    );
-    if (!districtResponse.ok) {
-      toast.error("Lỗi khi tải danh sách quận/huyện");
-      throw new Error(`HTTP error: ${districtResponse.status}`);
-    }
-    const districtData = await districtResponse.json();
-
-    const normalizedDistrictName = normalizeName(address.quanHuyen);
-    const district = districtData.data.find(
-      (d: { DistrictID: number; DistrictName: string }) =>
-        normalizeName(d.DistrictName) === normalizedDistrictName
-    );
-    if (!district) {
-      toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen} 637`);
-      console.log("Available Districts:", districtData.data.map(d => normalizeName(d.DistrictName)));
-      return;
-    }
-
-    const wardResponse = await fetch(
-      `/api/ghn/shiip/public-api/master-data/ward?district_id=${district.DistrictID}`,
-      {
-        headers: {
-          Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-        },
-      }
-    );
-    if (!wardResponse.ok) {
-      toast.error("Lỗi khi tải danh sách phường/xã");
-      throw new Error(`HTTP error: ${wardResponse.status}`);
-    }
-    const wardData = await wardResponse.json();
-    console.log("Ward Data:", wardData);
-
-    const normalizedWardName = normalizeName(address.phuongXa);
-    const ward = wardData.data.find(
-      (w: Ward) => normalizeName(w.WardName) === normalizedWardName
-    );
-    if (!ward) {
-      toast.error(`Không tìm thấy phường/xã: ${address.phuongXa} 662`);
-      console.log("Available Wards:", wardData.data.map(w => w.WardName ? normalizeName(w.WardName) : ""));
-      setShowAddressModal(true);
-      return;
-    }
-
-    const shippingFee = extractFeeFromMoTa(address.moTa); // Lấy phí từ moTa
-    setShippingFee(shippingFee);
-
-    setDistricts(districtData.data || []);
-    setWards(wardData.data || []);
-    setCheckoutForm({
-      tenNguoiNhan: address.hoTen,
-      sdt: address.sdt,
-      province: province.ProvinceID.toString(),
-      district: district.DistrictID.toString(),
-      ward: ward.WardCode.toString(),
-      specificAddress: address.diaChi,
-    });
-
-    const subtotal = calculateSubtotal();
-    setFinalAmount(subtotal - discountAmount + shippingFee);
-
-    setShowAddressModal(false);
-    toast.success("Đã chọn địa chỉ thành công");
-  } catch (error) {
-    toast.error("Không thể chọn địa chỉ, vui lòng thử lại 688");
-    console.error("Error in handleSelectAddress:", error);
-  } finally {
-    setIsSelectingAddress(false);
-  }
-};
 
   const handleQuantityChange = async (idSanPham: string, change: number) => {
     const userId = localStorage.getItem("userId");
@@ -716,18 +565,20 @@ const handleSelectAddress = async (address: Address) => {
 
     try {
       if (change > 0) {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/TangSoLuongSanPham", {
+        await fetch(`${API_URL}/api/Cart/TangSoLuongSanPham`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(),
           },
           body: JSON.stringify(info),
         });
       } else {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/GiamSoLuongSanPham", {
+        await fetch(`${API_URL}/api/Cart/GiamSoLuongSanPham`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(),
           },
           body: JSON.stringify(info),
         });
@@ -781,10 +632,11 @@ const handleSelectAddress = async (address: Address) => {
         IDCombo: null,
       };
       try {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaSanPham", {
+        await fetch(`${API_URL}/api/Cart/XoaSanPham`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(),
           },
           body: JSON.stringify(info),
         });
@@ -798,6 +650,7 @@ const handleSelectAddress = async (address: Address) => {
         setFinalAmount(subtotal - discountAmount + shippingFee);
       } catch (error) {
         toast.error("Xóa sản phẩm thất bại");
+        console.error("Error removing item:", error);
       }
     }
   };
@@ -835,10 +688,11 @@ const handleSelectAddress = async (address: Address) => {
       };
 
       try {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaCombo", {
+        await fetch(`${API_URL}/api/Cart/XoaCombo`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(),
           },
           body: JSON.stringify(info),
         });
@@ -912,31 +766,26 @@ const handleSelectAddress = async (address: Address) => {
 
     try {
       const response = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(
-          promoCode
-        )}&cartId=${cartId}`,
+        `${API_URL}/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(),
           },
         }
       );
 
-      console.log("Response Status:", response.status);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log("API Response:", result);
       if (result.success) {
         setDiscountApplied(true);
         setDiscountAmount(result.discountAmount);
-        setFinalAmount(
-          calculateSubtotal() - result.discountAmount + shippingFee
-        );
+        setFinalAmount(calculateSubtotal() - result.discountAmount + shippingFee);
         toast.success("Mã giảm giá đã được áp dụng!");
       } else {
         setDiscountApplied(false);
@@ -945,13 +794,9 @@ const handleSelectAddress = async (address: Address) => {
         toast.error(result.message);
       }
     } catch (error) {
-      console.error("Error details:", error);
       toast.error("Mã giảm giá không hợp lệ, không đủ điều kiện hoặc đã hết hạn.");
+      console.error("Error applying promo:", error);
     }
-  };
-
-  const sanitizeInput = (input) => {
-    return input ? input.replace(/[^\x00-\x7F]/g, '') : input;
   };
 
   const handleSubmitCheckout = async (e: React.FormEvent) => {
@@ -989,13 +834,15 @@ const handleSelectAddress = async (address: Address) => {
     }
 
     if (paymentMethod === "cod") {
-      setIsLoading(true); // Set loading state for COD
+      setIsLoading(true);
     }
 
     try {
       const response = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
+        `${API_URL}/api/Cart/GioHangByKhachHang?id=${userId}`,
+        { headers: getAuthHeaders() }
       );
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       setCartId(data.id);
 
@@ -1028,13 +875,12 @@ const handleSelectAddress = async (address: Address) => {
 
       if (promoCode) {
         const voucherResponse = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(
-            promoCode
-          )}&cartId=${data.id}`,
+          `${API_URL}/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${data.id}`,
           {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              ...getAuthHeaders(),
             },
           }
         );
@@ -1055,21 +901,21 @@ const handleSelectAddress = async (address: Address) => {
       const selectedProvince = provinces.find(
         (p) => p.ProvinceID.toString() === checkoutForm.province
       );
-      const selectedDistrict1 = districts.find(
+      const selectedDistrict = districts.find(
         (d) => d.DistrictID.toString() === checkoutForm.district
       );
-      const selectedWard1 = wards.find(
-        (w) => w.WardCode.toString() === checkoutForm.ward
+      const selectedWard = wards.find(
+        (w) => w.WardCode === checkoutForm.ward
       );
       if (!selectedProvince) {
         toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
         return;
       }
-      if (!selectedDistrict1) {
+      if (!selectedDistrict) {
         toast.error("Vui lòng chọn quận/huyện hợp lệ");
         return;
       }
-      if (!selectedWard1) {
+      if (!selectedWard) {
         toast.error("Vui lòng chọn phường/xã hợp lệ");
         return;
       }
@@ -1078,22 +924,12 @@ const handleSelectAddress = async (address: Address) => {
       const newFinalAmount = subtotal - discountAmount + shippingFee;
       setFinalAmount(newFinalAmount);
 
-      const selectedDistrict =
-        districts.find((d) => d.DistrictID.toString() === checkoutForm.district)?.DistrictName ||
-        "";
-      const selectedWard =
-        wards.find((w) => w.WardCode.toString() === checkoutForm.ward)?.WardName || "";
-      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.ProvinceName}`;
+      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard.WardName}, ${selectedDistrict.DistrictName}, ${selectedProvince.ProvinceName}`;
       if (typeof fullAddress !== "string" || fullAddress.includes("[object Object]")) {
         toast.error("Lỗi định dạng địa chỉ, vui lòng kiểm tra lại");
         console.error("Invalid fullAddress:", fullAddress);
         return;
       }
-
-      console.log("Before sending paymentRequest:", {
-        shippingFee,
-        finalAmount: newFinalAmount,
-      });
 
       const paymentRequest = {
         cartId: data.id,
@@ -1107,14 +943,13 @@ const handleSelectAddress = async (address: Address) => {
         finalAmount: newFinalAmount,
       };
 
-      console.log("Sending paymentRequest:", paymentRequest);
-
       const paymentResponse = await fetch(
-        "https://bicacuatho.azurewebsites.net/api/CheckOut/process-payment",
+        `${API_URL}/api/CheckOut/process-payment`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(),
           },
           body: JSON.stringify(paymentRequest),
         }
@@ -1148,26 +983,33 @@ const handleSelectAddress = async (address: Address) => {
         } else if (paymentMethod === "vnpay") {
           if (result.finalAmount !== newFinalAmount) {
             toast.error(
-              `Tổng tiền VNPay (${formatCurrency(
-                result.finalAmount
-              )} VND) không khớp với kỳ vọng (${formatCurrency(
-                newFinalAmount
-              )} VND). Vui lòng thử lại.`
+              `Tổng tiền VNPay (${formatCurrency(result.finalAmount)} VND) không khớp với kỳ vọng (${formatCurrency(newFinalAmount)} VND). Vui lòng thử lại.`
             );
             return;
           }
+          // Note: Success notification for VNPay should be handled after payment completion (e.g., via callback).
+          // Example placeholder (to be implemented based on backend callback):
+          /*
+          toast.success(`Thanh toán VNPay thành công! Mã đơn hàng: ${result.orderId}`, {
+            description: "Cảm ơn bạn đã mua sắm. Vui lòng kiểm tra đơn hàng trong mục Lịch sử mua hàng.",
+            duration: 5000,
+            action: {
+              label: "Xem chi tiết",
+              onClick: () => navigate("/user/orders", { state: { orderId: result.orderId } }),
+            },
+          });
+          */
           window.location.href = result.message;
         }
       } else {
         toast.error(result.message);
-        return;
       }
     } catch (error) {
       toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
       console.error("Error during checkout:", error);
     } finally {
       if (paymentMethod === "cod") {
-        setIsLoading(false); // Reset loading state after request completes
+        setIsLoading(false);
       }
     }
   };
@@ -1194,9 +1036,7 @@ const handleSelectAddress = async (address: Address) => {
                           />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-medium text-lg">
-                            {item.tenSanPham}
-                          </h3>
+                          <h3 className="font-medium text-lg">{item.tenSanPham}</h3>
                           <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg shadow-sm">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-gray-700">Kích thước:</span>
@@ -1213,9 +1053,7 @@ const handleSelectAddress = async (address: Address) => {
                                     height: "1.5rem",
                                   }}
                                 ></span>
-                                <span className="text-sm text-gray-600 capitalize">
-                                  {item.mauSac}
-                                </span>
+                                <span className="text-sm text-gray-600 capitalize">{item.mauSac}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -1228,20 +1066,14 @@ const handleSelectAddress = async (address: Address) => {
                         </div>
                         <div className="flex items-center mt-4 sm:mt-0">
                           <button
-                            onClick={() =>
-                              handleQuantityChange(item.idSanPham, -1)
-                            }
+                            onClick={() => handleQuantityChange(item.idSanPham, -1)}
                             className="p-1 rounded-md hover:bg-muted"
                           >
                             <Minus size={16} />
                           </button>
-                          <span className="mx-2 w-8 text-center">
-                            {item.soLuong}
-                          </span>
+                          <span className="mx-2 w-8 text-center">{item.soLuong}</span>
                           <button
-                            onClick={() =>
-                              handleQuantityChange(item.idSanPham, 1)
-                            }
+                            onClick={() => handleQuantityChange(item.idSanPham, 1)}
                             className="p-1 rounded-md hover:bg-muted"
                           >
                             <Plus size={16} />
@@ -1269,20 +1101,14 @@ const handleSelectAddress = async (address: Address) => {
                           />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-medium text-lg">
-                            {combo.tenCombo}
-                          </h3>
+                          <h3 className="font-medium text-lg">{combo.tenCombo}</h3>
                           <p className="text-muted-foreground">
                             Gồm: {combo.sanPhamList.length} sản phẩm
                           </p>
-                          <p className="text-muted-foreground">
-                            {formatCurrency(combo.gia)} VND
-                          </p>
+                          <p className="text-muted-foreground">{formatCurrency(combo.gia)} VND</p>
                         </div>
                         <div className="flex items-center mt-4 sm:mt-0">
-                          <span className="mx-2 w-8 text-center">
-                            {combo.soLuong}
-                          </span>
+                          <span className="mx-2 w-8 text-center">{combo.soLuong}</span>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1303,87 +1129,49 @@ const handleSelectAddress = async (address: Address) => {
                   </div>
 
                   <div className="lg:col-span-1">
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-border">
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-border sticky top-4">
                       <h2 className="text-xl font-semibold mb-4">Giỏ Hàng</h2>
-
                       <div className="space-y-3 mb-6">
                         {cartItems.map((item) => (
-                          <div
-                            key={item.idSanPham}
-                            className="flex justify-between"
-                          >
+                          <div key={item.idSanPham} className="flex justify-between">
                             <span className="text-muted-foreground">
-                              {item.tenSanPham}{" "}
-                              <span className="text-xs">x{item.soLuong}</span>
+                              {item.tenSanPham} <span className="text-xs">x{item.soLuong}</span>
                             </span>
-                            <span>
-                              {formatCurrency(item.tienSanPham * item.soLuong)}{" "}
-                              VND
-                            </span>
+                            <span>{formatCurrency(item.tienSanPham * item.soLuong)} VND</span>
                           </div>
                         ))}
                         {comboItems.map((combo) => (
-                          <div
-                            key={combo.idCombo}
-                            className="flex justify-between"
-                          >
+                          <div key={combo.idCombo} className="flex justify-between">
                             <span className="text-muted-foreground">
-                              {combo.tenCombo}{" "}
-                              <span className="text-xs">x{combo.soLuong}</span>
+                              {combo.tenCombo} <span className="text-xs">x{combo.soLuong}</span>
                             </span>
-                            <span>
-                              {formatCurrency(combo.gia * combo.soLuong)} VND
-                            </span>
+                            <span>{formatCurrency(combo.gia * combo.soLuong)} VND</span>
                           </div>
                         ))}
-
                         <div className="border-t my-3"></div>
-
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Tổng tiền gốc
-                          </span>
+                          <span className="text-muted-foreground">Tổng tiền gốc</span>
                           <span>{formatCurrency(calculateSubtotal())} VND</span>
                         </div>
-
                         {discountApplied && (
                           <div className="flex justify-between text-green-600">
                             <span>Giảm giá</span>
-                            <span>
-                              -{formatCurrency(calculateDiscount())} VND
-                            </span>
+                            <span>-{formatCurrency(calculateDiscount())} VND</span>
                           </div>
                         )}
 
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Phí giao hàng
-                          </span>
-                          <span>{formatCurrency(shippingFee)} VND</span>
-                        </div>
-
                         <div className="border-t pt-3 flex justify-between font-medium">
                           <span>Tổng tiền</span>
-                          <span className="text-lg">
-                            {formatCurrency(calculateTotal())} VND
-                          </span>
+                          <span className="text-lg">{formatCurrency(calculateTotal())} VND</span>
                         </div>
                       </div>
-                      <Button
-                        className="w-full"
-                        onClick={() => setShowCheckout(true)}
-                      >
+                      <Button className="w-full" onClick={() => setShowCheckout(true)}>
                         Chuyển đến trang Thanh Toán
                       </Button>
-                      <Link
-                        to="/"
-                        className="block text-center text-primary hover:underline mt-4"
-                      >
+                      <Link to="/" className="block text-center text-primary hover:underline mt-4">
                         Quay về trang Sản Phẩm
                       </Link>
-
                       <DiaChiTime />
-
                       {qrCodeUrl && (
                         <div className="mt-6">
                           <h3 className="text-lg font-medium mb-2 text-center">
@@ -1407,9 +1195,7 @@ const handleSelectAddress = async (address: Address) => {
                       className="bg-white p-6 rounded-lg shadow-sm border border-border"
                     >
                       <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-semibold mb-6">
-                          Thông tin giao hàng
-                        </h2>
+                        <h2 className="text-xl font-semibold mb-6">Thông tin giao hàng</h2>
                         <div className="relative -top-[7px]">
                           <DiaChiCart />
                         </div>
@@ -1417,18 +1203,18 @@ const handleSelectAddress = async (address: Address) => {
                           <Button
                             type="button"
                             onClick={() => setShowAddressModal(true)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                            className="bg-purple-400 hover:bg-purple-600 text-white"
                           >
+                            <MapPin size={16} className="mr-2" />
                             Chọn địa chỉ có sẵn
                           </Button>
                         </div>
                       </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div className="space-y-2">
                           <Label htmlFor="tenNguoiNhan">Tên người nhận</Label>
                           <Input
-                            readOnly
+                            placeholder="Nhâp tên người nhận"
                             id="tenNguoiNhan"
                             name="tenNguoiNhan"
                             value={checkoutForm.tenNguoiNhan}
@@ -1436,11 +1222,10 @@ const handleSelectAddress = async (address: Address) => {
                             required
                           />
                         </div>
-
                         <div className="space-y-2">
                           <Label htmlFor="sdt">Số điện thoại</Label>
                           <Input
-                            readOnly
+                            placeholder="Nhập số điện thoại"
                             id="sdt"
                             name="sdt"
                             type="tel"
@@ -1449,19 +1234,18 @@ const handleSelectAddress = async (address: Address) => {
                             required
                           />
                         </div>
-
                         <div className="space-y-2">
                           <Label htmlFor="province">Tỉnh/Thành phố</Label>
                           <select
                             id="province"
                             name="province"
                             value={checkoutForm.province}
-                            onChange={(e) => handleProvinceChange(e.target.value)}
+                            onChange={(e) => handleCheckoutFormChange(e)}
                             className="w-full p-2 border rounded-md"
                             required
-                            disabled
+
                           >
-                            <option value="">Chọn tỉnh/thành phố</option>
+                            <option value="">{isLoadingProvinces ? "Đang tải..." : "Chọn tỉnh/thành phố"}</option>
                             {provinces.map((province) => (
                               <option key={province.ProvinceID} value={province.ProvinceID}>
                                 {province.ProvinceName}
@@ -1469,19 +1253,18 @@ const handleSelectAddress = async (address: Address) => {
                             ))}
                           </select>
                         </div>
-
                         <div className="space-y-2">
                           <Label htmlFor="district">Quận/Huyện</Label>
                           <select
                             id="district"
                             name="district"
                             value={checkoutForm.district}
-                            onChange={(e) => handleDistrictChange(e.target.value)}
+                            onChange={(e) => handleCheckoutFormChange(e)}
                             className="w-full p-2 border rounded-md"
                             required
-                            disabled
+
                           >
-                            <option value="">Chọn quận/huyện</option>
+                            <option value="">{isLoadingDistricts ? "Đang tải..." : "Chọn quận/huyện"}</option>
                             {districts.map((district) => (
                               <option key={district.DistrictID} value={district.DistrictID}>
                                 {district.DistrictName}
@@ -1489,7 +1272,6 @@ const handleSelectAddress = async (address: Address) => {
                             ))}
                           </select>
                         </div>
-
                         <div className="space-y-2">
                           <Label htmlFor="ward">Phường/Xã</Label>
                           <select
@@ -1499,9 +1281,9 @@ const handleSelectAddress = async (address: Address) => {
                             onChange={handleCheckoutFormChange}
                             className="w-full p-2 border rounded-md"
                             required
-                            disabled
+
                           >
-                            <option value="">Chọn phường/xã</option>
+                            <option value="">{isLoadingWards ? "Đang tải..." : "Chọn phường/xã"}</option>
                             {wards.map((ward) => (
                               <option key={ward.WardCode} value={ward.WardCode}>
                                 {ward.WardName}
@@ -1509,13 +1291,10 @@ const handleSelectAddress = async (address: Address) => {
                             ))}
                           </select>
                         </div>
-
                         <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="specificAddress">
-                            Địa chỉ cụ thể (số nhà, tên đường)
-                          </Label>
+                          <Label htmlFor="specificAddress">Địa chỉ cụ thể (số nhà, tên đường)</Label>
                           <Input
-                            readOnly
+                            placeholder="Nhập địa chỉ cụ thể"
                             id="specificAddress"
                             name="specificAddress"
                             value={checkoutForm.specificAddress}
@@ -1524,7 +1303,6 @@ const handleSelectAddress = async (address: Address) => {
                           />
                         </div>
                       </div>
-
                       <div className="space-y-2 mb-6">
                         <Label>Phương thức thanh toán</Label>
                         <div className="flex gap-4">
@@ -1552,7 +1330,6 @@ const handleSelectAddress = async (address: Address) => {
                           </label>
                         </div>
                       </div>
-
                       <div className="flex flex-col sm:flex-row gap-2 mt-6 relative">
                         <Button
                           type="submit"
@@ -1597,77 +1374,58 @@ const handleSelectAddress = async (address: Address) => {
                       </div>
                     </form>
                   </div>
-
                   <div className="lg:col-span-1">
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-border sticky top-4">
-                      <h2 className="text-xl font-semibold mb-4">
-                        Tóm tắt đơn hàng
-                      </h2>
-
+                      <h2 className="text-xl font-semibold mb-4">Tóm tắt đơn hàng</h2>
                       <div className="space-y-3 mb-6">
                         {cartItems.map((item) => (
-                          <div
-                            key={item.idSanPham}
-                            className="flex justify-between"
-                          >
+                          <div key={item.idSanPham} className="flex justify-between">
                             <span className="text-muted-foreground">
-                              {item.tenSanPham}{" "}
-                              <span className="text-xs">x{item.soLuong}</span>
+                              {item.tenSanPham} <span className="text-xs">x{item.soLuong}</span>
                             </span>
-                            <span>
-                              {formatCurrency(item.tienSanPham * item.soLuong)}{" "}
-                              VND
-                            </span>
+                            <span>{formatCurrency(item.tienSanPham * item.soLuong)} VND</span>
                           </div>
                         ))}
                         {comboItems.map((combo) => (
-                          <div
-                            key={combo.idCombo}
-                            className="flex justify-between"
-                          >
+                          <div key={combo.idCombo} className="flex justify-between">
                             <span className="text-muted-foreground">
-                              {combo.tenCombo}{" "}
-                              <span className="text-xs">x{combo.soLuong}</span>
+                              {combo.tenCombo} <span className="text-xs">x{combo.soLuong}</span>
                             </span>
-                            <span>
-                              {formatCurrency(combo.gia * combo.soLuong)} VND
-                            </span>
+                            <span>{formatCurrency(combo.gia * combo.soLuong)} VND</span>
                           </div>
                         ))}
-
                         <div className="border-t my-3"></div>
-
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Tổng tiền gốc
-                          </span>
+                          <span className="text-muted-foreground">Tổng tiền gốc</span>
                           <span>{formatCurrency(calculateSubtotal())} VND</span>
                         </div>
-
                         {discountApplied && (
                           <div className="flex justify-between text-green-600">
                             <span>Giảm giá</span>
-                            <span>
-                              -{formatCurrency(calculateDiscount())} VND
-                            </span>
+                            <span>-{formatCurrency(calculateDiscount())} VND</span>
                           </div>
                         )}
-
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Phí giao hàng
+                          <span className="text-muted-foreground">Phí giao hàng</span>
+                          <span>
+                            {isLoadingShippingFee ? "Đang tính..." : formatCurrency(shippingFee)} VND
                           </span>
-                          <span>{formatCurrency(shippingFee)} VND</span>
                         </div>
-
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Thời gian giao hàng dự kiến</span>
+                          <span>
+                            {isLoadingLeadTime
+                              ? "Đang tính..."
+                              : leadTime
+                                ? formatDate(leadTime.leadtime_order.to_estimate_date)
+                                : "Không xác định"}
+                          </span>
+                        </div>
                         <div className="border-t pt-3 flex justify-between font-medium">
                           <span>Tổng tiền</span>
-                          <span className="text-lg">
-                            {formatCurrency(calculateTotal())} VND
-                          </span>
+                          <span className="text-lg">{formatCurrency(calculateTotal())} VND</span>
                         </div>
                       </div>
-
                       <div className="flex items-center mb-4">
                         <Input
                           placeholder="Mã giảm giá (nếu có)"
@@ -1687,9 +1445,7 @@ const handleSelectAddress = async (address: Address) => {
           ) : (
             <div className="text-center py-16">
               <ShoppingCart className="mx-auto h-16 w-16 text-muted-foreground/60 mb-4" />
-              <h2 className="text-2xl font-medium mb-2">
-                Giỏ hàng của bạn đang trống
-              </h2>
+              <h2 className="text-2xl font-medium mb-2">Giỏ hàng của bạn đang trống</h2>
               <p className="text-muted-foreground mb-8">
                 Có vẻ như bạn chưa thêm sản phẩm hoặc combo nào vào giỏ hàng.
               </p>
@@ -1700,7 +1456,6 @@ const handleSelectAddress = async (address: Address) => {
           )}
         </div>
       </main>
-
       <Dialog.Root
         open={!!selectedCombo}
         onOpenChange={(open) => !open && setSelectedCombo(null)}
@@ -1718,57 +1473,63 @@ const handleSelectAddress = async (address: Address) => {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-
       <Dialog.Root
         open={showAddressModal}
         onOpenChange={(open) => setShowAddressModal(open)}
       >
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full overflow-y-auto max-h-[600px]">
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full ">
+
             <h2 className="text-xl font-bold mb-4">Chọn địa chỉ giao hàng</h2>
-            {addresses.length === 0 ? (
-              <p>Chưa có địa chỉ nào. Vui lòng thêm địa chỉ mới.</p>
-            ) : (
-              <div className="space-y-4">
-                {addresses.map((address) => (
-                  <div
-                    key={address.maDiaChi}
-                    className="border p-4 rounded-lg bg-white shadow-sm flex justify-between"
-                  >
-                    <div>
-                      <p>
-                        <strong>Họ tên:</strong> {address.hoTen}
-                      </p>
-                      <p>
-                        <strong>SĐT:</strong> {address.sdt}
-                      </p>
-                      <p>
-                        <strong>Địa chỉ:</strong> {address.diaChi},{" "}
-                        {address.phuongXa}, {address.quanHuyen}, {address.tinh}
-                      </p>
-                      <p>
-                        <strong>Trạng thái:</strong>{" "}
-                        {address.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => handleSelectAddress(address)}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
+            <div className="overflow-y-auto max-h-[350px]">
+              {addresses.length === 0 ? (
+                <p>Chưa có địa chỉ nào. Vui lòng thêm địa chỉ mới.</p>
+              ) : (
+                <div className="space-y-4">
+                  {addresses.map((address) => (
+                    <div
+                      key={address.maDiaChi}
+                      className="border p-4 rounded-lg bg-white shadow-sm flex justify-between"
                     >
-                      Chọn
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+                      <div>
+                        <p><strong>Họ tên:</strong> {address.hoTen}</p>
+                        <p><strong>SĐT:</strong> {address.sdt}</p>
+                        <p><strong>Địa chỉ:</strong> {address.diaChi}, {address.phuongXa}, {address.quanHuyen}, {address.tinh}</p>
+                        <p><strong>Trạng thái:</strong> {address.trangThai === 1 ? "Hoạt động" : "Không hoạt động"}</p>
+                      </div>
+                      <div className="flex flex-col space-y-2">
+                        <Button
+                          onClick={() => handleSelectAddress(address)}
+                          className="bg-purple-600 hover:bg-purple-700 text-white"
+                          disabled={isSelectingAddress || isDeletingAddress === address.maDiaChi}
+                        >
+                          <Check size={16} className="mr-2" />
+                          {isSelectingAddress ? "Đang chọn..." : "Chọn"}
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteAddress(address.maDiaChi)}
+                          variant="destructive"
+                          disabled={isSelectingAddress || isDeletingAddress === address.maDiaChi}
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          {isDeletingAddress === address.maDiaChi ? "Đang xóa..." : "Xóa"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               className="mt-4"
               onClick={() => setShowAddressModal(false)}
+              disabled={isSelectingAddress || isDeletingAddress !== null}
             >
               Đóng
             </Button>
+
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
