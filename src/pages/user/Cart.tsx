@@ -104,8 +104,6 @@ interface ShippingFeeResponse {
   cod_failed_fee: number;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
-
 const CartPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,7 +173,7 @@ const CartPage = () => {
     const fetchProvinces = async () => {
       setIsLoadingProvinces(true);
       try {
-        const response = await fetch(`${API_URL}/api/GHN/provinces`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/provinces`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -198,7 +196,7 @@ const CartPage = () => {
 
       try {
         const response = await fetch(
-          `${API_URL}/api/DanhSachDiaChi/maNguoiDung/${userId}`,
+          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`,
           { headers: getAuthHeaders() }
         );
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -242,7 +240,7 @@ const CartPage = () => {
 
       try {
         const response = await fetch(
-          `${API_URL}/api/Cart/GioHangByKhachHang?id=${userId}`,
+          `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`,
           { headers: getAuthHeaders() }
         );
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -311,7 +309,7 @@ const CartPage = () => {
     const fetchDistricts = async () => {
       setIsLoadingDistricts(true);
       try {
-        const response = await fetch(`${API_URL}/api/GHN/districts/${checkoutForm.province}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${checkoutForm.province}`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -342,7 +340,7 @@ const CartPage = () => {
     const fetchWards = async () => {
       setIsLoadingWards(true);
       try {
-        const response = await fetch(`${API_URL}/api/GHN/wards/${checkoutForm.district}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${checkoutForm.district}`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -387,7 +385,7 @@ const CartPage = () => {
           coupon: null,
           items: [],
         };
-        const shippingResponse = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+        const shippingResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/shipping-fee`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -406,7 +404,7 @@ const CartPage = () => {
           to_ward_code: checkoutForm.ward,
           service_id: 53320,
         };
-        const leadTimeResponse = await fetch(`${API_URL}/api/GHN/leadtime`, {
+        const leadTimeResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/leadtime`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -445,7 +443,7 @@ const CartPage = () => {
         return;
       }
 
-      const districtResponse = await fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, {
+      const districtResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${province.ProvinceID}`, {
         headers: getAuthHeaders(),
       });
       if (!districtResponse.ok) throw new Error(`HTTP error! status: ${districtResponse.status}`);
@@ -457,7 +455,7 @@ const CartPage = () => {
         return;
       }
 
-      const wardResponse = await fetch(`${API_URL}/api/GHN/wards/${district.districtID}`, {
+      const wardResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${district.districtID}`, {
         headers: getAuthHeaders(),
       });
       if (!wardResponse.ok) throw new Error(`HTTP error! status: ${wardResponse.status}`);
@@ -505,7 +503,7 @@ const CartPage = () => {
   const handleDeleteAddress = async (maDiaChi: number) => {
     setIsDeletingAddress(maDiaChi);
     try {
-      const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${maDiaChi}`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/${maDiaChi}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -565,7 +563,7 @@ const CartPage = () => {
 
     try {
       if (change > 0) {
-        await fetch(`${API_URL}/api/Cart/TangSoLuongSanPham`, {
+        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/TangSoLuongSanPham`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -688,7 +686,7 @@ const CartPage = () => {
       };
 
       try {
-        await fetch(`${API_URL}/api/Cart/XoaCombo`, {
+        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/XoaCombo`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -766,7 +764,7 @@ const CartPage = () => {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
+        `$https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
         {
           method: "GET",
           headers: {
@@ -839,7 +837,7 @@ const CartPage = () => {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/Cart/GioHangByKhachHang?id=${userId}`,
+        `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`,
         { headers: getAuthHeaders() }
       );
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -875,7 +873,7 @@ const CartPage = () => {
 
       if (promoCode) {
         const voucherResponse = await fetch(
-          `${API_URL}/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${data.id}`,
+          `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${data.id}`,
           {
             method: "GET",
             headers: {
@@ -944,7 +942,7 @@ const CartPage = () => {
       };
 
       const paymentResponse = await fetch(
-        `${API_URL}/api/CheckOut/process-payment`,
+        `https://bicacuatho.azurewebsites.net/api/CheckOut/process-payment`,
         {
           method: "POST",
           headers: {
