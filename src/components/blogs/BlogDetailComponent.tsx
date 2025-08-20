@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, memo } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -317,7 +318,10 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
     }
   }, [currentUserId, likedComments, sortOption, type, entityId]);
 
-  const displayedComments = showAllComments ? comments : comments.slice(0, 3);
+  // Filter only approved comments (trangThai === 1) for display
+  const displayedComments = showAllComments
+    ? comments.filter((c) => c.trangThai === 1)
+    : comments.filter((c) => c.trangThai === 1).slice(0, 3);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -358,7 +362,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-purple-500" />
             <p className="mt-2 text-gray-600">Đang tải bình luận...</p>
           </div>
-        ) : comments.length === 0 ? (
+        ) : displayedComments.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <MessageCircle className="w-12 h-12 mx-auto text-gray-300 mb-3" />
             <p>Chưa có bình luận nào.</p>
@@ -390,11 +394,6 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(comment.ngayBinhLuan).toLocaleDateString("vi-VN")}
-                          {comment.trangThai === 0 && (
-                            <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
-                              Chờ duyệt
-                            </span>
-                          )}
                         </p>
                       </div>
                       {comment.maNguoiDung === currentUserId && (
@@ -433,7 +432,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
                         onClick={() => handleLikeComment(comment.maBinhLuan)}
                         className="flex items-center gap-2 text-gray-500 hover:text-purple-600 disabled:opacity-50 transition-colors duration-200"
                         aria-label={likedComments.has(comment.maBinhLuan) ? "Bỏ thích bình luận" : "Thích bình luận"}
-                        disabled={isActionLoading || comment.trangThai === 0}
+                        disabled={isActionLoading}
                       >
                         <Heart
                           className={cn(
@@ -776,7 +775,7 @@ export const BlogDetailComponent = () => {
                         key={index} 
                         className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
                       >
-                        #{tagMap[tag] || tag}
+                        {tagMap[tag] || tag}
                       </span>
                     ))}
                   </div>

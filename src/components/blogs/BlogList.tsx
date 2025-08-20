@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 export interface NguoiDung {
   maNguoiDung: string | number;
   hoTen: string;
-  vaiTro: string;
+  vaiTro: number; // Changed to number to match the role logic from the second code
 }
 
 // Interface for Blog
@@ -43,6 +43,13 @@ interface BlogCardProps {
   nguoiDung: NguoiDung | null;
 }
 
+// Role mapping for vaiTro from the second code
+const roleMap: Record<number, { text: string;  textColor: string }> = {
+  1: { text: "Admin", textColor: "text-emerald-700" },
+  2: { text: "Nhân Viên", textColor: "text-blue-700" },
+  0: { text: "Khác", textColor: "text-gray-700" },
+};
+
 // BlogCard Component
 export const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
   const isMobile = useIsMobile();
@@ -59,12 +66,15 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
     day: "2-digit",
   });
 
-  // Xử lý tên người tạo để loại bỏ số không mong muốn
+  // Xử lý tên người tạo để loại bỏ số không mong muốn (kept from the first code)
   const displayName = post.hoTen && post.hoTen !== post.maNguoiDung
     ? post.hoTen
     : nguoiDung?.hoTen
       ? nguoiDung.hoTen
       : post.maNguoiDung.replace(/\d+$/, '').trim() || 'Không rõ';
+
+  // Get role styles from roleMap
+  const { text: roleText, textColor: roleTextColor } = roleMap[nguoiDung?.vaiTro ?? 0];
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -100,15 +110,11 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, nguoiDung }) => {
         <div className="flex justify-between items-center text-xs text-gray-500">
           <div>
             <span>Người tạo: {displayName}</span>
-            {nguoiDung?.vaiTro && (
+            {nguoiDung?.vaiTro !== undefined && (
               <span
-                className={`ml-2 px-2 py-1 rounded 
-                  ${nguoiDung.vaiTro === "Admin"
-                    ? "bg-red-500 text-white"
-                    : "border-green-500 text-green-500 bg-white"
-                  }`}
+                className={`ml-2 px-2 py-1 rounded text-sm font-medium ${roleTextColor}`}
               >
-                {nguoiDung.vaiTro === "Admin" ? "Admin" : "Nhân Viên"}
+                {roleText}
               </span>
             )}
           </div>
