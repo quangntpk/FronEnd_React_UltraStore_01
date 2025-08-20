@@ -630,7 +630,7 @@ const CartPage = () => {
         IDCombo: null,
       };
       try {
-        await fetch(`${API_URL}/api/Cart/XoaSanPham`, {
+        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/XoaSanPham`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
