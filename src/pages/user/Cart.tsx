@@ -459,7 +459,7 @@ const CartPage = () => {
           },
         });
         if (!response.ok) {
-          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status}`);
+          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status} 462`);
         }
         const data = await response.json();
         setProvinces(data.data || []);
@@ -535,7 +535,7 @@ const CartPage = () => {
           }
         );
         if (!response.ok) {
-          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status}`);
+          throw new Error(`Lỗi HTTP! Mã trạng thái: ${response.status} 538`);
         }
         const data = await response.json();
         console.log("Provinces from API:", data.data);
