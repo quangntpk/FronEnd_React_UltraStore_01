@@ -140,7 +140,7 @@ const AddressForm = ({
                     to_ward_code: selectedWard.WardCode,
                     service_id: 53320,
                 };
-                const response = await fetch(`${API_URL}/api/GHN/leadtime`, {
+                const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/leadtime`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -184,7 +184,7 @@ const AddressForm = ({
                     coupon: null,
                     items: [],
                 };
-                const response = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
+                const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/shipping-fee`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -482,7 +482,7 @@ const DiaChiCart = () => {
         const fetchProvinces = async () => {
             setIsLoadingProvinces(true);
             try {
-                const response = await fetch(`${API_URL}/api/GHN/provinces`, { headers: getAuthHeaders() });
+                const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/provinces`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data: ProvinceResponse[] = await response.json();
                 const transformedProvinces = data.map((item) => ({
@@ -519,7 +519,7 @@ const DiaChiCart = () => {
         const fetchDistricts = async () => {
             setIsLoadingDistricts(true);
             try {
-                const response = await fetch(`${API_URL}/api/GHN/districts/${selectedProvince.ProvinceID}`, { headers: getAuthHeaders() });
+                const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${selectedProvince.ProvinceID}`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data: DistrictResponse[] = await response.json();
                 const transformedDistricts = data.map((item) => ({
@@ -557,7 +557,7 @@ const DiaChiCart = () => {
         const fetchWards = async () => {
             setIsLoadingWards(true);
             try {
-                const response = await fetch(`${API_URL}/api/GHN/wards/${selectedDistrict.DistrictID}`, { headers: getAuthHeaders() });
+                const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${selectedDistrict.DistrictID}`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data: WardResponse[] = await response.json();
                 const transformedWards = data.map((item) => ({
@@ -601,7 +601,7 @@ const DiaChiCart = () => {
         const fetchDiaChiList = async () => {
             if (!maNguoiDung) return;
             try {
-                const response = await fetch(`${API_URL}/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`, { headers: getAuthHeaders() });
+                const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 setDiaChiList(data);
@@ -693,7 +693,7 @@ const DiaChiCart = () => {
                 navigate("/user/diachi");
                 return;
             }
-            const response = await fetch(`${API_URL}/api/DanhSachDiaChi`, {
+            const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                 body: JSON.stringify({ ...fullFormData, maNguoiDung, trangThai: 1 }),
@@ -701,7 +701,7 @@ const DiaChiCart = () => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             await Promise.all(
                 diaChiList.map(async (dc: DiaChi) => {
-                    const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${dc.maDiaChi}`, {
+                    const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/${dc.maDiaChi}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                         body: JSON.stringify({ ...dc, trangThai: 0 }),
