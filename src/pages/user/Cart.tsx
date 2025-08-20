@@ -361,6 +361,7 @@ const CartPage = () => {
           handleSelectAddress(location.state.newAddress);
         }
       } catch (error) {
+        console.log("364")
         toast.error("Không thể tải danh sách địa chỉ");
         console.error("Error fetching addresses:", error);
       }
@@ -463,6 +464,7 @@ const CartPage = () => {
         const data = await response.json();
         setProvinces(data.data || []);
       } catch (error) {
+        console.log("467")
         toast.error("Không thể tải danh sách tỉnh/thành phố");
         console.error("Error fetching provinces:", error);
       }
@@ -481,6 +483,7 @@ const CartPage = () => {
           data.sort((a: Address, b: Address) => b.trangThai - a.trangThai)
         );
       } catch (error) {
+        console.log("484")
         toast.error("Không thể tải danh sách địa chỉ");
         console.error("Error fetching addresses:", error);
       }
