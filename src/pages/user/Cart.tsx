@@ -362,7 +362,7 @@ const CartPage = () => {
         }
       } catch (error) {
         console.log("364")
-        toast.error("Không thể tải danh sách địa chỉ");
+        toast.error("Không thể tải danh sách địa chỉ 365");
         console.error("Error fetching addresses:", error);
       }
     };
@@ -465,7 +465,7 @@ const CartPage = () => {
         setProvinces(data.data || []);
       } catch (error) {
         console.log("467")
-        toast.error("Không thể tải danh sách tỉnh/thành phố");
+        toast.error("Không thể tải danh sách tỉnh/thành phố 467");
         console.error("Error fetching provinces:", error);
       }
     };
@@ -484,7 +484,7 @@ const CartPage = () => {
         );
       } catch (error) {
         console.log("484")
-        toast.error("Không thể tải danh sách địa chỉ");
+        toast.error("Không thể tải danh sách địa chỉ 487");
         console.error("Error fetching addresses:", error);
       }
     };
@@ -541,7 +541,7 @@ const CartPage = () => {
         console.log("Provinces from API:", data.data);
         setDistricts(data.data || []);
       } catch (error) {
-        toast.error("Không thể tải danh sách quận/huyện");
+        toast.error("Không thể tải danh sách quận/huyện 544");
         console.error("Lỗi khi lấy danh sách huyện:", error);
       }
     }
@@ -571,7 +571,7 @@ const CartPage = () => {
         const data = await response.json();
         setWards(data.data || []);
       } catch (error) {
-        toast.error("Không thể tải danh sách phường/xã");
+        toast.error("Không thể tải danh sách phường/xã 574");
         console.error("Lỗi khi lấy danh sách phường/xã:", error);
       }
     }
@@ -634,7 +634,7 @@ const handleSelectAddress = async (address: Address) => {
         normalizeName(d.DistrictName) === normalizedDistrictName
     );
     if (!district) {
-      toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen}`);
+      toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen} 637`);
       console.log("Available Districts:", districtData.data.map(d => normalizeName(d.DistrictName)));
       return;
     }
@@ -659,7 +659,7 @@ const handleSelectAddress = async (address: Address) => {
       (w: Ward) => normalizeName(w.WardName) === normalizedWardName
     );
     if (!ward) {
-      toast.error(`Không tìm thấy phường/xã: ${address.phuongXa}`);
+      toast.error(`Không tìm thấy phường/xã: ${address.phuongXa} 662`);
       console.log("Available Wards:", wardData.data.map(w => w.WardName ? normalizeName(w.WardName) : ""));
       setShowAddressModal(true);
       return;
@@ -685,7 +685,7 @@ const handleSelectAddress = async (address: Address) => {
     setShowAddressModal(false);
     toast.success("Đã chọn địa chỉ thành công");
   } catch (error) {
-    toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
+    toast.error("Không thể chọn địa chỉ, vui lòng thử lại 688");
     console.error("Error in handleSelectAddress:", error);
   } finally {
     setIsSelectingAddress(false);
