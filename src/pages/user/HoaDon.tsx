@@ -195,13 +195,13 @@ const HoaDonPage = () => {
           setQrCodeDataUrl(`data:image/png;base64,${qrData.qrCode}`);
         } else {
           // Không có QR data, dùng fallback
-          const qrLink = `http://localhost:8080/user/hoadon?orderId=${order.maDonHang}`;
+          const qrLink = `https://fashionhub.name.vn/user/hoadon?orderId=${order.maDonHang}`;
           generateFallbackQR(qrLink);
         }
       } catch (error) {
         console.error("Error fetching QR code:", error);
         // Tạo QR code fallback bằng link trực tiếp
-        const qrLink = `http://localhost:8080/user/hoadon?orderId=${order.maDonHang}`;
+        const qrLink = `https://fashionhub.name.vn/user/hoadon?orderId=${order.maDonHang}`;
         generateFallbackQR(qrLink);
       } finally {
         setQrLoading(false);

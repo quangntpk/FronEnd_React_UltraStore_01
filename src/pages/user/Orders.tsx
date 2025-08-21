@@ -223,7 +223,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
     return (
       <div key={item.maChiTietDh} className="flex flex-col gap-4">
         <a
-          href={`http://localhost:8080/${item.laCombo ? 'combos' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
+          href={`https://fashionhub.name.vn/${item.laCombo ? 'combos' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
           className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
         >
           <div className="col-span-12 sm:col-span-2">
@@ -389,7 +389,23 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
           <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
             <span className="font-medium text-gray-800">Mã đơn hàng: {order.maDonHang || "N/A"}</span>
             <span className="text-sm text-gray-500">Người nhận: {order.tenNguoiNhan || "N/A"}</span>
-            <span className="text-sm text-gray-500">Ngày đặt: {formatDate(order.ngayDat)}</span>
+            <span className="text-sm text-gray-500">
+              Ngày đặt: {order.ngayDat
+                ? (() => {
+                    try {
+                      const parts = order.ngayDat.split('/');
+                      if (parts.length === 3) {
+                        const [day, month, year] = parts;
+                        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        return date.toLocaleDateString('vi-VN');
+                      }
+                      return order.ngayDat;
+                    } catch (error) {
+                      return order.ngayDat;
+                    }
+                  })()
+                : "N/A"}
+            </span>
             <span className="text-sm text-gray-500">SĐT: {order.thongTinNguoiDung?.sdt || "N/A"}</span>
             <span className="text-sm text-gray-500">Phương thức thanh toán: {order.hinhThucThanhToan || "N/A"}</span>
             <span className={`text-sm font-medium ${

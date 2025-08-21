@@ -218,7 +218,7 @@ const createProductCardForPDF = (product: Product) => {
     <div style="text-align: center; margin-bottom: 5mm; padding: 3mm; width: 70%;">
       <img
         src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-          `http://localhost:8080/products/${product.maSanPham}`
+          `https://fashionhub.name.vn/products/${product.maSanPham}`
         )}&size=200x200"
         alt="QR Code"
         style="width: 60mm; height: 60mm; border: 1px solid #000; margin: 0 auto; display: block;"
@@ -323,7 +323,7 @@ const createSmallPreviewCard = (product: Product) => {
       <div style="text-align: center; margin-bottom: 2mm; padding: 1mm; width: 80%;">
         <img
           src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-            `http://localhost:8080/products/${product.maSanPham}`
+            `https://fashionhub.name.vn/products/${product.maSanPham}`
           )}&size=120x120"
           alt="QR Code"
           style="width: 30mm; height: 30mm; border: 1px solid #000; margin: 0 auto; display: block;"
@@ -426,7 +426,7 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
           <div style="text-align: center; margin-bottom: 5mm; padding: 3mm; width: 70%;">
             <img
               src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-                `http://localhost:8080/products/${product.maSanPham}`
+                `https://fashionhub.name.vn/products/${product.maSanPham}`
               )}&size=200x200"
               alt="QR Code"
               style="width: 60mm; height: 60mm; border: 1px solid #000; margin: 0 auto; display: block;"
