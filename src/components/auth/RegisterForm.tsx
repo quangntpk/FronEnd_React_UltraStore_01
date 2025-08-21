@@ -323,7 +323,7 @@ export const RegisterForm = () => {
 
             <div className="space-y-2">
               <ReCAPTCHA
-                sitekey="6LdnYnMqAAAAAIqMXz4csz5Zw_kR3ARtWht9wjY2"
+                sitekey="6LdMzlEqAAAAAIRD7o-nvN9bH3jPvKLaKaGW8xD4"
                 onChange={handleRecaptchaChange}
               />
             </div>
