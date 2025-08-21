@@ -153,7 +153,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ orderId, onClose 
       console.log(`[DEBUG] Fetching order details for order ${orderId}`);
       
       // Call admin orders endpoint
-      const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/orders`, {
+      const response = await axios.get(`https://localhost:7051/api/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

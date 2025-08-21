@@ -140,7 +140,7 @@ const PromotionList = () => {
   const fetchPromotions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/ListKhuyenMaiUser');
+      const response = await fetch('https://localhost:7051/api/KhuyenMai/ListKhuyenMaiUser');
       const data = await response.json();
       setPromotions(data);
     } catch (error) {

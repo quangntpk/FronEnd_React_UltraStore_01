@@ -348,7 +348,7 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
     // Fetch data từ API
     const allProductsData: Product[] = [];
     for (const productId of selectedProducts) {
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByID?id=${productId}`);
+      const response = await fetch(`https://localhost:7051/api/SanPham/SanPhamByID?id=${productId}`);
       if (!response.ok) {
         throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
       }
@@ -612,7 +612,7 @@ export const previewProductCards = async (selectedProducts: Set<string>) => {
     const allProductsData: Product[] = [];
     for (const productId of selectedProducts) {
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByID?id=${productId}`);
+        const response = await fetch(`https://localhost:7051/api/SanPham/SanPhamByID?id=${productId}`);
         if (!response.ok) {
           throw new Error(`Không thể lấy dữ liệu cho sản phẩm ${productId}`);
         }

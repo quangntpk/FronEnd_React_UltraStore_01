@@ -303,8 +303,8 @@ const ProductShowcase = ({ productId }: ProductShowcaseProps) => {
       try {
         setLoading(true);
         const apiUrl = productId
-          ? `https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPhamLQ?id=${productId}`
-          : `https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPhamLQ`;
+          ? `https://localhost:7051/api/SanPham/ListSanPhamLQ?id=${productId}`
+          : `https://localhost:7051/api/SanPham/ListSanPhamLQ`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error("Failed to fetch products");

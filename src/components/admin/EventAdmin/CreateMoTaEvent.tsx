@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, Image, Upload, Bold, Italic, Underline, AlignCenter } from 'lucide-react';
-
+import Swal from 'sweetalert2';
 const KhuyenMaiForm = ({ onCancel }) => {
   const [formData, setFormData] = useState({
     IdMoTa: '',
@@ -440,7 +440,7 @@ const KhuyenMaiForm = ({ onCancel }) => {
       });
 
       // Send to backend
-      const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/MoTaKhuyenMaiCreate', {
+      const response = await fetch('https://localhost:7051/api/KhuyenMai/MoTaKhuyenMaiCreate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

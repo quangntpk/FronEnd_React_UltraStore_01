@@ -29,7 +29,7 @@ const CreateComboModal = ({ isCreateModalOpen, setIsCreateModalOpen }) => {
         setSearchLoading(true);
         try {
            const token = localStorage.getItem("token");
-          const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
+          const response = await fetch("https://localhost:7051/api/SanPham/ListSanPham", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
             Authorization: token ? `Bearer ${token}` : undefined,
@@ -213,7 +213,7 @@ const CreateComboModal = ({ isCreateModalOpen, setIsCreateModalOpen }) => {
       };
 
        const token = localStorage.getItem("token");
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Combo/CreateComboSanPham", {
+      const response = await fetch("https://localhost:7051/api/Combo/CreateComboSanPham", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         Authorization: token ? `Bearer ${token}` : undefined,

@@ -58,7 +58,7 @@ const ComboDetailView = ({ comboId, onClose }: ComboDetailViewProps) => {
     const fetchCombo = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView?id=${comboId}`, {
+        const response = await fetch(`https://localhost:7051/api/Combo/ComboSanPhamView?id=${comboId}`, {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -114,7 +114,7 @@ const ComboDetailView = ({ comboId, onClose }: ComboDetailViewProps) => {
     try {
       const colorCode = color.replace("#", "");
       const response = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${productId}_${colorCode}`,
+        `https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${productId}_${colorCode}`,
         {
           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
         }
@@ -198,7 +198,7 @@ const ComboDetailView = ({ comboId, onClose }: ComboDetailViewProps) => {
     };
 
     try {
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Cart/ThemComboVaoGioHang", {
+      const response = await fetch("https://localhost:7051/api/Cart/ThemComboVaoGioHang", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

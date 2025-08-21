@@ -70,7 +70,7 @@ const Testing: React.FC = () => {
   const [zoom2, setZoom2] = useState<number>(1);
   const [zoomOutput, setZoomOutput] = useState<number>(1);
 
-  const API_URL = import.meta.env?.VITE_API_URL || 'https://bicacuatho.azurewebsites.net';
+  const API_URL = import.meta.env?.VITE_API_URL || 'https://localhost:7051/';
 
   const handleDrop = (
     event: React.DragEvent<HTMLDivElement>,
@@ -477,7 +477,7 @@ const ProductDetail = () => {
         setLoading(true);
         const baseId = id.split("_")[0];
         const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${baseId}`
+          `https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${baseId}`
         );
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
@@ -500,7 +500,7 @@ const ProductDetail = () => {
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         const currentUserId = userData?.maNguoiDung;
         if (currentUserId) {
-          const favRes = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich");
+          const favRes = await fetch("https://localhost:7051/api/YeuThich");
           if (favRes.ok) {
             const favs = await favRes.json();
             const existing = favs.find(
@@ -564,7 +564,7 @@ const ProductDetail = () => {
     if (isLiked && likedId) {
       // Remove favorite
       try {
-        const res = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich/${likedId}`, {
+        const res = await fetch(`https://localhost:7051/api/YeuThich/${likedId}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
@@ -586,7 +586,7 @@ const ProductDetail = () => {
         ngayYeuThich: new Date().toISOString(),
       };
       try {
-        const res = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
+        const res = await fetch("https://localhost:7051/api/YeuThich", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -630,7 +630,7 @@ const ProductDetail = () => {
 
     try {
       const res = await fetch(
-        "https://bicacuatho.azurewebsites.net/api/Cart/ThemSanPhamVaoGioHang",
+        "https://localhost:7051/api/Cart/ThemSanPhamVaoGioHang",
         {
           method: "POST",
           headers: {

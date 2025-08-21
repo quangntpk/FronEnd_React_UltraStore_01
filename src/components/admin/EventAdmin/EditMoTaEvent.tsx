@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, Image, Upload, Bold, Italic, Underline, AlignCenter } from 'lucide-react';
-
+import Swal from 'sweetalert2';
 const EditMoTaEvent = ({ promotionId, initialData, onSave, onCancel }) => {
   // Default MoTa structure to prevent undefined errors
   const defaultMoTa = {
@@ -403,7 +403,7 @@ const EditMoTaEvent = ({ promotionId, initialData, onSave, onCancel }) => {
         }))
       });
 
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/KhuyenMai/MoTaKhuyenMaiUpdate`, {
+      const response = await fetch(`https://localhost:7051/api/KhuyenMai/MoTaKhuyenMaiUpdate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -424,14 +424,14 @@ const EditMoTaEvent = ({ promotionId, initialData, onSave, onCancel }) => {
       previewUrls.current.clear();
 
       onSave(moTaData);
-      Swal.fire({
-                    title: "Thành công!",
-                    text: "Mô tả  đã được lưu vào bộ nhớ tạm, hãy nhập cập nhật khuyến mại!",
-                    icon: "Success",
-                    timer: 2000,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                  })
+        Swal.fire({
+            title: "Thành công!",
+            text: "Mô tả  đã được lưu vào bộ nhớ tạm, hãy nhập cập nhật khuyến mại!",
+            icon: "Success",
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+          })
     } catch (error) {
       console.error('Error updating MoTaKhuyenMai:', error);
       setError(error.message);

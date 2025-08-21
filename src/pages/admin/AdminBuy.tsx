@@ -138,7 +138,7 @@ const Products = () => {
 
       try {
         const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
+          `https://localhost:7051/api/Cart/GioHangByKhachHang?id=${userId}`
         );
         const data = await response.json();
         setCartId(data.id);
@@ -187,7 +187,7 @@ const Products = () => {
     const fetchProducts = async () => {
       try {
         
-        const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
+        const response = await fetch("https://localhost:7051/api/SanPham/ListSanPham", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
 
@@ -240,7 +240,7 @@ const Products = () => {
     };
 
     try {
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Cart/ThemSanPhamVaoGioHang", {
+      const response = await fetch("https://localhost:7051/api/Cart/ThemSanPhamVaoGioHang", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,7 +253,7 @@ const Products = () => {
       }
 
       const updatedCartResponse = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=KH001`
+        `https://localhost:7051/api/Cart/GioHangByKhachHang?id=KH001`
       );
       if (updatedCartResponse.ok) {
         const data = await updatedCartResponse.json();
@@ -325,7 +325,7 @@ const Products = () => {
 
     try {
       if (change > 0) {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/TangSoLuongSanPham", {
+        await fetch("https://localhost:7051/api/Cart/TangSoLuongSanPham", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -333,7 +333,7 @@ const Products = () => {
           body: JSON.stringify(info),
         });
       } else {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/GiamSoLuongSanPham", {
+        await fetch("https://localhost:7051/api/Cart/GiamSoLuongSanPham", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -390,7 +390,7 @@ const Products = () => {
         IDCombo: null,
       };
       try {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaSanPham", {
+        await fetch("https://localhost:7051/api/Cart/XoaSanPham", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -442,7 +442,7 @@ const Products = () => {
       };
 
       try {
-        await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaCombo", {
+        await fetch("https://localhost:7051/api/Cart/XoaCombo", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -485,7 +485,7 @@ const Products = () => {
 
     try {
       const response = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(
+        `https://localhost:7051/api/Voucher/Validate?code=${encodeURIComponent(
           promoCode
         )}&cartId=${cartId}`,
         {
@@ -548,7 +548,7 @@ const Products = () => {
 
     try {
       const response = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
+        `https://localhost:7051/api/Cart/GioHangByKhachHang?id=${userId}`
       );
       const data = await response.json();
       setCartId(data.id);
@@ -582,7 +582,7 @@ const Products = () => {
 
       if (promoCode) {
         const voucherResponse = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(
+          `https://localhost:7051/api/Voucher/Validate?code=${encodeURIComponent(
             promoCode
           )}&cartId=${data.id}`,
           {
@@ -622,7 +622,7 @@ const Products = () => {
       };
 
       const paymentResponse = await fetch(
-        "https://bicacuatho.azurewebsites.net/api/CheckOut/process-payment",
+        "https://localhost:7051/api/CheckOut/process-payment",
         {
           method: "POST",
           headers: {

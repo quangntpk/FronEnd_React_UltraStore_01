@@ -90,7 +90,7 @@ const Comments = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/list", {
+      const response = await fetch("https://localhost:7051/api/Comment/list", {
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
@@ -114,7 +114,7 @@ const Comments = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Comment/delete/${commentToDelete.maBinhLuan}`, {
+      const response = await fetch(`https://localhost:7051/api/Comment/delete/${commentToDelete.maBinhLuan}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -137,7 +137,7 @@ const Comments = () => {
   const handleApproveComment = async (comment: Comment) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Comment/approve/${comment.maBinhLuan}`, {
+      const response = await fetch(`https://localhost:7051/api/Comment/approve/${comment.maBinhLuan}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -158,7 +158,7 @@ const Comments = () => {
   const handleUnapproveComment = async (comment: Comment) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Comment/unapprove/${comment.maBinhLuan}`, {
+      const response = await fetch(`https://localhost:7051/api/Comment/unapprove/${comment.maBinhLuan}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

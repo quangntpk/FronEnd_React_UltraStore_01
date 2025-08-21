@@ -32,7 +32,7 @@ const Combos = () => {
   const fetchCombos = async () => {
     try {
        const token = localStorage.getItem("token");
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamViewAdmin", {
+      const response = await fetch("https://localhost:7051/api/Combo/ComboSanPhamViewAdmin", {
         method: "GET",
         headers: { "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
@@ -121,7 +121,7 @@ const Combos = () => {
         try {
            const token = localStorage.getItem("token");
           const response = await fetch(
-            `https://bicacuatho.azurewebsites.net/api/Combo/DeleteCombo?id=${combo.maCombo}`,
+            `https://localhost:7051/api/Combo/DeleteCombo?id=${combo.maCombo}`,
             {
               method: "GET",
               headers: { "Content-Type": "application/json",
@@ -181,7 +181,7 @@ const Combos = () => {
         try {
            const token = localStorage.getItem("token");
           const response = await fetch(
-            `https://bicacuatho.azurewebsites.net/api/Combo/DeleteCombo?id=${combo.maCombo}&status=true`,
+            `https://localhost:7051/api/Combo/DeleteCombo?id=${combo.maCombo}&status=true`,
             {
               method: "GET",
               headers: { "Content-Type": "application/json",

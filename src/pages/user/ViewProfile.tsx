@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { UserProfile } from "@/components/user/UserProfile";
 import Swal from "sweetalert2";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
+const API_URL = import.meta.env.VITE_API_URL || "https://localhost:7051/";
 
 interface NguoiDungView {
   maNguoiDung: string | null;

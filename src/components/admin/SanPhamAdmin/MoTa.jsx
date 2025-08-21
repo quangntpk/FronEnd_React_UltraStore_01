@@ -301,7 +301,7 @@ const MoTaModal = ({ isOpen, onClose, moTaChiTiet }) => {
     }];
     console.log(dataToSend)
     try {
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/MoTaSanPhamCreate", {
+      const response = await fetch("https://localhost:7051/api/SanPham/MoTaSanPhamCreate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

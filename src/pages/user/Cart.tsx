@@ -173,7 +173,7 @@ const CartPage = () => {
     const fetchProvinces = async () => {
       setIsLoadingProvinces(true);
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/provinces`, {
+        const response = await fetch(`https://localhost:7051/api/GHN/provinces`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -196,7 +196,7 @@ const CartPage = () => {
 
       try {
         const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`,
+          `https://localhost:7051/api/DanhSachDiaChi/maNguoiDung/${userId}`,
           { headers: getAuthHeaders() }
         );
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -234,13 +234,13 @@ const CartPage = () => {
       }
 
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-        `https://bicacuatho.azurewebsites.net/api/Cart/CopyGioHang?id=${userId}`
+        `https://localhost:7051/api/Cart/CopyGioHang?id=${userId}`
       )}&size=200x200`;
       setQrCodeUrl(qrUrl);
 
       try {
         const response = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`,
+          `https://localhost:7051/api/Cart/GioHangByKhachHang?id=${userId}`,
           { headers: getAuthHeaders() }
         );
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -309,7 +309,7 @@ const CartPage = () => {
     const fetchDistricts = async () => {
       setIsLoadingDistricts(true);
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${checkoutForm.province}`, {
+        const response = await fetch(`https://localhost:7051/api/GHN/districts/${checkoutForm.province}`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -340,7 +340,7 @@ const CartPage = () => {
     const fetchWards = async () => {
       setIsLoadingWards(true);
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${checkoutForm.district}`, {
+        const response = await fetch(`https://localhost:7051/api/GHN/wards/${checkoutForm.district}`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -385,7 +385,7 @@ const CartPage = () => {
           coupon: null,
           items: [],
         };
-        const shippingResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/shipping-fee`, {
+        const shippingResponse = await fetch(`https://localhost:7051/api/GHN/shipping-fee`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -404,7 +404,7 @@ const CartPage = () => {
           to_ward_code: checkoutForm.ward,
           service_id: 53320,
         };
-        const leadTimeResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/leadtime`, {
+        const leadTimeResponse = await fetch(`https://localhost:7051/api/GHN/leadtime`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -443,7 +443,7 @@ const CartPage = () => {
         return;
       }
 
-      const districtResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${province.ProvinceID}`, {
+      const districtResponse = await fetch(`https://localhost:7051/api/GHN/districts/${province.ProvinceID}`, {
         headers: getAuthHeaders(),
       });
       if (!districtResponse.ok) throw new Error(`HTTP error! status: ${districtResponse.status}`);
@@ -455,7 +455,7 @@ const CartPage = () => {
         return;
       }
 
-      const wardResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${district.districtID}`, {
+      const wardResponse = await fetch(`https://localhost:7051/api/GHN/wards/${district.districtID}`, {
         headers: getAuthHeaders(),
       });
       if (!wardResponse.ok) throw new Error(`HTTP error! status: ${wardResponse.status}`);
@@ -503,7 +503,7 @@ const CartPage = () => {
   const handleDeleteAddress = async (maDiaChi: number) => {
     setIsDeletingAddress(maDiaChi);
     try {
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/${maDiaChi}`, {
+      const response = await fetch(`https://localhost:7051/api/DanhSachDiaChi/${maDiaChi}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -563,7 +563,7 @@ const CartPage = () => {
 
     try {
       if (change > 0) {
-        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/TangSoLuongSanPham`, {
+        await fetch(`https://localhost:7051/api/Cart/TangSoLuongSanPham`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -630,7 +630,7 @@ const CartPage = () => {
         IDCombo: null,
       };
       try {
-        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/XoaSanPham`, {
+        await fetch(`https://localhost:7051/api/Cart/XoaSanPham`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -686,7 +686,7 @@ const CartPage = () => {
       };
 
       try {
-        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/XoaCombo`, {
+        await fetch(`https://localhost:7051/api/Cart/XoaCombo`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -764,7 +764,7 @@ const CartPage = () => {
 
     try {
       const response = await fetch(
-        `$https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
+        `$https://localhost:7051/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
         {
           method: "GET",
           headers: {
@@ -837,7 +837,7 @@ const CartPage = () => {
 
     try {
       const response = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`,
+        `https://localhost:7051/api/Cart/GioHangByKhachHang?id=${userId}`,
         { headers: getAuthHeaders() }
       );
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -873,7 +873,7 @@ const CartPage = () => {
 
       if (promoCode) {
         const voucherResponse = await fetch(
-          `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${data.id}`,
+          `https://localhost:7051/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${data.id}`,
           {
             method: "GET",
             headers: {
@@ -942,7 +942,7 @@ const CartPage = () => {
       };
 
       const paymentResponse = await fetch(
-        `https://bicacuatho.azurewebsites.net/api/CheckOut/process-payment`,
+        `https://localhost:7051/api/CheckOut/process-payment`,
         {
           method: "POST",
           headers: {

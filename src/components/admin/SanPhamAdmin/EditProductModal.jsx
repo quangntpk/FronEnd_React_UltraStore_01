@@ -37,7 +37,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     const fetchLoaiSanPham = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://bicacuatho.azurewebsites.net/api/LoaiSanPham", {
+        const response = await fetch("https://localhost:7051/api/LoaiSanPham", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -63,7 +63,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     const fetchThuongHieu = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://bicacuatho.azurewebsites.net/api/ThuongHieu", {
+        const response = await fetch("https://localhost:7051/api/ThuongHieu", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -89,7 +89,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
     const fetchHashTags = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://bicacuatho.azurewebsites.net/api/HashTag", {
+        const response = await fetch("https://localhost:7051/api/HashTag", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -125,7 +125,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
       }
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/LoaiSanPham/${loaiSanPham}`, {
+        const response = await fetch(`https://localhost:7051/api/LoaiSanPham/${loaiSanPham}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -453,7 +453,7 @@ const EditProductModal = ({ isEditModalOpen, setIsEditModalOpen, selectedProduct
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/EditSanPham", {
+      const response = await fetch("https://localhost:7051/api/SanPham/EditSanPham", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

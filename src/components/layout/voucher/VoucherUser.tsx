@@ -112,7 +112,7 @@ const VoucherUser = () => {
 
   const fetchVouchers = useCallback(async () => {
     try {
-      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Voucher", {
+      const response = await fetch("https://localhost:7051/api/Voucher", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
@@ -424,7 +424,7 @@ const VoucherUser = () => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Không tìm thấy token");
 
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Voucher/Coupon/${couponId}`, {
+        const response = await fetch(`https://localhost:7051/api/Voucher/Coupon/${couponId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

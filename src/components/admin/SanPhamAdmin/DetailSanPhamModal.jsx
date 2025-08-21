@@ -31,7 +31,7 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
         setLoading(true);
         const token = localStorage.getItem("token");
         const baseProductId = productId.split('_')[0] || productId;
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${baseProductId}`,{
+        const response = await fetch(`https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${baseProductId}`,{
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -89,7 +89,7 @@ const ProductDetailAdminModal = ({ productId, isOpen, onClose }) => {
     });
     if (result.isConfirmed) {
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/${productId}`, {
+        const response = await fetch(`https://localhost:7051/api/SanPham/${productId}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`

@@ -14,7 +14,7 @@ const Testing: React.FC = () => {
   const [zoomOutput, setZoomOutput] = useState<number>(1);
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://bicacuatho.azurewebsites.net';
+  const API_URL = 'https://localhost:7051/';
 
   const handleDrop = (
     event: React.DragEvent<HTMLDivElement>,

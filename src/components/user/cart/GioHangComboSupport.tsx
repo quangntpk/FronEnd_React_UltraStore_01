@@ -49,7 +49,7 @@ const GiohangComboSupport = ({ combo, onClose, onUpdateCombo }: GiohangComboSupp
           Version: version,
         };
 
-        const response = await fetch("https://bicacuatho.azurewebsites.net/api/Cart/XoaComboVersion", {
+        const response = await fetch("https://localhost:7051/api/Cart/XoaComboVersion", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
