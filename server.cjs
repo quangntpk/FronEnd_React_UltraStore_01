@@ -43,7 +43,7 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:8080',
     'https://fashionhub.azurewebsites.net',
-    `https://${process.env.WEBSITE_SITE_NAME}.azurewebsites.net`
+    `https://bicacuatho.azurewebsites.net`
   ].filter(Boolean),
   credentials: true
 }));
