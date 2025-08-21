@@ -145,7 +145,7 @@ const AddressForm = ({
           to_ward_code: selectedWard.WardCode,
           service_id: 53320,
         };
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/leadtime`, {
+        const response = await fetch(`${API_URL}/api/GHN/leadtime`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -399,7 +399,7 @@ const DiaChi = () => {
     const fetchProvinces = async () => {
       setIsLoadingProvinces(true);
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/provinces`, { headers: getAuthHeaders() });
+        const response = await fetch(`${API_URL}/api/GHN/provinces`, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: ProvinceResponse[] = await response.json();
         const transformedProvinces = data.map((item) => ({
@@ -438,7 +438,7 @@ const DiaChi = () => {
     const fetchDistricts = async () => {
       setIsLoadingDistricts(true);
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${selectedProvince.ProvinceID}`, { headers: getAuthHeaders() });
+        const response = await fetch(`${API_URL}/api/GHN/districts/${selectedProvince.ProvinceID}`, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: DistrictResponse[] = await response.json();
         const transformedDistricts = data.map((item) => ({
@@ -479,7 +479,7 @@ const DiaChi = () => {
     const fetchWards = async () => {
       setIsLoadingWards(true);
       try {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${selectedDistrict.DistrictID}`, { headers: getAuthHeaders() });
+        const response = await fetch(`${API_URL}/api/GHN/wards/${selectedDistrict.DistrictID}`, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: WardResponse[] = await response.json();
         const transformedWards = data.map((item) => ({
@@ -530,7 +530,7 @@ const DiaChi = () => {
           coupon: null,
           items: [],
         };
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/shipping-fee`, {
+        const response = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -564,7 +564,7 @@ const DiaChi = () => {
     if (!maNguoiDung) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`, { headers: getAuthHeaders() });
+      const response = await fetch(`${API_URL}/api/DanhSachDiaChi/maNguoiDung/${maNguoiDung}`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       const sortedData = data.sort((a: DiaChi, b: DiaChi) => b.trangThai - a.trangThai);
@@ -584,12 +584,12 @@ const DiaChi = () => {
         const province = provinces.find((p) => p.ProvinceName === dc.tinh);
         if (province) {
           try {
-            const districtResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() });
+            const districtResponse = await fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() });
             if (!districtResponse.ok) throw new Error(`HTTP error! status: ${districtResponse.status}`);
             const districtsData: DistrictResponse[] = await districtResponse.json();
             const district = districtsData.find((d) => d.districtName === dc.quanHuyen);
             if (district) {
-              const wardResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${district.districtID}`, { headers: getAuthHeaders() });
+              const wardResponse = await fetch(`${API_URL}/api/GHN/wards/${district.districtID}`, { headers: getAuthHeaders() });
               if (!wardResponse.ok) throw new Error(`HTTP error! status: ${wardResponse.status}`);
               const wardsData: WardResponse[] = await wardResponse.json();
               const ward = wardsData.find((w) => w.wardName === dc.phuongXa);
@@ -601,7 +601,7 @@ const DiaChi = () => {
                   to_ward_code: ward.wardCode,
                   service_id: 53320,
                 };
-                const leadTimeResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/leadtime`, {
+                const leadTimeResponse = await fetch(`${API_URL}/api/GHN/leadtime`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                   body: JSON.stringify(leadTimeRequest),
@@ -624,7 +624,7 @@ const DiaChi = () => {
                   coupon: null,
                   items: [],
                 };
-                const feeResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/GHN/shipping-fee`, {
+                const feeResponse = await fetch(`${API_URL}/api/GHN/shipping-fee`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                   body: JSON.stringify(feeRequest),
@@ -738,7 +738,7 @@ const DiaChi = () => {
           addressListRef.current?.scrollIntoView({ behavior: "smooth" });
           return;
         }
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi`, {
+        const response = await fetch(`${API_URL}/api/DanhSachDiaChi`, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({ ...fullFormData, maNguoiDung, trangThai: 1 }),
@@ -757,7 +757,7 @@ const DiaChi = () => {
         setActiveTab("list");
         addressListRef.current?.scrollIntoView({ behavior: "smooth" });
       } else if (formMode === "edit" && editingDiaChi) {
-        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/${editingDiaChi.maDiaChi}`, {
+        const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${editingDiaChi.maDiaChi}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({
@@ -803,7 +803,7 @@ const DiaChi = () => {
   const confirmDelete = async () => {
     if (deleteMaDiaChi === null) return;
     try {
-      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/${deleteMaDiaChi}`, {
+      const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${deleteMaDiaChi}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -866,7 +866,7 @@ const DiaChi = () => {
       await Promise.all(
         diaChiList.map(async (dc: DiaChi) => {
           const newStatus = dc.maDiaChi === pendingSelectMaDiaChi ? 1 : 0;
-          const response = await fetch(`https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/${dc.maDiaChi}`, {
+          const response = await fetch(`${API_URL}/api/DanhSachDiaChi/${dc.maDiaChi}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
             body: JSON.stringify({ ...dc, trangThai: newStatus }),
@@ -924,7 +924,7 @@ const DiaChi = () => {
     setSelectedProvince(province);
 
     if (province) {
-      fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() })
+      fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() })
         .then((response) => {
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           return response.json();
@@ -939,7 +939,7 @@ const DiaChi = () => {
           setSelectedDistrict(district);
 
           if (district) {
-            fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${district.DistrictID}`, { headers: getAuthHeaders() })
+            fetch(`${API_URL}/api/GHN/wards/${district.DistrictID}`, { headers: getAuthHeaders() })
               .then((response) => {
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return response.json();
@@ -994,7 +994,7 @@ const DiaChi = () => {
     setSelectedProvince(province);
 
     if (province) {
-      fetch(`https://bicacuatho.azurewebsites.net/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() })
+      fetch(`${API_URL}/api/GHN/districts/${province.ProvinceID}`, { headers: getAuthHeaders() })
         .then((response) => {
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           return response.json();
@@ -1009,7 +1009,7 @@ const DiaChi = () => {
           setSelectedDistrict(district);
 
           if (district) {
-            fetch(`https://bicacuatho.azurewebsites.net/api/GHN/wards/${district.DistrictID}`, { headers: getAuthHeaders() })
+            fetch(`${API_URL}/api/GHN/wards/${district.DistrictID}`, { headers: getAuthHeaders() })
               .then((response) => {
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return response.json();

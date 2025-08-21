@@ -471,7 +471,7 @@ const DiaChiCart = () => {
 
     const location = useLocation();
     const navigate = useNavigate();
-    const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net";
+    const API_URL = "https://bicacuatho.azurewebsites.net";
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem("token");

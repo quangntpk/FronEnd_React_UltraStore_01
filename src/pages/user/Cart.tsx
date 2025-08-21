@@ -234,7 +234,7 @@ const CartPage = () => {
       }
 
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-        `${API_URL}/api/Cart/CopyGioHang?id=${userId}`
+        `https://bicacuatho.azurewebsites.net/api/Cart/CopyGioHang?id=${userId}`
       )}&size=200x200`;
       setQrCodeUrl(qrUrl);
 
