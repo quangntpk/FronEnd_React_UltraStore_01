@@ -965,15 +965,16 @@ const ProductListing = () => {
                 <Card key={product.id} className={`overflow-hidden group hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border-0 shadow-lg bg-white ${
                   viewMode === 'list' ? 'flex flex-col md:flex-row' : ''
                 }`} style={{height:'750px'}}>
+                  <Link to={`/products/${product.id}`} className="group-hover:opacity-90 transition-opacity">
                   <div className={`relative ${viewMode === 'list' ? 'md:w-1/3 aspect-video md:aspect-square' : 'aspect-square'}`} >
-                    <Link to={`/products/${product.id}`}>
+
                       <img
                         src={product.imageSrc}
                         alt={product.name}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         loading="lazy"
                       />
-                    </Link>
+
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     
@@ -1013,7 +1014,7 @@ const ProductListing = () => {
                       />
                     </Button>
                   </div>
-
+                  </Link>
                   <CardContent className={`p-6 ${viewMode === 'list' ? 'md:w-2/3 flex-1' : ''}`}>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
