@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import GiohangComboSupport from "@/components/user/cart/GioHangComboSupport";
 import { toast } from "sonner";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -55,15 +56,15 @@ interface Province {
 }
 
 interface District {
-  DistrictID: number; 
-  DistrictName: string; 
+  DistrictID: number;
+  DistrictName: string;
   ProvinceID?: number;
 }
 
 interface Ward {
-  WardCode: number; 
+  WardCode: number;
   WardName: string;
-  DistrictID?: number; 
+  DistrictID?: number;
 }
 
 interface Address {
@@ -295,7 +296,7 @@ const CartPage = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [shippingFee, setShippingFee] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
-  const [isLoading, setIsLoading] = useState(false); // New state for loading
+  const [isLoading, setIsLoading] = useState(false);
   const [isSelectingAddress, setIsSelectingAddress] = useState(false);
 
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(() => {
@@ -575,119 +576,119 @@ const CartPage = () => {
   };
 
   const extractFeeFromMoTa = (moTa: string): number => {
-  if (!moTa) return 0;
-  const match = moTa.match(/\d+(\.\d{3})?/); 
-  return match ? parseFloat(match[0].replace(".", "")) : 0;
-};
+    if (!moTa) return 0;
+    const match = moTa.match(/\d+(\.\d{3})?/);
+    return match ? parseFloat(match[0].replace(".", "")) : 0;
+  };
 
-const handleSelectAddress = async (address: Address) => {
-  setIsSelectingAddress(true);
-  try {
-    if (address.trangThai !== 1) {
-      toast.error("Địa chỉ không hoạt động, vui lòng chọn địa chỉ khác");
-      return;
-    }
-
-    if (!provinces.length) {
-      toast.error("Danh sách tỉnh/thành phố chưa tải, vui lòng thử lại");
-      return;
-    }
-
-    const normalizedProvinceName = normalizeName(address.tinh);
-    const mappedProvinceName = provinceMapping[normalizedProvinceName] || normalizedProvinceName;
-    console.log("Normalized Province Name:", normalizedProvinceName);
-    console.log("Mapped Province Name:", mappedProvinceName);
-
-    const province = provinces.find((p) => {
-      const normalizedProvinceFromAPI = normalizeName(p.ProvinceName);
-      const normalizedMappedName = normalizeName(mappedProvinceName);
-      return normalizedProvinceFromAPI === normalizedMappedName;
-    });
-
-    if (!province) {
-      toast.error(`Không tìm thấy tỉnh/thành phố: ${address.tinh}. Vui lòng kiểm tra lại hoặc thêm địa chỉ mới.`);
-      console.log("Available Provinces:", provinces.map(p => p.ProvinceName ? normalizeName(p.ProvinceName) : ""));
-      setShowAddressModal(true);
-      return;
-    }
-
-    const districtResponse = await fetch(
-      `/api/ghn/shiip/public-api/master-data/district?province_id=${province.ProvinceID}`,
-      {
-        headers: {
-          Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-        },
+  const handleSelectAddress = async (address: Address) => {
+    setIsSelectingAddress(true);
+    try {
+      if (address.trangThai !== 1) {
+        toast.error("Địa chỉ không hoạt động, vui lòng chọn địa chỉ khác");
+        return;
       }
-    );
-    if (!districtResponse.ok) {
-      toast.error("Lỗi khi tải danh sách quận/huyện");
-      throw new Error(`HTTP error: ${districtResponse.status}`);
-    }
-    const districtData = await districtResponse.json();
 
-    const normalizedDistrictName = normalizeName(address.quanHuyen);
-    const district = districtData.data.find(
-      (d: { DistrictID: number; DistrictName: string }) =>
-        normalizeName(d.DistrictName) === normalizedDistrictName
-    );
-    if (!district) {
-      toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen}`);
-      console.log("Available Districts:", districtData.data.map(d => normalizeName(d.DistrictName)));
-      return;
-    }
-
-    const wardResponse = await fetch(
-      `/api/ghn/shiip/public-api/master-data/ward?district_id=${district.DistrictID}`,
-      {
-        headers: {
-          Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
-        },
+      if (!provinces.length) {
+        toast.error("Danh sách tỉnh/thành phố chưa tải, vui lòng thử lại");
+        return;
       }
-    );
-    if (!wardResponse.ok) {
-      toast.error("Lỗi khi tải danh sách phường/xã");
-      throw new Error(`HTTP error: ${wardResponse.status}`);
+
+      const normalizedProvinceName = normalizeName(address.tinh);
+      const mappedProvinceName = provinceMapping[normalizedProvinceName] || normalizedProvinceName;
+      console.log("Normalized Province Name:", normalizedProvinceName);
+      console.log("Mapped Province Name:", mappedProvinceName);
+
+      const province = provinces.find((p) => {
+        const normalizedProvinceFromAPI = normalizeName(p.ProvinceName);
+        const normalizedMappedName = normalizeName(mappedProvinceName);
+        return normalizedProvinceFromAPI === normalizedMappedName;
+      });
+
+      if (!province) {
+        toast.error(`Không tìm thấy tỉnh/thành phố: ${address.tinh}. Vui lòng kiểm tra lại hoặc thêm địa chỉ mới.`);
+        console.log("Available Provinces:", provinces.map(p => p.ProvinceName ? normalizeName(p.ProvinceName) : ""));
+        setShowAddressModal(true);
+        return;
+      }
+
+      const districtResponse = await fetch(
+        `/api/ghn/shiip/public-api/master-data/district?province_id=${province.ProvinceID}`,
+        {
+          headers: {
+            Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+          },
+        }
+      );
+      if (!districtResponse.ok) {
+        toast.error("Lỗi khi tải danh sách quận/huyện");
+        throw new Error(`HTTP error: ${districtResponse.status}`);
+      }
+      const districtData = await districtResponse.json();
+
+      const normalizedDistrictName = normalizeName(address.quanHuyen);
+      const district = districtData.data.find(
+        (d: { DistrictID: number; DistrictName: string }) =>
+          normalizeName(d.DistrictName) === normalizedDistrictName
+      );
+      if (!district) {
+        toast.error(`Không tìm thấy quận/huyện: ${address.quanHuyen}`);
+        console.log("Available Districts:", districtData.data.map(d => normalizeName(d.DistrictName)));
+        return;
+      }
+
+      const wardResponse = await fetch(
+        `/api/ghn/shiip/public-api/master-data/ward?district_id=${district.DistrictID}`,
+        {
+          headers: {
+            Token: "903018aa-0a3f-11f0-9f28-eacfdef119b3",
+          },
+        }
+      );
+      if (!wardResponse.ok) {
+        toast.error("Lỗi khi tải danh sách phường/xã");
+        throw new Error(`HTTP error: ${wardResponse.status}`);
+      }
+      const wardData = await wardResponse.json();
+      console.log("Ward Data:", wardData);
+
+      const normalizedWardName = normalizeName(address.phuongXa);
+      const ward = wardData.data.find(
+        (w: Ward) => normalizeName(w.WardName) === normalizedWardName
+      );
+      if (!ward) {
+        toast.error(`Không tìm thấy phường/xã: ${address.phuongXa}`);
+        console.log("Available Wards:", wardData.data.map(w => w.WardName ? normalizeName(w.WardName) : ""));
+        setShowAddressModal(true);
+        return;
+      }
+
+      const shippingFee = extractFeeFromMoTa(address.moTa); // Lấy phí từ moTa
+      setShippingFee(shippingFee);
+
+      setDistricts(districtData.data || []);
+      setWards(wardData.data || []);
+      setCheckoutForm({
+        tenNguoiNhan: address.hoTen,
+        sdt: address.sdt,
+        province: province.ProvinceID.toString(),
+        district: district.DistrictID.toString(),
+        ward: ward.WardCode.toString(),
+        specificAddress: address.diaChi,
+      });
+
+      const subtotal = calculateSubtotal();
+      setFinalAmount(subtotal - discountAmount + shippingFee);
+
+      setShowAddressModal(false);
+      toast.success("Đã chọn địa chỉ thành công");
+    } catch (error) {
+      toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
+      console.error("Error in handleSelectAddress:", error);
+    } finally {
+      setIsSelectingAddress(false);
     }
-    const wardData = await wardResponse.json();
-    console.log("Ward Data:", wardData);
-
-    const normalizedWardName = normalizeName(address.phuongXa);
-    const ward = wardData.data.find(
-      (w: Ward) => normalizeName(w.WardName) === normalizedWardName
-    );
-    if (!ward) {
-      toast.error(`Không tìm thấy phường/xã: ${address.phuongXa}`);
-      console.log("Available Wards:", wardData.data.map(w => w.WardName ? normalizeName(w.WardName) : ""));
-      setShowAddressModal(true);
-      return;
-    }
-
-    const shippingFee = extractFeeFromMoTa(address.moTa); // Lấy phí từ moTa
-    setShippingFee(shippingFee);
-
-    setDistricts(districtData.data || []);
-    setWards(wardData.data || []);
-    setCheckoutForm({
-      tenNguoiNhan: address.hoTen,
-      sdt: address.sdt,
-      province: province.ProvinceID.toString(),
-      district: district.DistrictID.toString(),
-      ward: ward.WardCode.toString(),
-      specificAddress: address.diaChi,
-    });
-
-    const subtotal = calculateSubtotal();
-    setFinalAmount(subtotal - discountAmount + shippingFee);
-
-    setShowAddressModal(false);
-    toast.success("Đã chọn địa chỉ thành công");
-  } catch (error) {
-    toast.error("Không thể chọn địa chỉ, vui lòng thử lại");
-    console.error("Error in handleSelectAddress:", error);
-  } finally {
-    setIsSelectingAddress(false);
-  }
-};
+  };
 
   const handleQuantityChange = async (idSanPham: string, change: number) => {
     const userId = localStorage.getItem("userId");
@@ -964,6 +965,7 @@ const handleSelectAddress = async (address: Address) => {
         timerProgressBar: true,
         showConfirmButton: false,
       }).then(() => {
+        console.log("Navigating to login");
         navigate("/login");
       });
       return;
@@ -981,18 +983,22 @@ const handleSelectAddress = async (address: Address) => {
       (field) => !checkoutForm[field as keyof CheckoutForm]
     );
     if (emptyFields.length > 0) {
-      toast.error("Vui lòng điền đầy đủ thông tin giao hàng");
+      toast.error("Vui lòng điền đầy đủ thông tin giao hàng", {
+        duration: 7000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg",
+      });
       return;
     }
 
-    if (paymentMethod === "cod") {
-      setIsLoading(true); // Set loading state for COD
-    }
-
     try {
+      setIsLoading(true);
+
       const response = await fetch(
         `https://bicacuatho.azurewebsites.net/api/Cart/GioHangByKhachHang?id=${userId}`
       );
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
       const data = await response.json();
       setCartId(data.id);
 
@@ -1035,12 +1041,17 @@ const handleSelectAddress = async (address: Address) => {
             },
           }
         );
-
+        if (!voucherResponse.ok) {
+          throw new Error(`HTTP error: ${voucherResponse.status}`);
+        }
         const voucherResult = await voucherResponse.json();
         if (!voucherResult.success) {
           setDiscountApplied(false);
           setDiscountAmount(0);
-          toast.error("Mã giảm giá không hợp lệ, đã xóa giảm giá");
+          toast.error("Mã giảm giá không hợp lệ, đã xóa giảm giá", {
+            duration: 7000,
+            className: "bg-red-500 text-white border border-red-700 shadow-lg",
+          });
           setFinalAmount(calculateSubtotal() + shippingFee);
           return;
         } else {
@@ -1052,22 +1063,17 @@ const handleSelectAddress = async (address: Address) => {
       const selectedProvince = provinces.find(
         (p) => p.ProvinceID.toString() === checkoutForm.province
       );
-      const selectedDistrict1 = districts.find(
+      const selectedDistrict = districts.find(
         (d) => d.DistrictID.toString() === checkoutForm.district
       );
-      const selectedWard1 = wards.find(
+      const selectedWard = wards.find(
         (w) => w.WardCode.toString() === checkoutForm.ward
       );
-      if (!selectedProvince) {
-        toast.error("Vui lòng chọn tỉnh/thành phố hợp lệ");
-        return;
-      }
-      if (!selectedDistrict1) {
-        toast.error("Vui lòng chọn quận/huyện hợp lệ");
-        return;
-      }
-      if (!selectedWard1) {
-        toast.error("Vui lòng chọn phường/xã hợp lệ");
+      if (!selectedProvince || !selectedDistrict || !selectedWard) {
+        toast.error("Vui lòng chọn đầy đủ thông tin địa chỉ hợp lệ", {
+          duration: 7000,
+          className: "bg-red-500 text-white border border-red-700 shadow-lg",
+        });
         return;
       }
 
@@ -1075,22 +1081,15 @@ const handleSelectAddress = async (address: Address) => {
       const newFinalAmount = subtotal - discountAmount + shippingFee;
       setFinalAmount(newFinalAmount);
 
-      const selectedDistrict =
-        districts.find((d) => d.DistrictID.toString() === checkoutForm.district)?.DistrictName ||
-        "";
-      const selectedWard =
-        wards.find((w) => w.WardCode.toString() === checkoutForm.ward)?.WardName || "";
-      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard}, ${selectedDistrict}, ${selectedProvince.ProvinceName}`;
+      const fullAddress = `${checkoutForm.specificAddress}, ${selectedWard.WardName}, ${selectedDistrict.DistrictName}, ${selectedProvince.ProvinceName}`;
       if (typeof fullAddress !== "string" || fullAddress.includes("[object Object]")) {
-        toast.error("Lỗi định dạng địa chỉ, vui lòng kiểm tra lại");
+        toast.error("Lỗi định dạng địa chỉ, vui lòng kiểm tra lại", {
+          duration: 7000,
+          className: "bg-red-500 text-white border border-red-700 shadow-lg",
+        });
         console.error("Invalid fullAddress:", fullAddress);
         return;
       }
-
-      console.log("Before sending paymentRequest:", {
-        shippingFee,
-        finalAmount: newFinalAmount,
-      });
 
       const paymentRequest = {
         cartId: data.id,
@@ -1116,20 +1115,34 @@ const handleSelectAddress = async (address: Address) => {
           body: JSON.stringify(paymentRequest),
         }
       );
-
+      if (!paymentResponse.ok) {
+        throw new Error(`HTTP error: ${paymentResponse.status}`);
+      }
       const result = await paymentResponse.json();
 
       if (result.success) {
         if (paymentMethod === "cod") {
-          toast.success(`Thanh toán COD thành công! Mã đơn hàng: ${result.orderId}`, {
-            description: "Cảm ơn bạn đã mua sắm. Vui lòng kiểm tra đơn hàng trong mục Lịch sử mua hàng.",
-            duration: 5000,
-            action: {
-              label: "Xem chi tiết",
-              onClick: () =>
-                navigate("/user/orders", { state: { orderId: result.orderId } }),
-            },
-          });
+          toast.success(
+            <div>
+              Thanh toán COD thành công! Mã đơn hàng: {result.orderId}
+              <br />
+              Cảm ơn bạn đã mua sắm.
+              <br />
+              <button
+                className="text-blue-500 underline hover:text-blue-700 mt-2 inline-block"
+                onClick={() => {
+                  console.log("Navigating to order details with orderId:", result.orderId);
+                  navigate("/user/orders", { state: { orderId: result.orderId, clearCart: true } });
+                }}
+              >
+                Xem chi tiết
+              </button>
+            </div>,
+            {
+              duration: 7000,
+              className: "bg-green-500 text-white border border-green-700 shadow-lg",
+            }
+          );
 
           setCartItems([]);
           setComboItems([]);
@@ -1141,7 +1154,7 @@ const handleSelectAddress = async (address: Address) => {
           localStorage.removeItem("checkoutForm");
           localStorage.removeItem("showAddressModal");
           localStorage.removeItem("scrollY");
-          navigate("/", { state: { orderId: result.orderId } });
+          navigate("/", { state: { orderId: result.orderId, clearCart: true } });
         } else if (paymentMethod === "vnpay") {
           if (result.finalAmount !== newFinalAmount) {
             toast.error(
@@ -1149,23 +1162,30 @@ const handleSelectAddress = async (address: Address) => {
                 result.finalAmount
               )} VND) không khớp với kỳ vọng (${formatCurrency(
                 newFinalAmount
-              )} VND). Vui lòng thử lại.`
+              )} VND). Vui lòng thử lại.`,
+              {
+                duration: 7000,
+                className: "bg-red-500 text-white border border-red-700 shadow-lg",
+              }
             );
             return;
           }
           window.location.href = result.message;
         }
       } else {
-        toast.error(result.message);
-        return;
+        toast.error(result.message, {
+          duration: 7000,
+          className: "bg-red-500 text-white border border-red-700 shadow-lg",
+        });
       }
     } catch (error) {
-      toast.error("Đã xảy ra lỗi trong quá trình thanh toán");
+      toast.error("Đã xảy ra lỗi trong quá trình thanh toán", {
+        duration: 7000,
+        className: "bg-red-500 text-white border border-red-700 shadow-lg",
+      });
       console.error("Error during checkout:", error);
     } finally {
-      if (paymentMethod === "cod") {
-        setIsLoading(false); // Reset loading state after request completes
-      }
+      setIsLoading(false);
     }
   };
 
