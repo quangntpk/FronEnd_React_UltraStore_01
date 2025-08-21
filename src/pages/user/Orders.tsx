@@ -223,7 +223,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
     return (
       <div key={item.maChiTietDh} className="flex flex-col gap-4">
         <a
-          href={`http://localhost:8080/${item.laCombo ? 'combos' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
+          href={`https://fashionhub.name.vn/${item.laCombo ? 'combos' : 'products'}/${item.laCombo ? item.maCombo : item.maSanPham?.substring(0,6)}`}
           className="grid grid-cols-12 gap-4 items-start hover:bg-gray-50 p-3 rounded-lg transition-colors"
         >
           <div className="col-span-12 sm:col-span-2">
