@@ -1,4 +1,7 @@
-name: Build and deploy React app to Azure Web App - FashionHub2
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy Node.js app to Azure Web App - FashionHub2
 
 on:
   push:
@@ -10,53 +13,53 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-          cache: 'npm'
 
-      - name: Install dependencies and build
+      - name: npm install, build, and test
         run: |
-          npm ci
-          npm run build
+          npm install
+          npm run build --if-present
+          npm run test --if-present
 
-      - name: Upload artifact for deployment
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: react-app
-          path: dist/
+          name: node-app
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: react-app
-          path: dist/
-
+          name: node-app
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F3C236ACF3D34F7B8B1DA331B82EB17D }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8FAA7EBCBE764ADFA0396EF4C56C390D }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3AA67F02BDC74BD19B1C17A97D41EB67 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_87DB567828B243C099C444D68BF51367 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B64154C7D0F04F05A5100191DA8904EC }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C74EDCB3B10B4FD7BCAD039E568124E7 }}
 
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'FashionHub2'
           slot-name: 'Production'
-          package: dist/
+          package: .
+          
