@@ -582,8 +582,11 @@ const PromotionCard = ({ promotion }: { promotion: PromotionData }) => {
         {/* View Details Button */}
         <div className="flex gap-2 mt-4 absolute bottom-4 left-4 right-4">
           <Button variant="outline" className="flex-1" size="sm">
-            <Eye className="w-4 h-4 mr-2" />
-            Xem chi tiết
+            <Link to={`/KhuyenMais/${promotion.id}`}>
+              <Eye className="w-4 h-4 mr-2" />
+              Xem chi tiết
+            </Link>
+
           </Button>
         </div>
       </CardContent>
