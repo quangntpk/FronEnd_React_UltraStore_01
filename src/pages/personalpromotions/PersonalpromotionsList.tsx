@@ -362,12 +362,6 @@ const PersonalPromotionsList = () => {
                 <p className="text-base text-gray-600 mb-6">
                   Bạn chưa có chương trình khuyến mãi nào.
                 </p>
-                <Link 
-                  to="/promotions"
-                  className="inline-block px-8 py-2 bg-crocus-500 text-white rounded-lg hover:bg-crocus-600 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
-                >
-                  Khám phá thêm ưu đãi
-                </Link>
               </div>
             )}
           </CardContent>

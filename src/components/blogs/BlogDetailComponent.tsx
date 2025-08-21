@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, memo } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -159,7 +158,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
 
       setComments(allComments);
     } catch (err) {
-      console.error("Error fetching comments:", err);
+      console.error("Lỗi khi tải bình luận:", err);
       toast.error((err as Error).message || "Có lỗi xảy ra khi tải bình luận!");
     } finally {
       setIsLoading(false);
@@ -220,7 +219,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
       toast.success("Bình luận đã được gửi và chờ duyệt!");
       await fetchComments();
     } catch (err) {
-      console.error("Error adding comment:", err);
+      console.error("Lỗi khi thêm bình luận:", err);
       setComments((prev) => prev.filter((c) => c.maBinhLuan !== tempComment.maBinhLuan));
       toast.error((err as Error).message || "Có lỗi xảy ra khi thêm bình luận!");
     } finally {
@@ -251,7 +250,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
       toast.success("Xóa bình luận thành công!");
       await fetchComments();
     } catch (err) {
-      console.error("Error deleting comment:", err);
+      console.error("Lỗi khi xóa bình luận:", err);
       toast.error((err as Error).message || "Có lỗi xảy ra khi xóa bình luận!");
     } finally {
       setIsConfirmModalOpen(false);
@@ -311,14 +310,14 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
 
       toast.success(isLiked ? "Đã bỏ thích bình luận!" : "Đã thích bình luận!");
     } catch (err) {
-      console.error("Error updating like status:", err);
+      console.error("Lỗi khi cập nhật trạng thái thích:", err);
       toast.error((err as Error).message || "Có lỗi xảy ra khi cập nhật trạng thái thích!");
     } finally {
       setIsActionLoading(false);
     }
   }, [currentUserId, likedComments, sortOption, type, entityId]);
 
-  // Filter only approved comments (trangThai === 1) for display
+  // Lọc chỉ các bình luận đã được duyệt (trangThai === 1) để hiển thị
   const displayedComments = showAllComments
     ? comments.filter((c) => c.trangThai === 1)
     : comments.filter((c) => c.trangThai === 1).slice(0, 3);
@@ -407,7 +406,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
                         </button>
                       )}
                     </div>
-                    <div className="text-gray-700 text-sm leading-relaxed mb-3 line-clamp-3" style={{ whiteSpace: "pre-line" }}>
+                    <div className="text-gray-700 text-sm leading-relaxed mb-3" style={{ whiteSpace: "pre-line" }}>
                       {textContent || "Chưa cập nhật"}
                     </div>
                     {images.length > 0 && (
@@ -420,7 +419,7 @@ const Comments = memo(({ entityId, type }: CommentsProps) => {
                             className="w-48 h-auto object-contain rounded"
                             style={{ maxWidth: "225px" }}
                             onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                              console.warn(`Failed to load comment image ${index + 1}`);
+                              console.warn(`Không thể tải hình ảnh bình luận ${index + 1}`);
                               e.currentTarget.src = defaultImageUrl;
                             }}
                           />
@@ -555,26 +554,26 @@ export const BlogDetailComponent = () => {
 
     try {
       setLoading(true);
-      // Fetch the main blog
+      // Lấy bài viết chính
       const blogResponse = await axios.get<Blog>(`${import.meta.env.VITE_API_URL}/api/Blog/slug/${slug}`);
       const fetchedBlog = blogResponse.data;
       setBlog(fetchedBlog);
       setLikesCount(fetchedBlog.likes || 0);
       setIsLiked(currentUserId && fetchedBlog.userLikes ? fetchedBlog.userLikes.includes(currentUserId) : false);
 
-      // Fetch user info for the main blog
+      // Lấy thông tin người dùng cho bài viết chính
       let nguoiDungResponse = null;
       if (fetchedBlog.maNguoiDung) {
         nguoiDungResponse = await axios.get<NguoiDung>(`${import.meta.env.VITE_API_URL}/api/NguoiDung/${fetchedBlog.maNguoiDung}`).catch(() => null);
       }
       setNguoiDung(nguoiDungResponse?.data || null);
 
-      // Fetch all blogs to find related ones
+      // Lấy tất cả bài viết để tìm bài viết liên quan
       const allBlogsResponse = await axios.get<Blog[]>(`${import.meta.env.VITE_API_URL}/api/Blog`);
       const allBlogs = allBlogsResponse.data.filter(b => b.isPublished && b.maBlog !== fetchedBlog.maBlog && b.chuDe === fetchedBlog.chuDe);
-      setRelatedBlogs(allBlogs.slice(0, 5)); // Limit to 5 related blogs
+      setRelatedBlogs(allBlogs.slice(0, 5)); // Giới hạn 5 bài viết liên quan
 
-      // Fetch user info for related blogs
+      // Lấy thông tin người dùng cho bài viết liên quan
       const uniqueMaNguoiDungs = [...new Set(allBlogs.map(blog => blog.maNguoiDung))];
       const nguoiDungPromises = uniqueMaNguoiDungs.map(maNguoiDung =>
         axios.get<NguoiDung>(`${import.meta.env.VITE_API_URL}/api/NguoiDung/${maNguoiDung}`).catch(() => null)
@@ -621,7 +620,7 @@ export const BlogDetailComponent = () => {
       setIsLiked(!isLiked);
       toast.success(isLiked ? "Đã bỏ thích bài viết!" : "Đã thích bài viết!");
     } catch (error) {
-      console.error("Error updating like status:", error);
+      console.error("Lỗi khi cập nhật trạng thái thích:", error);
       toast.error((error as Error).message || "Có lỗi xảy ra khi cập nhật trạng thái thích!");
     } finally {
       setIsLikeLoading(false);
@@ -666,7 +665,7 @@ export const BlogDetailComponent = () => {
   const roleMap: Record<number, { text: string; background: string; textColor: string }> = {
     1: { text: "Admin", background: "bg-emerald-100", textColor: "text-emerald-700" },
     2: { text: "Nhân Viên", background: "bg-blue-100", textColor: "text-blue-700" },
-    0: { text: "Khác", background: "bg-gray-100", textColor: "text-gray-700" },
+    0: { text: "Khách", background: "bg-gray-100", textColor: "text-gray-700" },
   };
   const { text: roleText, background: roleBackground, textColor: roleTextColor } = roleMap[nguoiDung?.vaiTro || 0];
 
@@ -713,10 +712,11 @@ export const BlogDetailComponent = () => {
               {/* Content */}
               <div className="p-6 sm:p-8">
                 <div
-                  className="prose prose-sm sm:prose lg:prose-lg max-w-none ql-editor blog-content"
+                  className="prose prose-sm sm:prose lg:prose-lg max-w-none blog-content w-full"
                   dangerouslySetInnerHTML={{ 
-                    __html: DOMPurify.sanitize(blog.noiDung, { ADD_ATTR: ["style", "src"] }) 
+                    __html: blog.noiDung ? DOMPurify.sanitize(blog.noiDung, { ADD_TAGS: ["img"], ADD_ATTR: ["style", "src"] }) : "Chưa cập nhật"
                   }}
+                  aria-label="Nội dung bài viết"
                 />
               </div>
 
@@ -922,9 +922,9 @@ export const BlogDetailComponent = () => {
           border-bottom-right-radius: 0.5rem;
         }
         .ql-editor {
-          min-height: 100px;
-          max-height: 200px;
-          overflow-y: auto;
+          min-height: auto;
+          max-height: none;
+          overflow-y: visible;
           color: #374151;
         }
         .ql-editor::before {

@@ -149,7 +149,7 @@ const OrderEmailPage: React.FC<Props> = ({ order = {} }) => {
             Quét mã QR để xem hoá đơn trực tuyến:
           </p>
           <QRCodeCanvas
-            value={`http://localhost:8080/user/hoadon/${maDonHang}`}
+            value={`https://fashionhub.name.vn/user/hoadon/${maDonHang}`}
             size={128}
             bgColor="#ffffff"
             fgColor="#000000"

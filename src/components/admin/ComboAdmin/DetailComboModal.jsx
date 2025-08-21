@@ -124,9 +124,6 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">Chi Tiết Combo</DialogTitle>
-          <DialogClose className="absolute right-4 top-4 p-2 hover:bg-gray-100 rounded-full">
-            <X className="h-6 w-6" />
-          </DialogClose>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
