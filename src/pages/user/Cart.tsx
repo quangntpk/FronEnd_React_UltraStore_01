@@ -764,7 +764,7 @@ const CartPage = () => {
 
     try {
       const response = await fetch(
-        `$https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
+        `https://bicacuatho.azurewebsites.net/api/Voucher/Validate?code=${encodeURIComponent(promoCode)}&cartId=${cartId}`,
         {
           method: "GET",
           headers: {
