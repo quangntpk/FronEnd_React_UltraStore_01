@@ -670,7 +670,7 @@ const PromotionSlider = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Khuyến mãi hot</h2>
         <Button asChild variant="link" className="text-crocus-600">
-          <Link to="/promotions">
+          <Link to="/KhuyenMais">
             Xem tất cả <span aria-hidden="true">→</span>
           </Link>
         </Button>

@@ -57,6 +57,7 @@ import AdminThuongHieu from "./pages/admin/AdminThuongHieu";
 import AdminLoaiSanPham from "./pages/admin/AdminLoaiSanPham";
 import AdminHashTag from "./pages/admin/AdminHashTag";
 import VoucherUser from "./components/layout/voucher/VoucherUser";
+import GapThu from "./components/layout/gapthu/GapThuUser";
 import PaymentSuccess from "./pages/user/PaymentSuccess";
 import PaymentFail from "./pages/user/PaymentFail";
 import HeroSection from "./components/default/HeroSection";
@@ -179,6 +180,7 @@ const App = () => (
                 <Route path="blogs" element={<BlogsList />} />
                 <Route path="blogs/:slug" element={<BlogDetailComponent />} />
                 <Route path="voucher/*" element={<VoucherUser />} />
+                  <Route path="gapthu/*" element={<GapThu />} />
                 <Route path="favorites" element={<FavoritesList />} />
                 <Route path="personalpromotions" element={<PersonalpromotionsList />} />
                 <Route path="contact" element={<Contact />} />
