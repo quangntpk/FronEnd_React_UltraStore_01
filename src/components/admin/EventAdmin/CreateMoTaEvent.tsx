@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, Image, Upload, Bold, Italic, Underline, AlignCenter } from 'lucide-react';
-
+import Swal from 'sweetalert2';
 const KhuyenMaiForm = ({ onCancel }) => {
   const [formData, setFormData] = useState({
     IdMoTa: '',

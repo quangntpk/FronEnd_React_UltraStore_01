@@ -513,14 +513,18 @@ const VoucherUser = () => {
       </style>
       <div className="container mx-auto py-8 px-4">
         <Tabs defaultValue="wheel" className="w-full max-w-6xl mx-auto">
-          <TabsList className="grid grid-cols-2 mb-8">
+          <TabsList className="grid grid-cols-3 mb-8">
             <TabsTrigger value="wheel">
               <Star className="mr-2 h-4 w-4" />
               Vòng Quay May Mắn
             </TabsTrigger>
+             <TabsTrigger value="promotions">
+              <Gift className="mr-2 h-4 w-4" />
+              Gắp Thú May Mắn
+            </TabsTrigger>
             <TabsTrigger value="promotions">
               <Gift className="mr-2 h-4 w-4" />
-              Khuyến Mãi Cá Nhân
+              Mã Voucher Cá Nhân
             </TabsTrigger>
           </TabsList>
 

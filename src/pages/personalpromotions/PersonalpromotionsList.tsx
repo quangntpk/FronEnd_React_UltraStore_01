@@ -211,18 +211,17 @@ const PersonalPromotionsList = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+      
         <div className="text-center">
-          <div className="relative">
+     
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-crocus-200 border-t-crocus-500 mx-auto mb-4"></div>
-            <div className="absolute inset-0 animate-pulse rounded-full h-16 w-16 border-4 border-crocus-300 opacity-30"></div>
-          </div>
+          
+         
           <p className="text-base font-medium text-gray-600">Đang tải khuyến mãi...</p>
         </div>
-      </div>
+    
     );
   }
-
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-50">

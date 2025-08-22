@@ -407,25 +407,6 @@ const ChiTietEvent = ({ promotion, onClose }) => {
                   </div>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-6">Hành động</h3>
-                <div className="space-y-3">
-                  <button className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
-                    <Eye className="h-4 w-4" />
-                    <span>Xem trước</span>
-                  </button>
-                  <button className="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center space-x-2">
-                    <Edit className="h-4 w-4" />
-                    <span>Chỉnh sửa</span>
-                  </button>
-                  <button className="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center space-x-2">
-                    <Trash2 className="h-4 w-4" />
-                    <span>Xóa khuyến mãi</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
