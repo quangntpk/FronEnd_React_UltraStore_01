@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Tag, Package, Percent, Eye, Edit, Trash2, Plus, Search, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Clock, CheckCircle, XCircle, Filter, X,CalendarDays, ShoppingCart, Heart } from 'lucide-react';
+import { Calendar, Tag, Package, Percent, Eye, Edit, Trash2, Plus, Search, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Clock, CheckCircle, XCircle, Filter, X } from 'lucide-react';
 import PromotionForm from '@/components/admin/EventAdmin/CreateEvent';
 import EditPromotionForm from '@/components/admin/EventAdmin/EditEvent';
 import ViewEvent from '@/components/admin/EventAdmin/ViewEvent';
+import Swal from 'sweetalert2';
 import {
   Carousel,
   CarouselContent,
@@ -14,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+
 const ListKhuyenMai = () => {
   const [khuyenMaiList, setKhuyenMaiList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,6 @@ const ListKhuyenMai = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log(data)
       setKhuyenMaiList(data);
       const initialSlides = {};
       data.forEach(promo => {
@@ -77,10 +78,13 @@ const ListKhuyenMai = () => {
     });
   };
 
-  const getPromotionStatus = (ngayBatDau, ngayKetThuc) => {
+  const getPromotionStatus = (promo) => {
+    if (!promo.trangThai) {
+      return { status: 'disabled', label: 'Đã bị vô hiệu', color: 'bg-red-100 text-red-800' };
+    }
     const now = new Date();
-    const startDate = new Date(ngayBatDau);
-    const endDate = new Date(ngayKetThuc);
+    const startDate = new Date(promo.ngayBatDau);
+    const endDate = new Date(promo.ngayKetThuc);
 
     if (now < startDate) {
       return { status: 'upcoming', label: 'Sắp diễn ra', color: 'bg-blue-100 text-blue-800' };
@@ -132,7 +136,7 @@ const ListKhuyenMai = () => {
   const getFilteredPromotions = (status) => {
     return khuyenMaiList
       .filter(promo => {
-        const promoStatus = getPromotionStatus(promo.ngayBatDau, promo.ngayKetThuc).status;
+        const promoStatus = getPromotionStatus(promo).status;
         if (promoStatus !== status) return false;
         const matchesSearch = promo.tenKhuyenMai.toLowerCase().includes(searchTerm.toLowerCase());
         if (!matchesSearch) return false;
@@ -192,6 +196,16 @@ const ListKhuyenMai = () => {
       borderColor: 'border-gray-500',
       activeTabBg: 'bg-gray-500',
       count: getFilteredPromotions('expired').length
+    },
+    {
+      key: 'disabled',
+      label: 'Đã bị vô hiệu',
+      icon: Trash2,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-500',
+      activeTabBg: 'bg-red-500',
+      count: getFilteredPromotions('disabled').length
     }
   ];
 
@@ -211,6 +225,50 @@ const ListKhuyenMai = () => {
   const toggleViewModal = (promo) => {
     setSelectedPromotion(promo);
     setIsViewModalOpen(!isViewModalOpen);
+  };
+
+  const handleTogglePromotionStatus = async (promoId, currentStatus) => {
+    const isDisabling = currentStatus;
+    const result = await Swal.fire({
+      title: 'Bạn có chắc chắn?',
+      text: isDisabling
+        ? 'Bạn muốn vô hiệu hóa khuyến mãi này?'
+        : 'Bạn muốn kích hoạt lại khuyến mãi này?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: isDisabling ? '#d33' : '#3085d6',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: isDisabling ? 'Vâng, vô hiệu hóa!' : 'Vâng, kích hoạt lại!',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await fetch(`https://localhost:7051/api/KhuyenMai/DisableKhuyenMai?id=${promoId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        await fetchKhuyenMaiList();
+        Swal.fire(
+          'Thành công!',
+          isDisabling ? 'Khuyến mãi đã được vô hiệu hóa.' : 'Khuyến mãi đã được kích hoạt lại.',
+          'success'
+        );
+      } catch (err) {
+        setError(err.message);
+        console.error(`Error ${isDisabling ? 'disabling' : 'enabling'} promotion:`, err);
+        Swal.fire(
+          'Lỗi!',
+          `Có lỗi xảy ra khi ${isDisabling ? 'vô hiệu hóa' : 'kích hoạt lại'} khuyến mãi.`,
+          'error'
+        );
+      }
+    }
   };
 
   const Pagination = ({ currentPage, totalPages, onPageChange }) => {
@@ -357,14 +415,17 @@ const ListKhuyenMai = () => {
             >
               <X className="h-6 w-6" />
             </button>
-            <ViewEvent promotion={selectedPromotion} />
+            <ViewEvent 
+              promotion={selectedPromotion} 
+              onClose={() => toggleViewModal(null)} 
+            />
           </div>
         </div>
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">{khuyenMaiList.length}</div>
               <div className="text-sm text-gray-600">Tổng số khuyến mãi</div>
@@ -548,7 +609,7 @@ const ListKhuyenMai = () => {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {currentPromotions.map((promo) => {
-                    const status = getPromotionStatus(promo.ngayBatDau, promo.ngayKetThuc);
+                    const status = getPromotionStatus(promo);
                     const daysRemaining = getDaysRemaining(promo.ngayKetThuc);
                     const maxDiscount = getMaxDiscount(promo);
                     const discountTypeLabel = getDiscountTypeLabel(promo);
@@ -558,33 +619,60 @@ const ListKhuyenMai = () => {
 
                     return (
                       <div key={promo.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden border-l-4 border-purple-500 flex flex-col">
-                        {promo.hinhAnh && (
-                          <div className="relative h-64 overflow-hidden">
-                            <img
-                              src={`data:image/jpeg;base64,${promo.hinhAnh[0]}`}
-                              alt={promo.tenKhuyenMai}
-                              className="w-full max-h-80 object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent max-h-80"></div>
-                            {maxDiscount > 0 && (
-                              <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg text-center shadow-lg">
-                                <div className="text-xl font-bold">-{maxDiscount}%</div>
-                                <div className="text-xs">{promo.percentChung !== null ? 'Toàn bộ' : 'Tối đa'}</div>
-                              </div>
-                            )}
-                            <div className="absolute top-4 left-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${status.color} bg-opacity-90`}>
-                                {status.label}
-                              </span>
+                        <div className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm text-gray-500">
+                              ID: {promo.id}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <button onClick={() => toggleViewModal(promo)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => toggleEditModal(promo.id)}
+                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleTogglePromotionStatus(promo.id, promo.trangThai)}
+                                className={`p-2 ${promo.trangThai ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'} rounded-lg transition-colors`}
+                              >
+                                {promo.trangThai ? (
+                                  <Trash2 className="h-4 w-4" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                              </button>
                             </div>
                           </div>
-                        )}
-                        
-                        <div className="p-6">
-                          <div className="flex items-start justify-between mb-4">
+
+                          {promo.hinhAnh && (
+                            <div className="relative h-64 overflow-hidden">
+                              <img
+                                src={`data:image/jpeg;base64,${promo.hinhAnh[0]}`}
+                                alt={promo.tenKhuyenMai}
+                                className="w-full max-h-80 object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent max-h-80"></div>
+                              {maxDiscount > 0 && (
+                                <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg text-center shadow-lg">
+                                  <div className="text-xl font-bold">-{maxDiscount}%</div>
+                                  <div className="text-xs">{promo.percentChung !== null ? 'Toàn bộ' : 'Tối đa'}</div>
+                                </div>
+                              )}
+                              <div className="absolute top-4 left-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${status.color} bg-opacity-90`}>
+                                  {status.label}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-start justify-between mt-4">
                             <div className="flex-1">
                               <div className="flex items-center space-x-3 mb-2">
                                 <h3 className="text-xl font-bold text-gray-900">{promo.tenKhuyenMai}</h3>
@@ -641,13 +729,13 @@ const ListKhuyenMai = () => {
                               <div>
                                 <p className="text-sm text-gray-600">
                                   {status.status === 'active' ? 'Còn lại' : 
-                                   status.status === 'upcoming' ? 'Bắt đầu sau' : 'Đã kết thúc'}
+                                   status.status === 'upcoming' ? 'Bắt đầu sau' : 
+                                   status.status === 'disabled' ? 'Trạng thái' : 'Đã kết thúc'}
                                 </p>
                                 <p className="font-medium text-gray-900">
-                                  {status.status === 'expired' ? 
-                                    `${Math.abs(daysRemaining)} ngày trước` :
-                                    `${Math.abs(daysRemaining)} ngày`
-                                  }
+                                  {status.status === 'disabled' ? 'Vô hiệu' :
+                                   status.status === 'expired' ? `${Math.abs(daysRemaining)} ngày trước` :
+                                   `${Math.abs(daysRemaining)} ngày`}
                                 </p>
                               </div>
                             </div>
@@ -734,26 +822,6 @@ const ListKhuyenMai = () => {
                               </div>
                             </div>
                           )}
-
-                          <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto">
-                            <div className="text-sm text-gray-500">
-                              ID: {promo.id}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <button onClick={() => toggleViewModal(promo)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                <Eye className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => toggleEditModal(promo.id)}
-                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     );

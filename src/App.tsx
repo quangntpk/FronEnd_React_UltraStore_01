@@ -82,7 +82,6 @@ import CmtForm from "@/pages/products/CmtForm"
 import DiaChiTime from "./components/default/DiaChiTime";
 import VnpayReturn from "./router/Vnpayreturn";
 
-
 import KhuyenMaiList from "./components/user/KhuyenMai/KhuyenMaiList";
 import ListKhuyenMai from "./pages/admin/AdminEvent";
 import DetailEvent from "./components/user/KhuyenMai/KhuyenMaiDetail";
@@ -207,7 +206,6 @@ const App = () => (
                 <Route path="guarantee" element={<Guarantee />} />
                 <Route path="search" element={<Search />} />
                 <Route path="diachitime" element={<DiaChiTime />} />
-
                 <Route path="KhuyenMais" element={<KhuyenMaiList/>}></Route>
                 <Route path="KhuyenMais/:id" element={<DetailEvent />}></Route>
               </Route>
