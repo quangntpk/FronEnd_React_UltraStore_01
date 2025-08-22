@@ -424,14 +424,14 @@ const EditMoTaEvent = ({ promotionId, initialData, onSave, onCancel }) => {
       previewUrls.current.clear();
 
       onSave(moTaData);
-        Swal.fire({
-            title: "Thành công!",
-            text: "Mô tả  đã được lưu vào bộ nhớ tạm, hãy nhập cập nhật khuyến mại!",
-            icon: "Success",
-            timer: 2000,
-            timerProgressBar: true,
-            showConfirmButton: false,
-          })
+      Swal.fire({
+        title: 'Cập nhật thành công!',
+        text: 'Mô tả khuyến mãi đã được cập nhật.',
+        icon: 'success',
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
     } catch (error) {
       console.error('Error updating MoTaKhuyenMai:', error);
       setError(error.message);
