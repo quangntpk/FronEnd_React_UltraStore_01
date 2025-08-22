@@ -380,7 +380,7 @@ const GapThu: React.FC = () => {
     if (titleRef.current) {
       const titleElement = titleRef.current.querySelector('h2');
       if (titleElement && selectedVoucher) {
-        titleElement.innerHTML = `You got a<br/>${selectedVoucher.tenVoucher}`;
+      
       }
     }
 
@@ -1026,7 +1026,7 @@ const GapThu: React.FC = () => {
                   <div className="gacha-title-container">
                     <div className="gacha-title" ref={titleRef}>
                       <h2 className="gacha-wiggle">
-                        {selectedVoucher ? `You got a<br/>${selectedVoucher.tenVoucher}` : ''}
+                  
                       </h2>
                     </div>
                   </div>

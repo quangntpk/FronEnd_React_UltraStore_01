@@ -6,6 +6,7 @@ import { openDB, DBSchema, IDBPDatabase } from "idb";
 import { Gift, Clock, Sparkles, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PersonalPromotionsList from "@/pages/personalpromotions/PersonalpromotionsList";
+import GapThu from "../gapthu/GapThuUser";
 
 // --- Interfaces and Constants ---
 
@@ -518,7 +519,7 @@ const VoucherUser = () => {
               <Star className="mr-2 h-4 w-4" />
               Vòng Quay May Mắn
             </TabsTrigger>
-             <TabsTrigger value="promotions">
+            <TabsTrigger value="gapthu">
               <Gift className="mr-2 h-4 w-4" />
               Gắp Thú May Mắn
             </TabsTrigger>
@@ -578,11 +579,10 @@ const VoucherUser = () => {
                       <Button
                         onClick={handleSpin}
                         disabled={isSpinning || timeLeft > 0}
-                        className={`px-8 py-4 text-lg font-bold rounded-xl ${
-                          !isSpinning && timeLeft <= 0
+                        className={`px-8 py-4 text-lg font-bold rounded-xl ${!isSpinning && timeLeft <= 0
                             ? 'bg-purple-500 hover:bg-purple-600 text-white'
                             : 'bg-gray-400 text-gray-600'
-                        }`}
+                          }`}
                       >
                         {isSpinning ? (
                           <>
@@ -669,6 +669,10 @@ const VoucherUser = () => {
 
           <TabsContent value="promotions">
             <PersonalPromotionsList />
+          </TabsContent>
+
+          <TabsContent value="gapthu">
+            <GapThu />
           </TabsContent>
         </Tabs>
       </div>
