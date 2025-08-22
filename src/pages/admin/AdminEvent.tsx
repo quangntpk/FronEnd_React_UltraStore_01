@@ -735,7 +735,7 @@ const ListKhuyenMai = () => {
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto">
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto absolute bottom-4" >
                             <div className="text-sm text-gray-500">
                               ID: {promo.id}
                             </div>
