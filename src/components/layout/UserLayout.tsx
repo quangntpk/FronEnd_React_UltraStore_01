@@ -475,7 +475,7 @@ const UserLayout = () => {
       </header>
 
       {/* Main content */}
-      <main className="flex-1">
+      <main className="flex-1" style={{ backgroundColor: '#F3E6F8' }}>
         <div className="container mx-auto py-6 px-4">
           <Outlet />
         </div>

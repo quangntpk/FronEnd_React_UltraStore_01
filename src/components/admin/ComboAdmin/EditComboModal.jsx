@@ -46,7 +46,7 @@ const EditComboModal = ({ isEditModalOpen, setIsEditModalOpen, comboId }) => {
             TenCombo: comboData.name || "",
             MoTa: comboData.moTa || "",
             SoLuong: comboData.soLuong || 0,
-            Discount: comboData.Discount || 0,
+            Discount: comboData.discount || 0,
             HinhAnh: comboData.hinhAnh || null,
             SanPham: comboData.sanPhams && Array.isArray(comboData.sanPhams)
               ? comboData.sanPhams.map((product) => ({
