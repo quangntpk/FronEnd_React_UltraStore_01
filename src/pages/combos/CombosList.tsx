@@ -97,7 +97,7 @@ const CombosList = () => {
         setIsLoading(true);
         
         // Fetch combos
-        const response = await fetch("https://localhost:7051/api/Combo/ComboSanPhamView");
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -108,7 +108,7 @@ const CombosList = () => {
         }
 
         // Fetch comments
-        const commentResponse = await fetch("https://localhost:7051/api/Comment/list");
+        const commentResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/list");
         if (!commentResponse.ok) {
           throw new Error("Không thể tải bình luận");
         }
@@ -188,7 +188,7 @@ const CombosList = () => {
           
           if (currentUserId) {
             const token = localStorage.getItem("token");
-            const favoriteResponse = await fetch(`https://localhost:7051/api/YeuThich?maNguoiDung=${currentUserId}`, {
+            const favoriteResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich?maNguoiDung=${currentUserId}`, {
               headers: { 
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
@@ -367,7 +367,7 @@ const CombosList = () => {
       }
 
       if (combo?.isFavorite) {
-        const response = await fetch(`https://localhost:7051/api/YeuThich/${combo.likedId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich/${combo.likedId}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
         });
@@ -389,7 +389,7 @@ const CombosList = () => {
           soLuongYeuThich: 1,
           ngayYeuThich: new Date().toISOString(),
         };
-        const response = await fetch("https://localhost:7051/api/YeuThich", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

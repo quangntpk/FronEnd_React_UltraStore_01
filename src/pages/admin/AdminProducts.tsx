@@ -108,7 +108,7 @@ const Products = () => {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://localhost:7051/api/SanPham/ListSanPham", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -133,7 +133,7 @@ const Products = () => {
   const fetchProductLoadInfo = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${id}`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -227,7 +227,7 @@ const Products = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://localhost:7051/api/SanPham/ReportByDate", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ReportByDate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -285,7 +285,7 @@ const Products = () => {
       const selectedProductsData = [];
       for (const productId of selectedProducts) {
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://localhost:7051/api/SanPham/SanPhamByID?id=${productId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByID?id=${productId}`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : undefined,
@@ -451,7 +451,7 @@ const Products = () => {
       if (result.isConfirmed) {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`https://localhost:7051/api/SanPham/DeleteSanPham?id=${product.id}`, {
+          const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/DeleteSanPham?id=${product.id}`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -501,7 +501,7 @@ const Products = () => {
       if (result.isConfirmed) {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`https://localhost:7051/api/SanPham/ActiveSanPham?id=${product.id}`, {
+          const response = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/ActiveSanPham?id=${product.id}`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",

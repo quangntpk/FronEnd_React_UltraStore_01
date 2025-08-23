@@ -123,7 +123,7 @@ const ChiTietKhuyenMai = () => {
       setLoading(true);
       
       // Fetch promotion data
-      const response = await fetch(`https://localhost:7051/api/KhuyenMai/ListKhuyenMaiUser?id=${promotionId}`);
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/KhuyenMai/ListKhuyenMaiUser?id=${promotionId}`);
       if (!response.ok) throw new Error('Failed to fetch promotion data');
       
       const promotionData: PromotionData[] = await response.json();
@@ -137,7 +137,7 @@ const ChiTietKhuyenMai = () => {
         if (item.idSanPham) {
           try {
             const productId = item.idSanPham.split('_')[0]; // Extract base product ID
-            const productResponse = await fetch(`https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${productId}`);
+            const productResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${productId}`);
             if (productResponse.ok) {
               detailedItem.productDetails = await productResponse.json();
               console.log(detailedItem.productDetails)
@@ -150,7 +150,7 @@ const ChiTietKhuyenMai = () => {
         // If it's a combo
         if (item.idCombo) {
           try {
-            const comboResponse = await fetch(`https://localhost:7051/api/Combo/ComboSanPhamView?id=${item.idCombo}`);
+            const comboResponse = await fetch(`https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView?id=${item.idCombo}`);
             if (comboResponse.ok) {
               detailedItem.comboDetails = await comboResponse.json();
             }

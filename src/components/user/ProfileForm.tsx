@@ -27,7 +27,7 @@ interface UserData {
   hinhAnh?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "https://localhost:7051/";
+const API_URL = import.meta.env.VITE_API_URL || "https://bicacuatho.azurewebsites.net/";
 const APP_TITLE = import.meta.env.VITE_TITLE || "FashionHub";
 
 export const ProfileForm = () => {

@@ -74,7 +74,7 @@ const ComboDetail = () => {
     const fetchCombo = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`https://localhost:7051/api/Combo/ComboSanPhamView?id=${id}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView?id=${id}`, {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -149,7 +149,7 @@ const ComboDetail = () => {
           const userData = JSON.parse(localStorage.getItem("user") || "{}");
           const currentUserId = userData?.maNguoiDung;
           if (currentUserId) {
-            const response = await fetch("https://localhost:7051/api/YeuThich", {
+            const response = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
               headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
             });
             if (!response.ok) throw new Error("Failed to fetch favorites");
@@ -180,7 +180,7 @@ const ComboDetail = () => {
     try {
       const colorCode = color.replace("#", "");
       const response = await fetch(
-        `https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${productId}_${colorCode}`,
+        `https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${productId}_${colorCode}`,
         {
           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
         }
@@ -258,7 +258,7 @@ const ComboDetail = () => {
     };
 
     try {
-      const response = await fetch("https://localhost:7051/api/Cart/ThemComboVaoGioHang", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Cart/ThemComboVaoGioHang", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -292,7 +292,7 @@ const ComboDetail = () => {
 
     if (isFavorite) {
       try {
-        const response = await fetch(`https://localhost:7051/api/YeuThich/${likedId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich/${likedId}`, {
           method: "DELETE",
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -315,7 +315,7 @@ const ComboDetail = () => {
         ngayYeuThich: new Date().toISOString(),
       };
       try {
-        const response = await fetch("https://localhost:7051/api/YeuThich", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

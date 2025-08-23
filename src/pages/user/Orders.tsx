@@ -797,7 +797,7 @@ const OrderHistory = () => {
         return;
       }
 
-      const response = await axios.get('https://localhost:7051/api/user/orders/search', {
+      const response = await axios.get('https://bicacuatho.azurewebsites.net/api/user/orders/search', {
         headers: { Authorization: `Bearer ${token}` },
         params: { query: query },
       });
@@ -896,7 +896,7 @@ const OrderHistory = () => {
         return;
       }
 
-      const response = await axios.get(`https://localhost:7051/api/user/orders/${maNguoiDung}`, {
+      const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/${maNguoiDung}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
@@ -965,7 +965,7 @@ const OrderHistory = () => {
 
       try {
         setIsLoading(true);
-        const response = await axios.get(`https://localhost:7051/api/user/orders/${maNguoiDung}`, {
+        const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/${maNguoiDung}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
@@ -1025,7 +1025,7 @@ const OrderHistory = () => {
         return;
       }
 
-      const response = await axios.get(`https://localhost:7051/api/user/orders/${maNguoiDung}`, {
+      const response = await axios.get(`https://bicacuatho.azurewebsites.net/api/user/orders/${maNguoiDung}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const rawOrders = response.data;
@@ -1070,7 +1070,7 @@ const OrderHistory = () => {
       const storedCommentedProducts = JSON.parse(localStorage.getItem(likedCommentsKey) || "[]") as string[];
       setCommentedProducts(new Set<string>(storedCommentedProducts));
 
-      const response = await axios.get("https://localhost:7051/api/Comment/list", {
+      const response = await axios.get("https://bicacuatho.azurewebsites.net/api/Comment/list", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const comments = response.data || [];
@@ -1113,7 +1113,7 @@ const OrderHistory = () => {
         return;
       }
 
-      const response = await axios.get('https://localhost:7051/api/user/orders/search', {
+      const response = await axios.get('https://bicacuatho.azurewebsites.net/api/user/orders/search', {
         headers: { Authorization: `Bearer ${token}` },
         params: { query: query },
       });
@@ -1214,7 +1214,7 @@ const OrderHistory = () => {
         moTaHinhAnh: imageDescription || null,
       };
 
-      const response = await axios.post("https://localhost:7051/api/Comment/add", commentData, {
+      const response = await axios.post("https://bicacuatho.azurewebsites.net/api/Comment/add", commentData, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -1347,7 +1347,7 @@ const OrderHistory = () => {
       };
 
       const response = await axios.put<CancelOrderResponse>(
-        `https://localhost:7051/api/user/orders/cancel/${orderIdNumber}`,
+        `https://bicacuatho.azurewebsites.net/api/user/orders/cancel/${orderIdNumber}`,
         cancelRequest,
         {
           headers: {

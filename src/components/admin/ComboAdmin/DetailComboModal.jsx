@@ -14,7 +14,7 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://localhost:7051/api/Combo/ComboSanPhamViewAdmin?id=${comboId}`,{
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamViewAdmin?id=${comboId}`,{
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -65,7 +65,7 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
     if (window.confirm("Bạn có chắc muốn xóa combo này?")) {
       try {
          const token = localStorage.getItem("token");
-        const response = await fetch(`https://localhost:7051/api/Combo/DeleteCombo?id=${comboId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Combo/DeleteCombo?id=${comboId}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

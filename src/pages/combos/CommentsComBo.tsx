@@ -95,7 +95,7 @@ const CommentsCombo = ({ maCombo }) => {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const commentResponse = await fetch("https://localhost:7051/api/Comment/list");
+        const commentResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Failed to fetch comments");
         const commentData = await commentResponse.json();
         const comboComments = commentData
@@ -166,7 +166,7 @@ const CommentsCombo = ({ maCombo }) => {
     };
 
     try {
-      const response = await fetch("https://localhost:7051/api/Comment/add", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -193,7 +193,7 @@ const CommentsCombo = ({ maCombo }) => {
     if (!commentToDelete) return;
 
     try {
-      const response = await fetch(`https://localhost:7051/api/Comment/delete/${commentToDelete}`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/Comment/delete/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
       });
@@ -229,8 +229,8 @@ const CommentsCombo = ({ maCombo }) => {
 
     const isLiked = likedComments.has(maBinhLuan);
     const endpoint = isLiked
-      ? `https://localhost:7051/api/Comment/Unlike/${maBinhLuan}`
-      : `https://localhost:7051/api/Comment/Like/${maBinhLuan}`;
+      ? `https://bicacuatho.azurewebsites.net/api/Comment/Unlike/${maBinhLuan}`
+      : `https://bicacuatho.azurewebsites.net/api/Comment/Like/${maBinhLuan}`;
 
     try {
       const response = await fetch(endpoint, {

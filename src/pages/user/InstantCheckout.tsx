@@ -368,7 +368,7 @@ const CheckOutInstant = () => {
           return;
         }
 
-        const response2 = await fetch(`https://localhost:7051/api/SanPham/ListSanPham?id=${existingData[0]?.IDSanPham}`);
+        const response2 = await fetch(`https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham?id=${existingData[0]?.IDSanPham}`);
         const data2: Product[] = await response2.json();
         setProductDetails(data2);
 
@@ -395,7 +395,7 @@ const CheckOutInstant = () => {
         setProvinces(provincesData);
 
         const addressResponse = await fetch(
-          `https://localhost:7051/api/DanhSachDiaChi/maNguoiDung/${userId}`
+          `https://bicacuatho.azurewebsites.net/api/DanhSachDiaChi/maNguoiDung/${userId}`
         );
         const addressData = await addressResponse.json();
         setAddresses(
@@ -573,7 +573,7 @@ const CheckOutInstant = () => {
 
     try {
       const response = await fetch(
-        `https://localhost:7051/api/Voucher/ValidateInstant?code=${encodeURIComponent(
+        `https://bicacuatho.azurewebsites.net/api/Voucher/ValidateInstant?code=${encodeURIComponent(
           promoCode
         )}`,
         {
@@ -684,7 +684,7 @@ const CheckOutInstant = () => {
     };
     console.log(paymentRequest);
     const paymentResponse = await fetch(
-      "https://localhost:7051/api/CheckOut/InstantCheckOut",
+      "https://bicacuatho.azurewebsites.net/api/CheckOut/InstantCheckOut",
       {
         method: "POST",
         headers: {

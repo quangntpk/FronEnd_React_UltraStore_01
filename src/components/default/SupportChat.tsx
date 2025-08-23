@@ -295,7 +295,7 @@ const SupportChat: React.FC = () => {
       }
 
       const response = await axios.post<ApiResponse>(
-        `https://localhost:7051/api/GoogleApis/${endpoint}`,
+        `https://bicacuatho.azurewebsites.net/api/GoogleApis/${endpoint}`,
         requestData,
         {
           headers: {

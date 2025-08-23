@@ -64,7 +64,7 @@ const ProductView = ({ productId, onClose }: ProductViewProps) => {
         setLoading(true);
         const baseId = id.split("_")[0];
         const response = await fetch(
-          `https://localhost:7051/api/SanPham/SanPhamByIDSorted?id=${baseId}`,
+          `https://bicacuatho.azurewebsites.net/api/SanPham/SanPhamByIDSorted?id=${baseId}`,
           {
             headers: {
               "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -148,7 +148,7 @@ const ProductView = ({ productId, onClose }: ProductViewProps) => {
 
     try {
       const res = await fetch(
-        "https://localhost:7051/api/Cart/ThemSanPhamVaoGioHang",
+        "https://bicacuatho.azurewebsites.net/api/Cart/ThemSanPhamVaoGioHang",
         {
           method: "POST",
           headers: {

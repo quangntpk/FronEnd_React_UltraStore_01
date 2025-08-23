@@ -39,7 +39,7 @@ useEffect(() => {
   const fetchPromotionData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://localhost:7051/api/KhuyenMai/ListKhuyenMaiAdmin');
+      const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/ListKhuyenMaiAdmin');
       if (!response.ok) {
         throw new Error('Failed to fetch promotion');
       }
@@ -159,7 +159,7 @@ useEffect(() => {
     const fetchProducts = async () => {
       try {
         setProductLoading(true);
-        const response = await fetch('https://localhost:7051/api/SanPham/ListSanPham');
+        const response = await fetch('https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham');
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
@@ -190,7 +190,7 @@ useEffect(() => {
     const fetchCombos = async () => {
       try {
         setComboLoading(true);
-        const response = await fetch('https://localhost:7051/api/Combo/ComboSanPhamView');
+        const response = await fetch('https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView');
         if (!response.ok) {
           throw new Error('Failed to fetch combos');
         }
@@ -455,7 +455,7 @@ useEffect(() => {
           }))
         ]
       };
-      const response = await fetch(`https://localhost:7051/api/KhuyenMai/KhuyenMaiUpdate`, {
+      const response = await fetch(`https://bicacuatho.azurewebsites.net/api/KhuyenMai/KhuyenMaiUpdate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

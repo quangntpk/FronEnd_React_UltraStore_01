@@ -138,7 +138,7 @@ const YeuThich = () => {
 
         // Lấy danh sách yêu thích
         const yeuThichResponse = await fetch(
-          `https://localhost:7051/api/YeuThich?maNguoiDung=${currentUserId}`,
+          `https://bicacuatho.azurewebsites.net/api/YeuThich?maNguoiDung=${currentUserId}`,
           {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
           }
@@ -147,14 +147,14 @@ const YeuThich = () => {
         const yeuThichData = await yeuThichResponse.json();
 
         // Lấy danh sách sản phẩm
-        const productResponse = await fetch("https://localhost:7051/api/SanPham/ListSanPham", {
+        const productResponse = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
           headers: { Accept: "application/json" },
         });
         if (!productResponse.ok) throw new Error("Không thể tải danh sách sản phẩm");
         const productData = await productResponse.json();
 
         // Lấy danh sách bình luận
-        const commentResponse = await fetch("https://localhost:7051/api/Comment/list");
+        const commentResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Comment/list");
         if (!commentResponse.ok) throw new Error("Không thể tải bình luận");
         const commentData = await commentResponse.json();
 
@@ -196,7 +196,7 @@ const YeuThich = () => {
         }).filter((product) => product.isFavorite);
 
         // Lấy danh sách combo
-        const comboResponse = await fetch("https://localhost:7051/api/Combo/ComboSanPhamView");
+        const comboResponse = await fetch("https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView");
         if (!comboResponse.ok) throw new Error("Không thể tải danh sách combo");
         const comboData = await comboResponse.json();
 
@@ -484,7 +484,7 @@ const YeuThich = () => {
       }
 
       if (item.isFavorite) {
-        const response = await fetch(`https://localhost:7051/api/YeuThich/${item.likedId}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/YeuThich/${item.likedId}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
         });
@@ -516,7 +516,7 @@ const YeuThich = () => {
           soLuongYeuThich: 1,
           ngayYeuThich: new Date().toISOString(),
         };
-        const response = await fetch("https://localhost:7051/api/YeuThich", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/YeuThich", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

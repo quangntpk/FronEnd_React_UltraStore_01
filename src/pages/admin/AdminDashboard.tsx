@@ -46,7 +46,7 @@ const Dashboard = () => {
   // Use current date for real-time data
   const today = new Date().toISOString().split("T")[0]; // e.g., "2025-07-31"
 
-  const API_BASE_URL = "https://localhost:7051/api/ThongKe";
+  const API_BASE_URL = "https://bicacuatho.azurewebsites.net/api/ThongKe";
 
   const createLineChart = (
     canvasId: string,

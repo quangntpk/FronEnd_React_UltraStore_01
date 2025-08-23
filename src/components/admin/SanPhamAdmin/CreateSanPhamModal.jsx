@@ -37,7 +37,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     const fetchLoaiSanPham = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://localhost:7051/api/LoaiSanPham", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/LoaiSanPham", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -66,7 +66,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     const fetchThuongHieu = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://localhost:7051/api/ThuongHieu", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/ThuongHieu", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -95,7 +95,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
     const fetchHashTags = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://localhost:7051/api/HashTag", {
+        const response = await fetch("https://bicacuatho.azurewebsites.net/api/HashTag", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -134,7 +134,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
       }
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://localhost:7051/api/LoaiSanPham/${loaiSanPham}`, {
+        const response = await fetch(`https://bicacuatho.azurewebsites.net/api/LoaiSanPham/${loaiSanPham}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -445,7 +445,7 @@ const AddProductModal = ({ isAddModalOpen, setIsAddModalOpen }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("https://localhost:7051/api/SanPham/CreateSanPham", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/CreateSanPham", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

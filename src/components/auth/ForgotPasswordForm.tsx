@@ -52,7 +52,7 @@ export const ForgotPasswordForm: React.FC = () => {
   const [cooldown, setCooldown] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
-  const API_BASE_URL = 'https://localhost:7051/api/XacThuc';
+  const API_BASE_URL = 'https://bicacuatho.azurewebsites.net/api/XacThuc';
 
   // Khởi tạo form
   const emailForm = useForm<EmailFormData>({

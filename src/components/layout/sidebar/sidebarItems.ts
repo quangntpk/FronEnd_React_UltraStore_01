@@ -18,7 +18,7 @@ interface SidebarItemType {
 export const adminItems: SidebarItemType[] = [
   { title: "Thống kê", icon: BarChart, path: "/admin/statistics", color: "text-blue-600" },
   { title: "Đơn hàng", icon: ShoppingCart, path: "/admin/orders", color: "text-orange-600" },
-  { title: "Mua offline", icon: CreditCard, path: "/admin/buy", color: "text-red-600" },
+  { title: "Mua offline", icon: CreditCard, path: "/buy", color: "text-red-600" },
   { title: "Sản phẩm", icon: Package, path: "/admin/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/admin/combos", color: "text-teal-600" },
   { title: "Thương hiệu", icon: Tag, path: "/admin/thuonghieu", color: "text-indigo-600" },
@@ -37,7 +37,7 @@ export const adminItems: SidebarItemType[] = [
 
 export const staffItems: SidebarItemType[] = [
   { title: "Đơn hàng", icon: ShoppingCart, path: "/staff/orders", color: "text-orange-600" },
-  { title: "Mua offline", icon: CreditCard, path: "/staff/buy", color: "text-red-600" },
+  { title: "Mua offline", icon: CreditCard, path: "/buy", color: "text-red-600" },
   { title: "Sản phẩm", icon: Package, path: "/staff/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/staff/combos", color: "text-teal-600" },
   { title: "Khuyến Mại", icon: badge, path: "/staff/events", color: "text-gray-600" },

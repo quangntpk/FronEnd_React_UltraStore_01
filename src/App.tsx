@@ -234,10 +234,10 @@ const App = () => (
                 <Route path="combos" element={<AdminCombos />} />
                 <Route path="thuonghieu" element={<AdminThuongHieu />} />
               </Route>
-
+              <Route path="/buy" element={<AdminBuy />} />
               <Route path="/admin" element={<AdminLayout role="admin" />}>
                 <Route index element={<AdminDashboard />} />
-                <Route path="buy" element={<AdminBuy />} />
+
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="settings" element={<AdminSettings />} />

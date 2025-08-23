@@ -35,7 +35,7 @@ const PromotionForm = () => {
     const fetchProducts = async () => {
       try {
         setProductLoading(true);
-        const response = await fetch('https://localhost:7051/api/SanPham/ListSanPham');
+        const response = await fetch('https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham');
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
@@ -65,7 +65,7 @@ const PromotionForm = () => {
     const fetchCombos = async () => {
       try {
         setComboLoading(true);
-        const response = await fetch('https://localhost:7051/api/Combo/ComboSanPhamView');
+        const response = await fetch('https://bicacuatho.azurewebsites.net/api/Combo/ComboSanPhamView');
         if (!response.ok) {
           throw new Error('Failed to fetch combos');
         }
@@ -327,7 +327,7 @@ const PromotionForm = () => {
         ]
       };
 
-      const response = await fetch('https://localhost:7051/api/KhuyenMai/KhuyenMaiCreate', {
+      const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/KhuyenMaiCreate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

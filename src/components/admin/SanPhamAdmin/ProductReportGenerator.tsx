@@ -242,7 +242,7 @@ const ProductReportGenerator = ({ isOpen, onClose, selectedProductIds }: Product
     }
 
     try {
-      const response = await fetch("https://localhost:7051/api/SanPham/ReportByDate", {
+      const response = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ReportByDate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
