@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { FaEye, FaTrashAlt, FaEdit, FaEllipsisV } from "react-icons/fa";
 import { IoAddCircleOutline, IoSearch, IoFilter, IoGrid, IoList, IoClose } from "react-icons/io5";
 import { MdUpload } from "react-icons/md";
+import { FaSpinner } from "react-icons/fa"; // Thêm biểu tượng spinner
 import {
   Card,
   CardContent,
@@ -85,7 +86,7 @@ const generateSlug = (title: string, existingSlugs: string[]): string => {
 };
 
 const generateMoTaHinhAnh = (title: string): string => {
-  return `Hình ảnh cho bài viết: ${title}`;
+  return `Hình ảnh cho Tin Tức: ${title}`;
 };
 
 const AdminBlog = () => {
@@ -101,6 +102,7 @@ const AdminBlog = () => {
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
+  const [tagInput, setTagInput] = useState("");
   const [newBlog, setNewBlog] = useState<Blog>({
     maBlog: null,
     maNguoiDung: "",
@@ -122,6 +124,7 @@ const AdminBlog = () => {
   const [maNguoiDung, setMaNguoiDung] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [nguoiDungs, setNguoiDungs] = useState<{ [key: string]: NguoiDung | null }>({});
+  const [isSaving, setIsSaving] = useState(false); // Thêm trạng thái loading cho nút lưu
   const blogsPerPage = 8;
 
   useEffect(() => {
@@ -140,8 +143,10 @@ const AdminBlog = () => {
         showConfirmButton: false,
         showCloseButton: true,
       });
+
+      setTagInput(newBlog.tags?.map((tag) => tag.replace(/^#/, "")).join(", ") || "");
     }
-  }, []);
+  }, [newBlog.tags]);
 
   const fetchBlogs = async () => {
     try {
@@ -196,7 +201,7 @@ const AdminBlog = () => {
         `${import.meta.env.VITE_API_URL}/api/Blog/${blogToDelete.maBlog}`,
         {
           method: "DELETE",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
           },
@@ -266,7 +271,7 @@ const AdminBlog = () => {
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Blog/CreateBlog`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
@@ -341,6 +346,7 @@ const AdminBlog = () => {
     }
 
     try {
+      setIsSaving(true); // Bật trạng thái loading
       const existingSlugs = blogs
         .filter((blog) => blog.maBlog !== editBlog.maBlog)
         .map((blog) => blog.slug || "");
@@ -352,7 +358,7 @@ const AdminBlog = () => {
         `${import.meta.env.VITE_API_URL}/api/Blog/${editBlog.maBlog}`,
         {
           method: "PUT",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
           },
@@ -395,6 +401,8 @@ const AdminBlog = () => {
         showConfirmButton: false,
         showCloseButton: true,
       });
+    } finally {
+      setIsSaving(false); // Tắt trạng thái loading
     }
   };
 
@@ -570,20 +578,20 @@ const AdminBlog = () => {
     <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-800">Quản lý bài viết</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-800">Quản lý Tin Tức</h1>
         </div>
         <Button
           className="bg-purple-400 hover:bg-purple-500 text-white"
           size="lg"
           onClick={() => setOpenCreateModal(true)}
         >
-          <IoAddCircleOutline className="h-5 w-5 mr-2" /> Thêm Blog
+          <IoAddCircleOutline className="h-5 w-5 mr-2" /> Thêm Tin Tức
         </Button>
       </div>
 
       <Card className="shadow-lg rounded-xl bg-white">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold text-gray-800">Danh sách bài viết</CardTitle>
+          <CardTitle className="text-2xl font-bold text-gray-800">Danh sách Tin Tức</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-between items-start sm:items-center">
@@ -1146,8 +1154,9 @@ const AdminBlog = () => {
                 <Input
                   name="tags"
                   placeholder="seo, marketing, tutorial"
-                  value={newBlog.tags?.map((tag) => tag.replace(/^#/, "")).join(", ") || ""}
-                  onChange={(e) =>
+                  value={tagInput}
+                  onChange={(e) => {
+                    setTagInput(e.target.value); // Cập nhật chuỗi gốc
                     setNewBlog({
                       ...newBlog,
                       tags: e.target.value
@@ -1155,8 +1164,8 @@ const AdminBlog = () => {
                         .map((tag) => tag.trim())
                         .filter((tag) => tag)
                         .map((tag) => `#${tag}`),
-                    })
-                  }
+                    });
+                  }}
                   className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
@@ -1341,17 +1350,18 @@ const AdminBlog = () => {
                   <Input
                     name="tags"
                     placeholder="seo, marketing, tutorial"
-                    value={editBlog.tags?.map((tag) => tag.replace(/^#/, "")).join(", ") || ""}
-                    onChange={(e) =>
-                      setEditBlog({
-                        ...editBlog,
+                    value={tagInput}
+                    onChange={(e) => {
+                      setTagInput(e.target.value); // Cập nhật chuỗi gốc
+                      setNewBlog({
+                        ...newBlog,
                         tags: e.target.value
                           .split(",")
                           .map((tag) => tag.trim())
                           .filter((tag) => tag)
                           .map((tag) => `#${tag}`),
-                      })
-                    }
+                      });
+                    }}
                     className="mt-1 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
@@ -1389,11 +1399,22 @@ const AdminBlog = () => {
               <IoClose className="h-4 w-4 mr-2" /> Hủy
             </Button>
             <Button
-              className="bg-purple-400 hover:bg-purple-500 text-white rounded-lg"
+              className="bg-purple-400 hover:bg-purple-500 text-white rounded-lg flex items-center"
               onClick={editBlogSubmit}
+              disabled={isSaving}
               aria-label="Lưu blog"
             >
-              <FaEdit className="h-4 w-4 mr-2" /> Lưu
+              {isSaving ? (
+                <>
+                  <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <FaEdit className="h-4 w-4 mr-2" />
+                  Lưu
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

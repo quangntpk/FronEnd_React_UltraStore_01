@@ -389,7 +389,7 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
           <div className="col-span-12 sm:col-span-5 flex flex-col gap-1">
             <span className="font-medium text-gray-800">Mã đơn hàng: {order.maDonHang || "N/A"}</span>
             <span className="text-sm text-gray-500">Người nhận: {order.tenNguoiNhan || "N/A"}</span>
-            <span className="text-sm text-gray-500">Ngày đặt: {formatDate(order.ngayDat)}</span>
+            <span className="text-sm text-gray-500">Ngày đặt: {order.ngayDat}</span>
             <span className="text-sm text-gray-500">SĐT: {order.thongTinNguoiDung?.sdt || "N/A"}</span>
             <span className="text-sm text-gray-500">Phương thức thanh toán: {order.hinhThucThanhToan || "N/A"}</span>
             <span className={`text-sm font-medium ${
@@ -909,7 +909,7 @@ const OrderHistory = () => {
         });
         return;
       }
-
+      console.log(response.data);
       let filteredData = allOrders;
       if (status !== 'all') {
         filteredData = allOrders.filter(order => mapStatus(order.trangThaiDonHang) === status);

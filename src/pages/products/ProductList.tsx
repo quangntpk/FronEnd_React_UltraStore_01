@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Heart, ShoppingCart, Search, SlidersHorizontal, Star, Sparkles, TrendingUp, Package, Filter, Grid3X3, List, ArrowUpDown, X, Zap, Award, Clock, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,192 @@ interface ColorRange {
   }>;
   previewColor: string;
   gradientColors: string[];
+}
+
+// Grid Loader FX Class với continuous animation
+class GridLoaderFx {
+  el: HTMLElement;
+  items: NodeListOf<HTMLElement>;
+  effects: any;
+  animationId: number | null = null;
+
+  constructor(el: HTMLElement) {
+    this.el = el;
+    this.items = this.el.querySelectorAll('.grid__item .loading-placeholder, .grid__item .product-card');
+    this.effects = {
+      'Shu': {
+        lineDrawing: true,
+        animeLineDrawingOpts: {
+          duration: 800,
+          delay: function (t: any, i: number) {
+            return i * 150;
+          },
+          easing: 'easeInOutSine',
+          strokeDashoffset: [this.setDashoffset, 0],
+          opacity: [
+            { value: [0, 1] },
+            { value: [1, 0], duration: 200, easing: 'linear', delay: 500 }
+          ]
+        },
+        animeOpts: {
+          duration: 800,
+          easing: [0.2, 1, 0.3, 1],
+          delay: function (t: any, i: number) {
+            return i * 150 + 800;
+          },
+          opacity: {
+            value: [0, 1],
+            easing: 'linear'
+          },
+          scale: [0.5, 1]
+        }
+      }
+    };
+  }
+
+  setDashoffset(path: SVGPathElement) {
+    const length = path.getTotalLength();
+    path.style.strokeDasharray = length + ' ' + length;
+    path.style.strokeDashoffset = String(length);
+    return length;
+  }
+
+  // Continuous animation for loading state
+  _renderContinuous(effect: string) {
+    this._resetStyles();
+
+    const runAnimation = () => {
+      this._resetStyles();
+
+      const effectSettings = this.effects[effect];
+
+      if (effectSettings.lineDrawing) {
+        Array.from(this.items).forEach((item) => {
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          const itemW = item.offsetWidth;
+          const itemH = item.offsetHeight;
+
+          svg.setAttribute('width', itemW + 'px');
+          svg.setAttribute('height', itemH + 'px');
+          svg.setAttribute('viewBox', '0 0 ' + itemW + ' ' + itemH);
+          svg.setAttribute('class', 'grid__deco');
+          path.setAttribute('d', 'M0,0 l' + itemW + ',0 0,' + itemH + ' -' + itemW + ',0 0,-' + itemH);
+          path.setAttribute('stroke-dashoffset', String(this.setDashoffset(path)));
+          svg.appendChild(path);
+          item.parentNode?.appendChild(svg);
+        });
+
+        // Animate paths
+        setTimeout(() => {
+          const paths = this.el.querySelectorAll('.grid__deco > path');
+          paths.forEach((path, i) => {
+            const pathElement = path as SVGPathElement;
+            setTimeout(() => {
+              pathElement.style.strokeDashoffset = '0';
+              pathElement.style.transition = 'stroke-dashoffset 0.8s ease-in-out';
+              setTimeout(() => {
+                pathElement.style.opacity = '0';
+                pathElement.style.transition = 'opacity 0.2s linear';
+              }, 500);
+            }, i * 150);
+          });
+        }, 100);
+      }
+
+      // Animate placeholder items
+      Array.from(this.items).forEach((item, i) => {
+        item.style.opacity = '0';
+        item.style.transform = 'scale(0.5)';
+        setTimeout(() => {
+          item.style.opacity = '1';
+          item.style.transform = 'scale(1)';
+          item.style.transition = 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.2,1,0.3,1)';
+        }, i * 150 + 800);
+      });
+
+      // Schedule next animation cycle
+      this.animationId = setTimeout(() => {
+        runAnimation();
+      }, 2500); // Repeat every 2.5 seconds
+    };
+
+    runAnimation();
+  }
+
+  // Single animation for loaded products
+  _render(effect: string) {
+    this.stopContinuous();
+    this._resetStyles();
+
+    const effectSettings = this.effects[effect];
+
+    if (effectSettings.lineDrawing) {
+      Array.from(this.items).forEach((item) => {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const itemW = item.offsetWidth;
+        const itemH = item.offsetHeight;
+
+        svg.setAttribute('width', itemW + 'px');
+        svg.setAttribute('height', itemH + 'px');
+        svg.setAttribute('viewBox', '0 0 ' + itemW + ' ' + itemH);
+        svg.setAttribute('class', 'grid__deco');
+        path.setAttribute('d', 'M0,0 l' + itemW + ',0 0,' + itemH + ' -' + itemW + ',0 0,-' + itemH);
+        path.setAttribute('stroke-dashoffset', String(this.setDashoffset(path)));
+        svg.appendChild(path);
+        item.parentNode?.appendChild(svg);
+      });
+
+      // Simulate anime.js functionality with CSS animations
+      setTimeout(() => {
+        const paths = this.el.querySelectorAll('.grid__deco > path');
+        paths.forEach((path, i) => {
+          const pathElement = path as SVGPathElement;
+          setTimeout(() => {
+            pathElement.style.strokeDashoffset = '0';
+            pathElement.style.transition = 'stroke-dashoffset 0.8s ease-in-out';
+            setTimeout(() => {
+              pathElement.style.opacity = '0';
+              pathElement.style.transition = 'opacity 0.2s linear';
+            }, 500);
+          }, i * 150);
+        });
+      }, 100);
+    }
+
+    // Apply main animation
+    Array.from(this.items).forEach((item, i) => {
+      item.style.opacity = '0';
+      item.style.transform = 'scale(0.5)';
+      setTimeout(() => {
+        item.style.opacity = '1';
+        item.style.transform = 'scale(1)';
+        item.style.transition = 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.2,1,0.3,1)';
+      }, i * 150 + 800);
+    });
+  }
+
+  stopContinuous() {
+    if (this.animationId) {
+      clearTimeout(this.animationId);
+      this.animationId = null;
+    }
+  }
+
+  _resetStyles() {
+    Array.from(this.items).forEach((item) => {
+      const gItem = item.parentNode as HTMLElement;
+      item.style.opacity = '0';
+      item.style.transform = 'none';
+      item.style.transition = '';
+
+      const svg = gItem?.querySelector('svg.grid__deco');
+      if (svg) {
+        gItem.removeChild(svg);
+      }
+    });
+  }
 }
 
 const COLOR_RANGES: ColorRange[] = [
@@ -182,11 +368,11 @@ const COLOR_RANGES: ColorRange[] = [
 const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
   const cleanHex = hex.replace('#', '').toUpperCase();
   if (cleanHex.length !== 6) return null;
-  
+
   const r = parseInt(cleanHex.substring(0, 2), 16);
   const g = parseInt(cleanHex.substring(2, 4), 16);
   const b = parseInt(cleanHex.substring(4, 6), 16);
-  
+
   return { r, g, b };
 };
 
@@ -194,9 +380,9 @@ const isColorInRange = (color: string, minHex: string, maxHex: string): boolean 
   const colorRgb = hexToRgb(color);
   const minRgb = hexToRgb(minHex);
   const maxRgb = hexToRgb(maxHex);
-  
+
   if (!colorRgb || !minRgb || !maxRgb) return false;
-  
+
   return (
     colorRgb.r >= minRgb.r && colorRgb.r <= maxRgb.r &&
     colorRgb.g >= minRgb.g && colorRgb.g <= maxRgb.g &&
@@ -206,7 +392,7 @@ const isColorInRange = (color: string, minHex: string, maxHex: string): boolean 
 
 const getColorCategory = (color: string): string | null => {
   const cleanColor = color.replace('#', '').toUpperCase();
-  
+
   for (const colorRange of COLOR_RANGES) {
     for (const range of colorRange.ranges) {
       if (isColorInRange(cleanColor, range.minHex, range.maxHex)) {
@@ -214,20 +400,20 @@ const getColorCategory = (color: string): string | null => {
       }
     }
   }
-  
+
   return null;
 };
 
-const ColorRangeFilter = ({ 
-  selectedColorRanges, 
-  onColorRangeChange 
-}: { 
+const ColorRangeFilter = ({
+  selectedColorRanges,
+  onColorRangeChange
+}: {
   selectedColorRanges: string[];
   onColorRangeChange: (colorRange: string) => void;
 }) => {
   return (
-   <div>
-      <Label className="text-lg font-medium mb-4 block">Phổ Màu</Label>
+    <div>
+      <Label className="text-lg font-medium mb-4 block text-white">Phổ Màu</Label>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         {COLOR_RANGES.map((colorRange) => (
           <div key={colorRange.name} className="flex items-center space-x-2">
@@ -238,21 +424,21 @@ const ColorRangeFilter = ({
               aria-label={`Chọn phổ màu ${colorRange.displayName}`}
               className="flex-shrink-0"
             />
-            
-            <div 
-              className="w-12 h-5 rounded-md border border-gray-300 shadow-sm flex-shrink-0"
+
+            <div
+              className="w-12 h-5 rounded-md border border-gray-600 shadow-sm flex-shrink-0"
               style={{
                 background: `linear-gradient(to right, ${colorRange.gradientColors[0]} 0%, ${colorRange.gradientColors[1]} 50%, ${colorRange.gradientColors[2]} 100%)`,
                 ...(colorRange.name === 'white' && {
-                  border: '2px solid #d1d5db'
+                  border: '2px solid #6b7280'
                 })
               }}
               title={`Phổ màu ${colorRange.displayName}`}
             />
-            
+
             <label
               htmlFor={`color-range-${colorRange.name}`}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1 truncate"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1 truncate text-white"
             >
               {colorRange.displayName}
             </label>
@@ -277,6 +463,8 @@ const showNotification = (message: string, type: "success" | "error" | "warning"
 const ProductListing = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const loaderRef = useRef<GridLoaderFx | null>(null);
   const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -291,7 +479,406 @@ const ProductListing = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6;
+  const productsPerPage = 8; // 8 products per page
+
+  // Start continuous animation when loading
+  useEffect(() => {
+    if (isLoading && gridRef.current && viewMode === 'grid') {
+      setTimeout(() => {
+        if (gridRef.current && isLoading) {
+          loaderRef.current = new GridLoaderFx(gridRef.current);
+          loaderRef.current._renderContinuous('Shu');
+        }
+      }, 300);
+    }
+  }, [isLoading, viewMode]);
+
+  // Single animation when products are loaded
+  useEffect(() => {
+    if (!isLoading && filteredProducts.length > 0 && gridRef.current && viewMode === 'grid') {
+      setTimeout(() => {
+        if (gridRef.current) {
+          if (loaderRef.current) {
+            loaderRef.current.stopContinuous();
+          }
+          loaderRef.current = new GridLoaderFx(gridRef.current);
+          loaderRef.current._render('Shu');
+        }
+      }, 300);
+    }
+  }, [isLoading, filteredProducts, viewMode, currentPage]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (loaderRef.current) {
+        loaderRef.current.stopContinuous();
+      }
+    };
+  }, []);
+
+  // Loading placeholder positions for 7 items (old layout)
+  const getLoadingPosition = (index: number) => {
+    const positions = [
+      // Item 1 - Top left
+      { left: '0%', top: '200px' },
+      // Item 2 - Top center
+      { left: '25%', top: '100px' },
+      // Item 3 - Middle center right
+      { left: '50%', top: '350px' }, // Điều chỉnh vị trí
+      // Item 4 - Top right
+      { left: '75%', top: '200px' },
+      // Item 5 - Bottom center left
+      { left: '25%', top: '750px' }, // Tăng từ 600px
+      // Item 6 - Bottom left
+      { left: '0%', top: '850px' }, // Tăng từ 700px
+      // Item 7 - Bottom right
+      { left: '75%', top: '850px' } // Tăng từ 700px
+    ];
+    return positions[index] || positions[0];
+  };
+  // Product layout positions for 8 items (2 rows x 4 columns)
+  const getProductPosition = (index: number) => {
+    const row = Math.floor(index / 4);
+    const col = index % 4;
+    return {
+      left: `${col * 25}%`,
+      top: `${row * 650 + 100}px`
+    };
+  };
+
+  // Add CSS styles for both loading and product layouts
+  // Cập nhật CSS styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+    .grid__deco {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .grid__deco path {
+      fill: none;
+      stroke: #e6629a;
+      stroke-width: 2px;
+    }
+
+    .grid__item {
+      position: relative;
+      break-inside: avoid;
+    }
+
+    .loading-grid {
+      position: relative;
+      width: 100%;
+      height: 1300px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .product-grid {
+      position: relative;
+      width: 100%;
+      height: 1500px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .enhanced-card {
+      width: 300px !important;
+      height: 600px !important;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .enhanced-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(168, 85, 247, 0.3);
+    }
+
+    .loading-placeholder {
+      width: 300px !important;
+      height: 600px !important;
+      background: linear-gradient(135deg, #ffffffff 0%, #ebc9f8ff 50%, #f6b0ffff 100%);
+      border-radius: 12px;
+      border: 1px solid #ffffff;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: scale(0.5);
+    }
+
+    .loading-placeholder::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+      );
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .enhanced-card .card-image {
+      height: 250px;
+      overflow: hidden;
+      position: relative;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .enhanced-card .card-content {
+      height: 350px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Hover overlay effect */
+    .card-hover-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(139, 92, 246, 0.15);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 20;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .enhanced-card:hover .card-hover-overlay {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .hover-detail-button {
+      background: rgba(139, 92, 246, 0.95);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      transform: scale(0.8);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+    }
+
+    .enhanced-card:hover .hover-detail-button {
+      transform: scale(1);
+    }
+
+    .hover-detail-button:hover {
+      background: rgba(139, 92, 246, 1);
+      transform: scale(1.05);
+      box-shadow: 0 12px 30px rgba(139, 92, 246, 0.6);
+    }
+
+    /* Compact content layout */
+    .card-content-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .rating-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .product-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      line-height: 1.3;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 40px;
+    }
+
+    .price-section {
+      margin-bottom: 10px;
+    }
+
+    .brand-material-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .colors-sizes-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .colors-display {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .sizes-display {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .hashtags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .category-gender-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .compact-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .color-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid #4b5563;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2);
+    }
+
+    .color-counter {
+      background: #4b5563;
+      color: white;
+      font-size: 8px;
+      font-weight: bold;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .size-badge {
+      background: transparent;
+      border: 1px solid #4b5563;
+      color: black;
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      .loading-grid, .product-grid {
+        height: auto;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        padding: 20px;
+      }
+      
+      .loading-grid .grid__item, .product-grid .grid__item {
+        position: static !important;
+        width: 100% !important;
+        max-width: 300px;
+        height: 600px !important;
+        left: auto !important;
+        top: auto !important;
+        justify-self: center;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .loading-grid, .product-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 16px;
+      }
+      
+      .enhanced-card, .loading-placeholder {
+        width: 100% !important;
+        max-width: 350px;
+        height: 550px !important;
+        margin: 0 auto;
+      }
+
+      .enhanced-card .card-image {
+        height: 220px;
+      }
+
+      .enhanced-card .card-content {
+        height: 330px;
+        padding: 14px;
+      }
+    }
+
+    .product-card {
+      display: block;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transform: scale(0.5);
+    }
+  `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -300,7 +887,7 @@ const ProductListing = () => {
         const productResponse = await fetch("https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPham", {
           headers: { Accept: "application/json" },
         });
-  
+
         if (!productResponse.ok) {
           throw new Error(`Lỗi ${productResponse.status}: Không thể tải danh sách sản phẩm`);
         }
@@ -618,7 +1205,8 @@ const ProductListing = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}` },
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          },
           body: JSON.stringify(yeuThichData),
         });
         if (!response.ok) throw new Error("Không thể thêm sản phẩm vào danh sách yêu thích");
@@ -637,22 +1225,6 @@ const ProductListing = () => {
     }
   };
 
-  const handleBuyNow = (product: Product) => {
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      image: product.imageSrc,
-      price: product.price,
-      quantity: 1,
-      type: "product",
-    };
-    console.log("Đã thêm vào giỏ hàng:", cartItem);
-    toast({
-      title: "Đã thêm vào giỏ hàng",
-      description: `${product.name} đã được thêm vào giỏ hàng của bạn.`,
-    });
-  };
-
   const activeFiltersCount = [
     searchQuery,
     selectedColorRanges.length > 0 ? "colors" : null,
@@ -663,15 +1235,14 @@ const ProductListing = () => {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-    
+    <div className="min-h-screen bg-white text-white">
       <div className="container px-4 md:px-6 mx-auto max-w-7xl py-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <div className="flex flex-wrap items-center gap-4">
             <Button
               variant="outline"
               onClick={() => setShowFilters(true)}
-              className="h-12 px-6 rounded-full border-2 hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+              className="h-12 px-6 rounded-full border-2 border-gray-600 text-black hover:border-purple-500 hover:text-purple-400 hover:bg-purple-900/30 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
               <Filter className="h-4 w-4 mr-2" />
               Bộ lọc nâng cao
@@ -681,51 +1252,24 @@ const ProductListing = () => {
             </Button>
 
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-60 h-12 rounded-full border-2 shadow-md">
+              <SelectTrigger className="w-60 h-12 rounded-full border-2 border-gray-600 bg-white text-black shadow-md">
                 <ArrowUpDown className="h-4 w-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name_asc">Tên: A đến Z</SelectItem>
-                <SelectItem value="name_desc">Tên: Z đến A</SelectItem>
-                <SelectItem value="price_asc">Giá: Thấp đến Cao</SelectItem>
-                <SelectItem value="price_desc">Giá: Cao đến Thấp</SelectItem>
-                <SelectItem value="rating_desc">Đánh giá cao nhất</SelectItem>
+              <SelectContent className="bg-white border-gray-600">
+                <SelectItem value="name_asc" className="text-black hover:bg-gray-700">Tên: A đến Z</SelectItem>
+                <SelectItem value="name_desc" className="text-black hover:bg-gray-700">Tên: Z đến A</SelectItem>
+                <SelectItem value="price_asc" className="text-black hover:bg-gray-700">Giá: Thấp đến Cao</SelectItem>
+                <SelectItem value="price_desc" className="text-black hover:bg-gray-700">Giá: Cao đến Thấp</SelectItem>
+                <SelectItem value="rating_desc" className="text-black hover:bg-gray-700">Đánh giá cao nhất</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center border-2 rounded-full p-1 bg-white shadow-md">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="rounded-full"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-full"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="text-sm text-gray-600 flex items-center bg-white px-4 py-2 rounded-full shadow-md">
-              <TrendingUp className="h-4 w-4 mr-2 text-green-500" />
-              <span className="font-bold text-purple-600">{filteredProducts.length}</span> 
-              <span className="ml-1">sản phẩm</span>
-            </div>
           </div>
         </div>
 
         {showFilters && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowFilters(false)}>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden m-4" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowFilters(false)}>
+            <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden m-4 border border-gray-700" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-8 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 text-white">
                 <h2 className="text-3xl font-bold flex items-center">
                   <SlidersHorizontal className="h-8 w-8 mr-3" />
@@ -740,18 +1284,18 @@ const ProductListing = () => {
                   <X className="h-6 w-6" />
                 </Button>
               </div>
-              
+
               <div className="p-8 overflow-y-auto max-h-[calc(90vh-220px)]">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="space-y-6">
-                    <Label className="text-xl font-bold text-gray-800 flex items-center">
-                      <Package className="h-6 w-6 mr-3 text-purple-600" />
+                    <Label className="text-xl font-bold text-white flex items-center">
+                      <Package className="h-6 w-6 mr-3 text-purple-400" />
                       Danh Mục Sản Phẩm
                     </Label>
-                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6">
+                    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
                       <div className="space-y-4">
                         {uniqueCategories.map((category) => (
-                          <div key={category} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-white/80 transition-colors">
+                          <div key={category} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors">
                             <Checkbox
                               id={`category-${category}`}
                               checked={selectedCategories.includes(category)}
@@ -760,7 +1304,7 @@ const ProductListing = () => {
                             />
                             <label
                               htmlFor={`category-${category}`}
-                              className="text-sm font-medium cursor-pointer flex-1"
+                              className="text-sm font-medium cursor-pointer flex-1 text-white"
                             >
                               {category}
                             </label>
@@ -771,14 +1315,14 @@ const ProductListing = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <Label className="text-xl font-bold text-gray-800 flex items-center">
-                      <Award className="h-6 w-6 mr-3 text-blue-600" />
+                    <Label className="text-xl font-bold text-white flex items-center">
+                      <Award className="h-6 w-6 mr-3 text-blue-400" />
                       Thương Hiệu
                     </Label>
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 max-h-80 overflow-y-auto">
+                    <div className="bg-gray-800 rounded-2xl p-6 max-h-80 overflow-y-auto border border-gray-700">
                       <div className="space-y-4">
                         {uniqueBrands.map((brand) => (
-                          <div key={brand} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-white/80 transition-colors">
+                          <div key={brand} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors">
                             <Checkbox
                               id={`brand-${brand}`}
                               checked={selectedBrands.includes(brand)}
@@ -787,7 +1331,7 @@ const ProductListing = () => {
                             />
                             <label
                               htmlFor={`brand-${brand}`}
-                              className="text-sm font-medium cursor-pointer flex-1"
+                              className="text-sm font-medium cursor-pointer flex-1 text-white"
                             >
                               {brand}
                             </label>
@@ -798,8 +1342,8 @@ const ProductListing = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6">
-                      <ColorRangeFilter 
+                    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+                      <ColorRangeFilter
                         selectedColorRanges={selectedColorRanges}
                         onColorRangeChange={handleColorRangeChange}
                       />
@@ -807,14 +1351,14 @@ const ProductListing = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <Label className="text-xl font-bold text-gray-800 flex items-center">
-                      <Users className="h-6 w-6 mr-3 text-pink-600" />
+                    <Label className="text-xl font-bold text-white flex items-center">
+                      <Users className="h-6 w-6 mr-3 text-pink-400" />
                       Giới Tính
                     </Label>
-                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6">
+                    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
                       <div className="space-y-4">
                         {uniqueGenders.map((gender) => (
-                          <div key={gender} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-white/80 transition-colors">
+                          <div key={gender} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors">
                             <Checkbox
                               id={`gender-${gender}`}
                               checked={selectedGenders.includes(gender)}
@@ -823,7 +1367,7 @@ const ProductListing = () => {
                             />
                             <label
                               htmlFor={`gender-${gender}`}
-                              className="text-sm font-medium cursor-pointer flex-1"
+                              className="text-sm font-medium cursor-pointer flex-1 text-white"
                             >
                               {gender}
                             </label>
@@ -834,8 +1378,8 @@ const ProductListing = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <Label className="text-xl font-bold text-gray-800">Khoảng Giá</Label>
-                    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6">
+                    <Label className="text-xl font-bold text-white">Khoảng Giá</Label>
+                    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
                       <Select
                         onValueChange={(value) => {
                           switch (value) {
@@ -857,15 +1401,15 @@ const ProductListing = () => {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full h-12 rounded-xl border-2">
+                        <SelectTrigger className="w-full h-12 rounded-xl border-2 border-gray-600 bg-gray-700 text-white">
                           <SelectValue placeholder="Chọn khoảng giá" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tất cả giá</SelectItem>
-                          <SelectItem value="under-100000">Dưới 100,000 VND</SelectItem>
-                          <SelectItem value="100000-200000">100,000 - 200,000 VND</SelectItem>
-                          <SelectItem value="200000-500000">200,000 - 500,000 VND</SelectItem>
-                          <SelectItem value="over-500000">Trên 500,000 VND</SelectItem>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          <SelectItem value="all" className="text-white hover:bg-gray-700">Tất cả giá</SelectItem>
+                          <SelectItem value="under-100000" className="text-white hover:bg-gray-700">Dưới 100,000 VND</SelectItem>
+                          <SelectItem value="100000-200000" className="text-white hover:bg-gray-700">100,000 - 200,000 VND</SelectItem>
+                          <SelectItem value="200000-500000" className="text-white hover:bg-gray-700">200,000 - 500,000 VND</SelectItem>
+                          <SelectItem value="over-500000" className="text-white hover:bg-gray-700">Trên 500,000 VND</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -873,16 +1417,16 @@ const ProductListing = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center p-8 bg-gray-50 border-t">
-                <Button 
-                  variant="outline" 
-                  onClick={clearFilters} 
-                  className="px-8 h-12 rounded-xl border-2 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+              <div className="flex justify-between items-center p-8 bg-gray-800 border-t border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="px-8 h-12 rounded-xl border-2 border-gray-600 text-white hover:bg-red-900/30 hover:border-red-400 hover:text-red-400"
                 >
                   Xóa Tất Cả Bộ Lọc
                 </Button>
-                <Button 
-                  onClick={applyFilters} 
+                <Button
+                  onClick={applyFilters}
                   className="px-12 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 >
                   Áp Dụng Bộ Lọc
@@ -894,36 +1438,66 @@ const ProductListing = () => {
 
         {error ? (
           <div className="py-20 text-center">
-            <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl p-12">
+            <div className="max-w-md mx-auto bg-gray-800 rounded-3xl shadow-xl p-12 border border-gray-700">
               <div className="text-8xl mb-6">😔</div>
-              <h3 className="text-2xl font-bold mb-4 text-gray-800">Oops! Có lỗi xảy ra</h3>
-              <p className="text-gray-600 mb-6">{error}</p>
+              <h3 className="text-2xl font-bold mb-4 text-white">Oops! Có lỗi xảy ra</h3>
+              <p className="text-gray-300 mb-6">{error}</p>
               <Button onClick={() => window.location.reload()} className="rounded-full px-8">
                 Thử lại
               </Button>
             </div>
           </div>
         ) : isLoading ? (
-          <div className="py-20 text-center">
-            <div className="relative">
-              <div className="animate-spin h-16 w-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-6"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-purple-500 animate-pulse" />
-              </div>
+          <div className="py-8">
+            {/* Loading placeholders with 7 items in old layout */}
+            <div
+              ref={gridRef}
+              className={viewMode === 'grid' ?
+                "loading-grid" :
+                "space-y-6"
+              }
+            >
+              {Array.from({ length: 7 }).map((_, index) => {
+                const position = getLoadingPosition(index);
+                return (
+                  <div
+                    key={`loading-${index}`}
+                    className="grid__item"
+                    style={viewMode === 'grid' ? {
+                      position: 'absolute',
+                      left: position.left,
+                      top: position.top,
+                      width: '300px',
+                      height: '400px'
+                    } : {}}
+                  >
+                    <div className="loading-placeholder">
+                      <div className="placeholder-content">
+                        <div className="placeholder-image"></div>
+                        <div className="space-y-3">
+                          <div className="placeholder-text"></div>
+                          <div className="placeholder-text short"></div>
+                          <div className="placeholder-text medium"></div>
+                          <div className="placeholder-text short"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-xl text-gray-600 font-medium">Đang tải sản phẩm thời trang tuyệt vời...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-20 text-center">
-            <div className="max-w-lg mx-auto bg-white rounded-3xl shadow-xl p-12">
+            <div className="max-w-lg mx-auto bg-gray-800 rounded-3xl shadow-xl p-12 border border-gray-700">
               <div className="text-8xl mb-6">🔍</div>
-              <h3 className="text-2xl font-bold mb-4 text-gray-800">Không tìm thấy sản phẩm</h3>
-              <p className="text-gray-600 mb-8">Hãy thử điều chỉnh tiêu chí tìm kiếm hoặc bộ lọc để tìm được sản phẩm phù hợp</p>
+              <h3 className="text-2xl font-bold mb-4 text-white">Không tìm thấy sản phẩm</h3>
+              <p className="text-gray-300 mb-8">Hãy thử điều chỉnh tiêu chí tìm kiếm hoặc bộ lọc để tìm được sản phẩm phù hợp</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button onClick={clearFilters} className="rounded-full px-8">
                   Xóa Tất Cả Bộ Lọc
                 </Button>
-                <Button variant="outline" className="rounded-full px-8">
+                <Button variant="outline" className="rounded-full px-8 border-gray-600 text-white hover:bg-gray-700">
                   Xem sản phẩm hot
                 </Button>
               </div>
@@ -931,225 +1505,258 @@ const ProductListing = () => {
           </div>
         ) : (
           <>
-            <div className="mb-8 flex items-center justify-between bg-white rounded-2xl shadow-lg p-6">
+            <div className="mb-8 flex items-center justify-between bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-green-500" />
-                  <span className="text-lg font-semibold text-gray-800">
-                    Hiển thị <span className="text-purple-600 font-bold">{filteredProducts.length}</span> sản phẩm
+                  <Package className="h-5 w-5 text-green-400" />
+                  <span className="text-lg font-semibold text-white">
+                    Hiển thị <span className="text-purple-400 font-bold">{filteredProducts.length}</span> sản phẩm
                   </span>
                 </div>
                 {activeFiltersCount > 0 && (
-                  <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+                  <Badge className="bg-purple-900 text-purple-300 hover:bg-purple-900">
                     {activeFiltersCount} bộ lọc đang áp dụng
                   </Badge>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
-                  className="text-gray-500 hover:text-purple-600"
+                  className="text-gray-400 hover:text-purple-400"
                 >
                   Chia sẻ kết quả
                 </Button>
               </div>
             </div>
 
-            <div className={viewMode === 'grid' ? 
-              "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8" : 
-              "space-y-6"
-            }>
-              {currentProducts.map((product) => (
-                <Card key={product.id} className={`overflow-hidden group hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border-0 shadow-lg bg-white ${
-                  viewMode === 'list' ? 'flex flex-col md:flex-row' : ''
-                }`} style={{height:'750px'}}>
-                  <Link to={`/products/${product.id}`} className="group-hover:opacity-90 transition-opacity">
-                  <div className={`relative ${viewMode === 'list' ? 'md:w-1/3 aspect-video md:aspect-square' : 'aspect-square'}`} >
+            {/* Products display with 8 items in 2 rows x 4 columns */}
+            <div
+              style={{ height: viewMode === 'grid' ? Math.ceil(currentProducts.length / 4) * 650 : 'auto' }}
+              ref={gridRef}
+              className={viewMode === 'grid' ?
+                "product-grid" :
+                "space-y-6"
+              }
+            >
+              {currentProducts.map((product, index) => {
+                const position = getProductPosition(index);
+                return (
+                  <div
+                    key={product.id}
+                    className="grid__item"
+                    style={viewMode === 'grid' ? {
+                      position: 'absolute',
+                      left: position.left,
+                      top: position.top,
+                      width: '300px',
+                      height: '500px'
+                    } : {}}
+                  >
+                    <Card className={`product-card enhanced-card overflow-hidden group border border-gray-700 shadow-lg bg-white ${viewMode === 'list' ? 'flex flex-col md:flex-row h-auto min-h-[300px]' : ''
+                      }`}>
+                      {/* Image Section */}
+                      <div className={`card-image relative ${viewMode === 'list' ? 'md:w-1/3 h-56 md:h-auto' : ''}`}>
+                        <Link to={`/products/${product.id}`} className="block h-full">
+                          <img
+                            src={product.imageSrc}
+                            alt={product.name}
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            loading="lazy"
+                          />
+                        </Link>
 
-                      <img
-                        src={product.imageSrc}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        loading="lazy"
-                      />
-
-                    
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
-                    <div className="absolute top-4 left-4 flex flex-col gap-2">
-                     {product.khuyenMaiMax && product.khuyenMaiMax > 0 ? (
-                        <div className="absolute top-4 left-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-3 min-w-[80px] min-h-[80px] flex flex-col items-center justify-center shadow-lg z-10">
-                          <div className="text-xs font-medium leading-tight text-center">
-                            Giảm
-                          </div>
-                          <div className="text-lg font-bold leading-none">
-                            {product.khuyenMaiMax}%
-                          </div>
-                        </div>
-                      ) : null}
-                      {product.hot && product.trangThai === 1 ? (
-                        <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold px-3 py-1 rounded-full animate-pulse shadow-lg">
-                          <Zap className="h-3 w-3 mr-1" />
-                          Hot
-                        </Badge>
-                      ) : product.trangThai !== 1 ? (
-                        <Badge className="bg-gray-500 text-white px-3 py-1 rounded-full">
-                          Ngừng bán
-                        </Badge>
-                      ) : null}
-                    </div>
-
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white/95 backdrop-blur-sm shadow-lg hover:bg-white hover:scale-110 transition-all duration-300 border-2 border-transparent hover:border-red-200"
-                      onClick={() => toggleFavorite(product.id)}
-                    >
-                      <Heart
-                        className={`h-5 w-5 transition-all duration-300 ${
-                          product.isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-600"
-                        }`}
-                      />
-                    </Button>
-                  </div>
-                  </Link>
-                  <CardContent className={`p-6 ${viewMode === 'list' ? 'md:w-2/3 flex-1' : ''}`}>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < Math.floor(product.averageRating) 
-                                    ? "fill-yellow-400 text-yellow-400" 
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm font-medium text-gray-600">
-                            ({product.commentCount})
-                          </span>
-                        </div>
-                        {product.averageRating >= 4.5 && (
-                          <Badge className="bg-yellow-100 text-yellow-700">
-                            <Award className="h-3 w-3 mr-1" />
-                            Top rated
-                          </Badge>
-                        )}
-                      </div>
-
-                      <Link to={`/products/${product.id}`} className="block group-hover:text-purple-600 transition-colors">
-                        <h3 className="font-bold text-lg text-gray-800 line-clamp-2 leading-tight hover:text-purple-600 transition-colors">
-                          {product.name}
-                        </h3>
-                      </Link>
-
-                      <div className="flex items-baseline gap-3">
-                        {product.khuyenMaiMax && product.khuyenMaiMax > 0 ? (
-                          <>
-                            <span className="text-lg line-through text-gray-500">
-                              {product.price.toLocaleString('vi-VN')} VND
-                            </span>
-                            <span className="text-2xl font-bold text-red-600">
-                              {(product.price * (1 - product.khuyenMaiMax / 100)).toLocaleString('vi-VN')} VND
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-2xl font-bold text-red-600">
-                            {product.price.toLocaleString('vi-VN')} VND
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 font-medium">Màu sắc:</span>
-                        <div className="flex gap-1">
-                          {product.mauSac.slice(0, 4).map((color) => (
-                            <div
-                              key={color}
-                              className="w-6 h-6 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform cursor-pointer"
-                              style={{ backgroundColor: `#${color}` }}
-                              title={`Màu #${color}`}
-                            />
-                          ))}
-                          {product.mauSac.length > 4 && (
-                            <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white shadow-md flex items-center justify-center">
-                              <span className="text-xs font-bold text-gray-600">+{product.mauSac.length - 4}</span>
+                        {/* Badges and Favorite Button */}
+                        <div className="absolute top-3 left-3 flex flex-col gap-2">
+                          {product.khuyenMaiMax && product.khuyenMaiMax > 0 && (
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 text-white px-2 py-1 rounded-lg shadow-lg">
+                              <div className="text-xs font-bold text-center">
+                                -{product.khuyenMaiMax}%
+                              </div>
                             </div>
                           )}
+                          {product.hot && product.trangThai === 1 && (
+                            <Badge className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold px-2 py-1 rounded-full animate-pulse shadow-lg text-xs">
+                              <Zap className="h-3 w-3 mr-1" />
+                              Hot
+                            </Badge>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:scale-110 transition-all duration-300"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleFavorite(product.id);
+                          }}
+                        >
+                          <Heart
+                            className={`h-3 w-3 transition-all duration-300 ${product.isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-600"
+                              }`}
+                          />
+                        </Button>
+                      </div>
+
+                      {/* Content Section */}
+                      <div className={`card-content relative ${viewMode === 'list' ? 'md:w-2/3 p-4 flex-1' : ''}`}>
+                        <div className="card-content-main">
+                          {/* Rating and Top Badge */}
+                          <div className="rating-section">
+                            <div className="flex items-center gap-1">
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-3 w-3 ${i < Math.floor(product.averageRating)
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-gray-600"
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-400 ml-1">
+                                ({product.commentCount})
+                              </span>
+                            </div>
+                            {product.averageRating >= 4.5 && (
+                              <Badge className="bg-yellow-900 text-yellow-300 text-xs px-1 py-0">
+                                <Award className="h-3 w-3 mr-1" />
+                                Top
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Product Name */}
+                          <Link to={`/products/${product.id}`} style={{height: '3.5rem', overflow: 'hidden'}}>
+                            <h3 className="product-title hover:text-purple-400 transition-colors font-bold mb-2" style={{color: '#333', fontSize: '1.5rem'}}>
+                              {product.name}
+                            </h3>
+                          </Link>
+
+                          {/* Price */}
+                          <div className="price-section">
+                            {product.khuyenMaiMax && product.khuyenMaiMax > 0 ? (
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-xl line-through text-gray-500">
+                                  {product.price.toLocaleString('vi-VN')}đ
+                                </span>
+                                <span className="text-2xl font-bold text-red-400">
+                                  {(product.price * (1 - product.khuyenMaiMax / 100)).toLocaleString('vi-VN')}đ
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-2xl font-bold text-red-400">
+                                {product.price.toLocaleString('vi-VN')}đ
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Brand and Material */}
+                          <div className="brand-material-row">
+                            <Badge className="compact-badge bg-green-400 text-black border-green-400">
+                              {product.thuongHieu}
+                            </Badge>
+                            <Badge className="compact-badge bg-purple-400 text-black-300 border-purple-400">
+                              {product.chatLieu}
+                            </Badge>
+                          </div>
+
+                          {/* Colors and Sizes Row */}
+                          <div className="colors-sizes-row">
+                            <div className="colors-display">
+                              <span className="text-xs text-gray-400 mr-2">Màu:</span>
+                              {product.mauSac.slice(0, 3).map((color) => (
+                                <div
+                                  key={color}
+                                  className="color-dot"
+                                  style={{ backgroundColor: `#${color}` }}
+                                  title={`Màu #${color}`}
+                                />
+                              ))}
+                              {product.mauSac.length > 3 && (
+                                <div className="color-counter">
+                                  +{product.mauSac.length - 3}
+                                </div>
+                              )}
+                            </div>
+                            <div className="sizes-display">
+                              <span className="text-xs text-gray-400 mr-2">Size:</span>
+                              {product.kichThuoc.slice(0, 2).map((size) => (
+                                <span key={size} className="size-badge">
+                                  {size}
+                                </span>
+                              ))}
+                              {product.kichThuoc.length > 2 && (
+                                <span className="size-badge">
+                                  +{product.kichThuoc.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Hashtags */}
+                          <div className="hashtags-row">
+                            {product.hashtags.slice(0, 3).map((hashtag) => (
+                              <Badge
+                                key={hashtag.id}
+                                className="compact-badge bg-blue-400 text-black border-blue-400"
+                              >
+                                #{hashtag.name}
+                              </Badge>
+                            ))}
+                            {product.hashtags.length > 3 && (
+                              <Badge className="compact-badge bg-gray-600 text-white border-gray-600">
+                                +{product.hashtags.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Category and Gender */}
+                          <div className="category-gender-row">
+                            <Badge className="compact-badge bg-indigo-400 text-black border-indigo-400">
+                              {product.category}
+                            </Badge>
+                            <Badge className="compact-badge bg-pink-400 text-black border-pink-400">
+                              {product.gioiTinh}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Hover Overlay with Detail Button */}
+                        <div className="card-hover-overlay">
+                          <Link to={`/products/${product.id}`} className="hover-detail-button">
+                            <Search className="h-4 w-4 mr-2 inline" />
+                            Xem chi tiết
+                          </Link>
                         </div>
                       </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {product.hashtags.slice(0, 3).map((hashtag) => (
-                          <Badge
-                            key={hashtag.id}
-                            className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 text-xs px-2 py-1"
-                          >
-                            #{hashtag.name}
-                          </Badge>
-                        ))}
-                        {product.hashtags.length > 3 && (
-                          <Badge variant="outline" className="text-xs px-2 py-1">
-                            +{product.hashtags.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        <Badge className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 text-xs">
-                          {product.category}
-                        </Badge>
-                        <Badge className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200 text-xs">
-                          {product.chatLieu}
-                        </Badge>
-                        <Badge className="bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200 text-xs">
-                          {product.gioiTinh}
-                        </Badge>
-                      </div>
-
-                     <div className="flex gap-3 pt-2 absolute bottom-4 right-4 left-4">
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 rounded-full hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 transition-all duration-300 transform hover:scale-105"
-                      >
-                        <Link to={`/products/${product.id}`}>
-                          <Search className="h-4 w-4 mr-2" />
-                          Chi tiết
-                        </Link>
-                      </Button>
-                    </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
 
             {totalPages > 1 && (
-              <div className="mt-8 flex justify-center gap-4">
+              <div className="mt-16 flex justify-center gap-4">
                 <Button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   variant="outline"
-                  className="rounded-full"
+                  className="rounded-full border-gray-600 text-black hover:bg-gray-700 px-6 py-2"
                 >
                   Trước
                 </Button>
-                <span className="flex items-center text-gray-600">
+                <span className="flex items-center text-gray-300 bg-gray-800 px-6 py-2 rounded-full">
                   Trang {currentPage} / {totalPages}
                 </span>
                 <Button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   variant="outline"
-                  className="rounded-full"
+                  className="rounded-full border-gray-600 text-black hover:bg-gray-700 px-6 py-2"
                 >
                   Sau
                 </Button>
@@ -1159,57 +1766,86 @@ const ProductListing = () => {
         )}
 
         {filteredProducts.length > 0 && (
-          <div className="mt-20 bg-gradient-to-r from-purple-100 via-pink-50 to-indigo-100 rounded-3xl p-12 shadow-xl">
+          <div className="mt-24 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 rounded-3xl p-12 shadow-xl border border-gray-700">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">Thống Kê Sản Phẩm</h2>
-              <p className="text-gray-600">Khám phá những con số thú vị về bộ sưu tập của chúng tôi</p>
+              <h2 className="text-3xl font-bold text-white mb-4">Thống Kê Sản Phẩm</h2>
+              <p className="text-gray-300">Khám phá những con số thú vị về bộ sưu tập của chúng tôi</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="text-center bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                  <Package className="h-8 w-8 text-purple-600" />
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-900 rounded-full mb-4">
+                  <Package className="h-8 w-8 text-purple-400" />
                 </div>
-                <div className="text-3xl font-bold text-purple-600 mb-2">{filteredProducts.length}</div>
-                <div className="text-gray-600 font-medium">Sản phẩm hiện có</div>
+                <div className="text-3xl font-bold text-purple-400 mb-2">{filteredProducts.length}</div>
+                <div className="text-gray-300 font-medium">Sản phẩm hiện có</div>
               </div>
-              <div className="text-center bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
-                  <Star className="h-8 w-8 text-indigo-600" />
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-indigo-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-900 rounded-full mb-4">
+                  <Star className="h-8 w-8 text-indigo-400" />
                 </div>
-                <div className="text-3xl font-bold text-indigo-600 mb-2">
-                  {filteredProducts.length > 0 ? 
+                <div className="text-3xl font-bold text-indigo-400 mb-2">
+                  {filteredProducts.length > 0 ?
                     Math.round(filteredProducts.reduce((sum, product) => sum + product.averageRating, 0) / filteredProducts.length * 10) / 10 : 0}
                 </div>
-                <div className="text-gray-600 font-medium">Đánh giá trung bình</div>
+                <div className="text-gray-300 font-medium">Đánh giá trung bình</div>
               </div>
-              <div className="text-center bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                  <Award className="h-8 w-8 text-green-600" />
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-900 rounded-full mb-4">
+                  <Award className="h-8 w-8 text-green-400" />
                 </div>
-                <div className="text-3xl font-bold text-green-600 mb-2">
+                <div className="text-3xl font-bold text-green-400 mb-2">
                   {uniqueBrands.length}
                 </div>
-                <div className="text-gray-600 font-medium">Thương hiệu</div>
+                <div className="text-gray-300 font-medium">Thương hiệu</div>
               </div>
-              <div className="text-center bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
-                  <TrendingUp className="h-8 w-8 text-orange-600" />
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-orange-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-900 rounded-full mb-4">
+                  <TrendingUp className="h-8 w-8 text-orange-400" />
                 </div>
-                <div className="text-3xl font-bold text-orange-600 mb-2">
+                <div className="text-3xl font-bold text-orange-400 mb-2">
                   {filteredProducts.filter(p => p.hot).length}
                 </div>
-                <div className="text-gray-600 font-medium">Sản phẩm hot</div>
+                <div className="text-gray-300 font-medium">Sản phẩm hot</div>
+              </div>
+            </div>
+
+            {/* Additional Statistics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-cyan-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-900 rounded-full mb-4">
+                  <Users className="h-8 w-8 text-cyan-400" />
+                </div>
+                <div className="text-3xl font-bold text-cyan-400 mb-2">
+                  {uniqueCategories.length}
+                </div>
+                <div className="text-gray-300 font-medium">Danh mục</div>
+              </div>
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-yellow-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-900 rounded-full mb-4">
+                  <Clock className="h-8 w-8 text-yellow-400" />
+                </div>
+                <div className="text-3xl font-bold text-yellow-400 mb-2">
+                  {filteredProducts.filter(p => p.khuyenMaiMax && p.khuyenMaiMax > 0).length}
+                </div>
+                <div className="text-gray-300 font-medium">Đang khuyến mãi</div>
+              </div>
+              <div className="text-center bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:shadow-rose-500/20 transition-shadow border border-gray-700">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-rose-900 rounded-full mb-4">
+                  <Heart className="h-8 w-8 text-rose-400" />
+                </div>
+                <div className="text-3xl font-bold text-rose-400 mb-2">
+                  {filteredProducts.filter(p => p.isFavorite).length}
+                </div>
+                <div className="text-gray-300 font-medium">Yêu thích</div>
               </div>
             </div>
           </div>
         )}
-        <Button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 z-40"
-          size="icon"
-        >
-          <TrendingUp className="h-6 w-6 rotate-180" />
-        </Button>
+        {/* Footer Info */}
+        <div className="mt-12 text-center text-gray-400 text-sm">
+          <p>© 2024 Fashion Store. Tạo bởi <span className="text-purple-400 font-semibold">@trungtrungcontact</span></p>
+          <p className="mt-2">Cập nhật lần cuối: {new Date().toLocaleDateString('vi-VN')}</p>
+        </div>
       </div>
     </div>
   );

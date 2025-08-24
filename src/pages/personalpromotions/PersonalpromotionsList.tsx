@@ -217,7 +217,7 @@ const PersonalPromotionsList = () => {
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-crocus-200 border-t-crocus-500 mx-auto mb-4"></div>
           
          
-          <p className="text-base font-medium text-gray-600">Đang tải khuyến mãi...</p>
+          <p className="text-base font-medium text-gray-600">Đang tải...</p>
         </div>
     
     );
