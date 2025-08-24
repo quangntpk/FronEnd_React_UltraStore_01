@@ -31,7 +31,7 @@ const ComboDetailAdminModal = ({ comboId, isOpen, onClose }) => {
           maCombo: comboData.maCombo,
           name: comboData.name,
           description: comboData.moTa || "Không có mô tả",
-          price: comboData.gia, // Chia 1000 để hiển thị đơn vị K VND
+          price: comboData.gia, 
           quantity: comboData.soLuong,
           status: comboData.trangThai,
           createdDate: comboData.ngayTao,

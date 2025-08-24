@@ -572,7 +572,7 @@ const CartPage = () => {
           body: JSON.stringify(info),
         });
       } else {
-        await fetch(`${API_URL}/api/Cart/GiamSoLuongSanPham`, {
+        await fetch(`https://bicacuatho.azurewebsites.net/api/Cart/GiamSoLuongSanPham`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

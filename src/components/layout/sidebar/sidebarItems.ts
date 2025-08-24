@@ -28,7 +28,7 @@ export const adminItems: SidebarItemType[] = [
   { title: "Tài khoản", icon: Users, path: "/admin/users", color: "text-red-600" },
   { title: "Bình luận", icon: MessageCircle, path: "/admin/inventory", color: "text-cyan-600" },
   { title: "Voucher", icon: Tag, path: "/admin/invoices", color: "text-gray-600" },
-  { title: "Blog", icon: Newspaper, path: "/admin/blog", color: "text-blue-600" },
+  { title: "Tin Tức", icon: Newspaper, path: "/admin/blog", color: "text-blue-600" },
   { title: "Hỗ trợ", icon: MessageSquare, path: "/admin/messages", color: "text-blue-600" },
   { title: "Liên hệ", icon: HelpCircle, path: "/admin/contact", color: "text-blue-600" },
   { title: "Cài đặt", icon: Settings, path: "/admin/settings", color: "text-gray-600" }
@@ -46,7 +46,7 @@ export const staffItems: SidebarItemType[] = [
   { title: "HashTag", icon: Globe, path: "/staff/hashtag", color: "text-teal-600" },
   { title: "Bình luận", icon: MessageCircle, path: "/staff/inventory", color: "text-cyan-600" },
   { title: "Voucher", icon: Tag, path: "/staff/invoices", color: "text-gray-600" },
-  { title: "Blog", icon: Newspaper, path: "/staff/blog", color: "text-blue-600" },
+  { title: "Tin Tức", icon: Newspaper, path: "/staff/blog", color: "text-blue-600" },
   { title: "Hỗ trợ", icon: MessageSquare, path: "/staff/messages", color: "text-blue-600" },
   { title: "Liên hệ", icon: HelpCircle, path: "/staff/contact", color: "text-blue-600" },
 ];
