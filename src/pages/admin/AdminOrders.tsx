@@ -485,7 +485,12 @@ const AdminOrders: React.FC = () => {
   };
 
   const getPaymentStatusLabel = (trangThaiThanhToan: number, trangThaiDonHang: number) => {
-    return trangThaiThanhToan === 1 && trangThaiDonHang === 3 ? 'Đã thanh toán' : 'Chưa thanh toán';
+    if(trangThaiThanhToan == 1)
+    {
+     if(trangThaiDonHang == 4) return "Đã thanh toán";
+     else return "Chưa thanh toán";
+    } 
+    else return "Đã thanh toán";
   };
 
   // ✅ APPROVE HANDLER

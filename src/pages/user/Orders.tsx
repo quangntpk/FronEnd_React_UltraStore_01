@@ -207,12 +207,12 @@ const OrderItem = ({ order, onCancel, onAddComment, commentedProducts }: OrderIt
   const StatusIcon = statusInfo.icon;
 
   const getPaymentStatusDisplay = () => {
-    if (order.paymentStatusText) return order.paymentStatusText;
-    if (order.hinhThucThanhToan === "VNPay") return "Đã thanh toán";
-    if (order.hinhThucThanhToan === "COD") {
-      return order.trangThaiDonHang === 3 ? "Đã thanh toán" : "Chưa thanh toán";
-    }
-    return "Chưa thanh toán";
+       if(order.trangThaiThanhToan === 1)
+   {
+    if(order.trangThaiDonHang === 4) return "Đã thanh toán";
+    else return "Chưa thanh toán";
+   }
+   else return "Đã thanh toán";
   };
 
   const renderProductInfo = (item: Product) => {
@@ -500,12 +500,12 @@ const OrderTrackingTimeline = ({ order }: { order: Order }) => {
   const currentStatus = mapStatus(order.trangThaiDonHang);
   
   const getPaymentStatusDisplay = () => {
-    if (order.paymentStatusText) return order.paymentStatusText;
-    if (order.hinhThucThanhToan === "VNPay") return "Đã thanh toán";
-    if (order.hinhThucThanhToan === "COD") {
-      return order.trangThaiDonHang === 3 ? "Đã thanh toán" : "Chưa thanh toán";
-    }
-    return "Chưa thanh toán";
+   if(order.trangThaiThanhToan === 1)
+   {
+    if(order.trangThaiDonHang === 4) return "Đã thanh toán";
+    else return "Chưa thanh toán";
+   }
+   else return "Đã thanh toán";
   };
 
   const getPaymentStatusColor = () => {

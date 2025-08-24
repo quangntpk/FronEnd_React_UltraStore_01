@@ -287,7 +287,7 @@ const createSmallPreviewCard = (product: Product) => {
         <div style="font-weight: bold; font-size: 12px; text-align: left; white-space: pre-line;">
           Cửa Hàng Thời Trang\nFashionHub
         </div>
-        <img src="../../../src/logoStatic.png" alt="FashionHub" style="height: 20mm; max-width: 60mm;" />
+        <img src="../../../public/logo.png" alt="FashionHub" style="height: 20mm; max-width: 60mm;" />
       </div>
       <div style="text-align: center; margin-bottom: 2mm; width: 100%; margin-top: 10mm">
         <div style="font-weight: bold; font-size: 25px;">${product.tenSanPham || 'N/A'}</div>
@@ -333,7 +333,8 @@ const createSmallPreviewCard = (product: Product) => {
   `;
 };
 
-// Function to print PDF
+
+// Function to print PDF with 6 cards per A4 page (3 columns x 2 rows)
 export const printToPDF = async (selectedProducts: Set<string>) => {
   if (selectedProducts.size === 0) {
     Swal.fire({
@@ -365,76 +366,140 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
       return;
     }
 
-    // Tạo HTML content cho in
-    const cardRows = allProductsData.map((product) => {
+    // Function to create a compact product card (3 columns x 2 rows per A4)
+    const createCompactProductCard = (product: Product) => {
       const [baseId, colorHex, size] = product.maSanPham.split('_');
       const colorRgb = hexToRgb(colorHex);
       const colorName = colorRgb ? `RGB(${colorRgb.r},${colorRgb.g},${colorRgb.b})` : 'N/A';
 
       return `
-        <div class="card" style="
-          width: 210mm;
-          height: 297mm;
+        <div class="compact-card" style="
+          width: 65mm;
+          height: 135mm;
           background: white;
           border: 2px solid #000;
-          padding: 8mm;
+          padding: 2mm;
           display: flex;
           flex-direction: column;
           align-items: center;
           font-family: Arial, sans-serif;
-          font-size: 14px;
           color: #000;
-          page-break-inside: avoid;
+          box-sizing: border-box;
+          margin: 1mm;
+          position: relative;
         ">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5mm; border-bottom: 1px solid #000; padding-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px; text-align: left; white-space: pre-line;">
-              Cửa Hàng Thời Trang\nFashionHub
+          <!-- Header với logo -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2mm; border-bottom: 1px solid #000; padding-bottom: 2mm; width: 100%;">
+            <div style="font-weight: bold; font-size: 6px; text-align: left; line-height: 1.1;">
+              Cửa Hàng<br>FashionHub
             </div>
-            <img src="../../../src/logoStatic.png" alt="FashionHub" style="height: 25mm; max-width: 80mm;" />
+            <img src="../../../public/logo.png" alt="Logo" style="height: 8mm; max-width: 20mm;" onerror="this.style.display='none'" />
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%; margin-top: 10mm;">
-            <div style="font-weight: bold; font-size: 28px;">${product.tenSanPham || 'N/A'}</div>
+          
+          <!-- Tên sản phẩm - TO HỚN -->
+          <div style="text-align: center; margin-bottom: 3mm; width: 100%;">
+            <div style="font-weight: bold; font-size: 14px; line-height: 1.2; color: #2c5aa0; min-height: 25mm; display: flex; align-items: center; justify-content: center;">
+              ${product.tenSanPham || 'N/A'}
+            </div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <canvas id="barcode-canvas-${product.maSanPham}" style="height: 15mm; width: 100mm; border: 1px solid #000; margin: 0 auto; display: block;"></canvas>
-            <div style="font-size: 12px; margin-top: 2mm; font-weight: bold;">${product.maSanPham}</div>
+          
+          <!-- Barcode -->
+          <div style="text-align: center; margin-bottom: 2mm; width: 100%;">
+            <canvas id="barcode-canvas-${product.maSanPham}" style="height: 8mm; width: 55mm; border: 1px solid #000; margin: 0 auto; display: block;"></canvas>
+            <div style="font-size: 6px; margin-top: 1mm; font-weight: bold;">${product.maSanPham}</div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px;">SIZE</div>
-            <div style="font-size: 20px; font-weight: bold;">${size?.trim() || 'N/A'}</div>
+          
+          <!-- Size và Màu - cùng hàng -->
+          <div style="display: flex; width: 100%; margin-bottom: 2mm; gap: 1mm;">
+            <div style="text-align: center; flex: 1; border: 1px solid #ddd; padding: 1mm; border-radius: 2px;">
+              <div style="font-weight: bold; font-size: 7px; color: #666;">SIZE</div>
+              <div style="font-size: 12px; font-weight: bold; color: #000;">${size?.trim() || 'N/A'}</div>
+            </div>
+            <div style="text-align: center; flex: 1; border: 1px solid #ddd; padding: 1mm; border-radius: 2px;">
+              <div style="font-weight: bold; font-size: 7px; color: #666;">MÀU</div>
+              <div style="font-size: 6px; line-height: 1.1; font-weight: bold;">${colorName}</div>
+            </div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px;">MÀU</div>
-            <div style="font-size: 14px;">${colorName}</div>
+          
+          <!-- Giá - TO HỚN -->
+          <div style="text-align: center; margin-bottom: 3mm; width: 100%; background: #f8f9fa; border: 2px solid #e74c3c; border-radius: 3px; padding: 2mm;">
+            <div style="font-weight: bold; font-size: 8px; color: #666; margin-bottom: 1mm;">GIÁ BÁN</div>
+            <div style="font-size: 16px; font-weight: bold; color: #e74c3c; line-height: 1.1;">
+              ${formatPrice(product.gia || 0)}
+            </div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px;">GIÁ</div>
-            <div style="font-size: 22px; font-weight: bold;">${formatPrice(product.gia || 0)}</div>
+          
+          <!-- Chất liệu -->
+          <div style="text-align: center; margin-bottom: 2mm; width: 100%;">
+            <div style="font-weight: bold; font-size: 7px; color: #666; margin-bottom: 1mm;">CHẤT LIỆU</div>
+            <div style="font-size: 8px; line-height: 1.1; color: #333;">
+              ${(product.chatLieu || 'N/A').length > 20 ? (product.chatLieu || 'N/A').substring(0, 20) + '...' : (product.chatLieu || 'N/A')}
+            </div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px;">CHẤT LIỆU</div>
-            <div style="font-size: 14px;">${product.chatLieu || 'N/A'}</div>
+          
+          <!-- Thương hiệu -->
+          <div style="text-align: center; margin-bottom: 2mm; width: 100%;">
+            <div style="font-weight: bold; font-size: 7px; color: #666; margin-bottom: 1mm;">THƯƠNG HIỆU</div>
+            <div style="font-size: 8px; line-height: 1.1; color: #333;">
+              ${(product.thuongHieu || 'N/A').length > 15 ? (product.thuongHieu || 'N/A').substring(0, 15) + '...' : (product.thuongHieu || 'N/A')}
+            </div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px;">THƯƠNG HIỆU</div>
-            <div style="font-size: 14px;">${product.thuongHieu || 'N/A'}</div>
+          
+          <!-- Loại sản phẩm -->
+          <div style="text-align: center; margin-bottom: 2mm; width: 100%;">
+            <div style="font-weight: bold; font-size: 7px; color: #666; margin-bottom: 1mm;">LOẠI</div>
+            <div style="font-size: 8px; line-height: 1.1; color: #333;">
+              ${(product.loaiSanPham || 'N/A').length > 15 ? (product.loaiSanPham || 'N/A').substring(0, 15) + '...' : (product.loaiSanPham || 'N/A')}
+            </div>
           </div>
-          <div style="text-align: center; margin-bottom: 5mm; width: 100%;">
-            <div style="font-weight: bold; font-size: 16px;">LOẠI SẢN PHẨM</div>
-            <div style="font-size: 14px;">${product.loaiSanPham || 'N/A'}</div>
-          </div>
-          <div style="text-align: center; margin-bottom: 5mm; padding: 3mm; width: 70%;">
+          
+          <!-- QR Code -->
+          <div style="text-align: center; margin-top: auto; width: 100%;">
             <img
               src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
                 `https://fashionhub.name.vn/products/${product.maSanPham}`
-              )}&size=200x200"
+              )}&size=120x120"
               alt="QR Code"
-              style="width: 60mm; height: 60mm; border: 1px solid #000; margin: 0 auto; display: block;"
+              style="width: 18mm; height: 18mm; border: 1px solid #000;"
+              onerror="this.style.display='none'"
             />
           </div>
-          <div style="text-align: center; font-size: 12px; margin-top: auto; border-top: 1px solid #000; padding-top: 4mm; width: 100%;">
-            Ngày in: ${new Date().toLocaleDateString('vi-VN')}
+          
+          <!-- Ngày in -->
+          <div style="text-align: center; font-size: 5px; margin-top: 2mm; border-top: 1px solid #ddd; padding-top: 1mm; width: 100%; color: #666;">
+            ${new Date().toLocaleDateString('vi-VN')}
           </div>
+        </div>
+      `;
+    };
+
+    // Group products into pages (6 cards per page: 3 columns x 2 rows)
+    const cardsPerPage = 6;
+    const pages = [];
+    for (let i = 0; i < allProductsData.length; i += cardsPerPage) {
+      const pageProducts = allProductsData.slice(i, i + cardsPerPage);
+      pages.push(pageProducts);
+    }
+
+    // Generate HTML content with pages
+    const pagesHtml = pages.map((pageProducts, pageIndex) => {
+      const cardsHtml = pageProducts.map(createCompactProductCard).join('');
+      
+      return `
+        <div class="page" style="
+          width: 210mm;
+          min-height: 297mm;
+          background: white;
+          margin: 0 auto;
+          padding: 3mm;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          grid-template-rows: repeat(2, 1fr);
+          gap: 2mm;
+          box-sizing: border-box;
+          ${pageIndex < pages.length - 1 ? 'page-break-after: always;' : ''}
+        ">
+          ${cardsHtml}
         </div>
       `;
     }).join('');
@@ -445,43 +510,137 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>In danh sách sản phẩm</title>
+        <title>In danh sách sản phẩm - ${allProductsData.length} sản phẩm</title>
         <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
           body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background: #f5f5f5;
           }
           .container {
             width: 100%;
             margin: 0;
           }
+          .page {
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+          }
+          .compact-card {
+            break-inside: avoid;
+          }
           .no-print {
             text-align: center;
-            margin-top: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 5px;
           }
+          .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 5px;
+            transition: background-color 0.3s;
+          }
+          .btn:hover {
+            background-color: #0056b3;
+          }
+          .btn-secondary {
+            background-color: #6c757d;
+          }
+          .btn-secondary:hover {
+            background-color: #545b62;
+          }
+          .stats {
+            display: inline-block;
+            background: #e8f4fd;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 0 10px;
+            font-size: 12px;
+            color: #2c5aa0;
+            font-weight: bold;
+          }
+          
           @media print {
-            .no-print { display: none; }
-            body { margin: 0; }
-            .card { page-break-inside: avoid; }
+            .no-print { 
+              display: none !important; 
+            }
+            body { 
+              background: white !important;
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            .page {
+              box-shadow: none !important;
+              margin: 0 !important;
+              page-break-inside: avoid;
+              width: 210mm !important;
+              height: 297mm !important;
+            }
+            .compact-card {
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+          }
+          
+          @page {
+            size: A4;
+            margin: 0;
           }
         </style>
       </head>
       <body>
-        <div class="container">
-          ${cardRows}
-          <div class="no-print">
-            <button onclick="window.print()" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
-              In trang
-            </button>
-            <button onclick="window.close()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;">
-              Đóng
-            </button>
+        <div class="no-print">
+          <h2 style="color: #2c5aa0; margin-bottom: 15px;">
+            📋 Preview Thẻ Sản Phẩm
+          </h2>
+          <div style="margin-bottom: 15px;">
+            <span class="stats">📦 ${allProductsData.length} sản phẩm</span>
+            <span class="stats">📄 ${pages.length} trang A4</span>
+            <span class="stats">🏷️ 6 thẻ/trang</span>
           </div>
+          <button onclick="window.print()" class="btn">
+            🖨️ In Ngay
+          </button>
+          <button onclick="window.close()" class="btn btn-secondary">
+            ❌ Đóng
+          </button>
         </div>
+        
+        <div class="container">
+          ${pagesHtml}
+        </div>
+
+        <div class="no-print" style="margin-top: 20px; padding: 20px; background: white; text-align: center; border-radius: 5px;">
+          <div style="margin-bottom: 15px; color: #666;">
+            <small>⚡ Lưu ý: Đảm bảo chọn khổ giấy A4 và tỷ lệ 100% khi in</small>
+          </div>
+          <button onclick="window.print()" class="btn">
+            🖨️ In Tất Cả
+          </button>
+          <button onclick="window.close()" class="btn btn-secondary">
+            ❌ Đóng Cửa Sổ
+          </button>
+        </div>
+
         <script>
           // Function to generate CODE128 barcode
           function generateCode128Barcode(canvas, text, options) {
+            if (!canvas || !text) return;
+            
             const CODE128 = {
               B: {
                 ' ': 0, '!': 1, '"': 2, '#': 3, '$': 4, '%': 5, '&': 6, "'": 7, '(': 8, ')': 9,
@@ -519,10 +678,7 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
             };
 
             const sanitizedText = text.replace(/[^A-Za-z0-9_]/g, '').slice(0, 20);
-            if (sanitizedText !== text) {
-              console.warn("Barcode text sanitized from" +text +"to" +sanitizedText+  "due to invalid charascters.");
-            }
-
+            
             let sum = 104;
             let checksum = sum;
             const chars = ['STARTB'];
@@ -541,12 +697,14 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
             let pattern = '';
             for (const char of chars) {
               const value = CODE128.B[char];
-              pattern += CODE128.PATTERNS[value];
+              if (value !== undefined) {
+                pattern += CODE128.PATTERNS[value];
+              }
             }
 
+            const ctx = canvas.getContext('2d');
             canvas.width = options.width;
             canvas.height = options.height;
-            const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -562,33 +720,61 @@ export const printToPDF = async (selectedProducts: Set<string>) => {
             }
           }
 
-          // Generate barcodes for all products
-          ${allProductsData.map((product) => `
-            const canvas_${product.maSanPham} = document.getElementById('barcode-canvas-${product.maSanPham}');
-            if (canvas_${product.maSanPham}) {
-              generateCode128Barcode(canvas_${product.maSanPham}, '${product.maSanPham}', { width: 250, height: 40 });
+          // Generate barcodes after page loads
+          window.addEventListener('load', function() {
+            // Wait for images to load first
+            setTimeout(function() {
+              ${allProductsData.map((product) => `
+                const canvas_${product.maSanPham.replace(/[^a-zA-Z0-9]/g, '_')} = document.getElementById('barcode-canvas-${product.maSanPham}');
+                if (canvas_${product.maSanPham.replace(/[^a-zA-Z0-9]/g, '_')}) {
+                  generateCode128Barcode(canvas_${product.maSanPham.replace(/[^a-zA-Z0-9]/g, '_')}, '${product.maSanPham}', { width: 180, height: 25 });
+                }
+              `).join('\n')}
+              
+              // Focus window for better user experience
+              window.focus();
+            }, 1000);
+          });
+
+          // Keyboard shortcut for printing
+          document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+              e.preventDefault();
+              window.print();
             }
-          `).join('\n')}
+          });
         </script>
       </body>
       </html>
     `;
 
     // Mở cửa sổ mới để in
-    const newWindow = window.open('', '_blank');
+    const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    if (!newWindow) {
+      throw new Error('Không thể mở cửa sổ mới. Vui lòng kiểm tra popup blocker.');
+    }
+    
     newWindow.document.write(htmlContent);
     newWindow.document.close();
 
     Swal.fire({
-      title: 'Thành công!',
-      text: 'Đã mở trang in sản phẩm thành công!',
+      title: '🎉 Thành công!',
+      html: `
+        <div style="text-align: left; margin-top: 10px;">
+          ✅ <strong>${allProductsData.length}</strong> sản phẩm<br>
+          📄 <strong>${pages.length}</strong> trang A4<br>
+          🏷️ <strong>6</strong> thẻ mỗi trang<br>
+          ⏰ Sẵn sàng để in!
+        </div>
+      `,
       icon: 'success',
-      timer: 3000,
+      timer: 4000,
       timerProgressBar: true,
       showConfirmButton: false,
     });
 
   } catch (error) {
+    console.error('Lỗi khi tạo trang in:', error);
     Swal.fire({
       title: 'Lỗi',
       text: `Không thể tạo trang in: ${(error as Error).message}`,
