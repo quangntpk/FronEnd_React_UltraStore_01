@@ -1,3 +1,4 @@
+// ProductDetail.tsx (updated)
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -311,12 +312,6 @@ const ProductDetail = () => {
 
   return (
     <div className="container mx-auto py-8 pb-24 relative">
-      {/* Back link */}
-      <div className="mb-4">
-        <Link to="/products" className="text-crocus-600 hover:underline flex items-center gap-1">
-          ← Quay lại trang Danh Sách Sản Phẩm
-        </Link>
-      </div>
 
       {/* Main layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
@@ -490,26 +485,26 @@ const ProductDetail = () => {
           </p>
 
           {/* Quantity */}
-          <div>
-            <h3 className="font-bold mb-2 text-2xl">Số Lượng</h3>
-            <div className="flex items-center border border-gray-200 rounded-md w-32">
-              <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="px-3 py-2 text-gray-500 hover:text-gray-700"
-                disabled={quantity <= 1}
-              >
-                -
-              </button>
-              <span className="flex-1 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
-                className="px-3 py-2 text-gray-500 hover:text-gray-700"
-                disabled={quantity >= stock}
-              >
-                +
-              </button>
-            </div>
-          </div>
+<div>
+  <h3 className="font-bold mb-2 text-2xl">Số Lượng</h3>
+  <div className="flex items-center border border-gray-200 rounded-md w-32">
+    <button
+      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+      className="px-3 py-2 bg-white border border-black rounded-md text-gray-500 hover:bg-white hover:text-purple-600 hover:border-purple-600 transition-colors"
+      disabled={quantity <= 1}
+    >
+      -
+    </button>
+    <span className="flex-1 text-center">{quantity}</span>
+    <button
+      onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
+      className="px-3 py-2 bg-white border border-black rounded-md text-gray-500 hover:bg-grey-700 hover:text-purple-600 hover:border-purple-600 transition-colors"
+      disabled={quantity >= stock}
+    >
+      +
+    </button>
+  </div>
+    </div>
 
           {/* Actions */}
           <div className="space-y-4">
@@ -538,7 +533,7 @@ const ProductDetail = () => {
                   <span>Thêm Vào Giỏ Hàng</span>
                 </div>
               </button>
-              <button
+              {/* <button
                 onClick={handleBuyNow}
                 disabled={stock === 0}
                 className="flex-1 relative overflow-hidden group bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white py-3 px-6 rounded-lg font-semibold text-lg shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
@@ -556,11 +551,11 @@ const ProductDetail = () => {
                   }
                 }}
               >
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-2" hidden>
                   <Zap className="h-5 w-5" />
                   <span>Mua Ngay</span>
                 </div>
-              </button>
+              </button> */}
             </div>
             <div className="flex gap-3">
               <button
@@ -599,7 +594,7 @@ const ProductDetail = () => {
             : "translate-y-full opacity-0 max-h-0 overflow-hidden"
         }`}
       >
-        <Testings defaultClothingImage={mainImage} />
+        <Testings defaultClothingImage={mainImage} loaiSanPham={selectedProduct.loaiSanPham} />
       </div>
 
       <MoTaSanPham product={selectedProduct} />

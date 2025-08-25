@@ -4,7 +4,8 @@ import {
   HelpCircle, CreditCard, Megaphone, MessageSquare,
   Calendar, Globe, Shield, Heart, ClipboardList, Newspaper, MessageCircle,
   TruckIcon as Truck, TagIcon as Tag, LayersIcon as Layers,
-  LayoutGrid, TicketPercent as badge
+  LayoutGrid, TicketPercent as badge,
+  BadgePercent, Ticket as TicketPercent
 } from "lucide-react";
 
 interface SidebarItemType {
@@ -21,14 +22,14 @@ export const adminItems: SidebarItemType[] = [
   { title: "Mua offline", icon: CreditCard, path: "/admin/buy", color: "text-red-600" },
   { title: "Sản phẩm", icon: Package, path: "/admin/products", color: "text-green-600" },
   { title: "Combo", icon: Layers, path: "/admin/combos", color: "text-teal-600" },
-  { title: "Thương hiệu", icon: Tag, path: "/admin/thuonghieu", color: "text-indigo-600" },
-  { title: "Khuyến Mại", icon: badge, path: "/admin/events", color: "text-gray-600" },
-  { title: "Loại sản phẩm", icon: LayoutGrid, path: "/admin/loaisanpham", color: "text-teal-600" },
-  { title: "HashTag", icon: Globe, path: "/admin/hashtag", color: "text-teal-600" },
-  { title: "Tài khoản", icon: Users, path: "/admin/users", color: "text-red-600" },
+  { title: "Khuyến Mại", icon: BadgePercent, path: "/admin/events", color: "text-gray-600" },
   { title: "Bình luận", icon: MessageCircle, path: "/admin/inventory", color: "text-cyan-600" },
-  { title: "Voucher", icon: Tag, path: "/admin/invoices", color: "text-gray-600" },
+  { title: "Voucher", icon: TicketPercent, path: "/admin/invoices", color: "text-gray-600" },
   { title: "Tin Tức", icon: Newspaper, path: "/admin/blog", color: "text-blue-600" },
+  { title: "Thương hiệu", icon: Globe, path: "/admin/thuonghieu", color: "text-indigo-600" },
+  { title: "Loại sản phẩm", icon: LayoutGrid, path: "/admin/loaisanpham", color: "text-teal-600" },
+  { title: "HashTag", icon: Tag, path: "/admin/hashtag", color: "text-teal-600" },
+  { title: "Tài khoản", icon: Users, path: "/admin/users", color: "text-red-600" },
   { title: "Hỗ trợ", icon: MessageSquare, path: "/admin/messages", color: "text-blue-600" },
   { title: "Liên hệ", icon: HelpCircle, path: "/admin/contact", color: "text-blue-600" },
   { title: "Cài đặt", icon: Settings, path: "/admin/settings", color: "text-gray-600" }
