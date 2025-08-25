@@ -311,7 +311,7 @@ const ProductDetail = () => {
   const savings = originalPrice * (discountPercentage / 100);
 
   return (
-    <div className="container mx-auto py-8 pb-24 relative">
+    <div className="container mx-auto py-8 pb-24 relative bg-white">
 
       {/* Main layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
