@@ -182,7 +182,7 @@ const createProductCardForPDF = (product: Product) => {
       <div style="font-weight: bold; font-size: 16px; text-align: left; white-space: pre-line;">
         Cửa Hàng Thời Trang\nFashionHub
       </div>
-      <img src="../../../src/logoStatic.png" alt="FashionHub" style="height: 25mm; max-width: 80mm;" />
+      <img src="https://fashionhub.name.vn/logo.png" alt="FashionHub" style="height: 25mm; max-width: 80mm;" />
     </div>
     <div style="text-align: center; margin-bottom: 5mm; width: 100%; margin-top: 10mm;">
       <div style="font-weight: bold; font-size: 28px;">${product.tenSanPham || 'N/A'}</div>

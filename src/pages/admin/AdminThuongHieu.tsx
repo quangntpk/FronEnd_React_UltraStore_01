@@ -75,7 +75,7 @@ const AdminTrademark = () => {
   const [errorsThem, setErrorsThem] = useState({ ten: "", hinhAnh: "" });
   const [errorsSua, setErrorsSua] = useState({ ten: "", hinhAnh: "" });
   const [errorMessage, setErrorMessage] = useState<string>("");
-  
+
 
   const formatBase64Image = (base64String: string) => {
     if (!base64String) return "";
@@ -92,25 +92,25 @@ const AdminTrademark = () => {
   };
 
   const fetchTrademarks = useCallback(async () => {
-  try {
-    setLoading(true);
-    const targetStatus = activeTab === "active" ? 1 : 0;
-    const response = await axios.get<Trademark[]>(`${API_URL}/api/ThuongHieu?trangThai=${targetStatus}`);
-    setTrademarks(response.data);
-  } catch (error) {
-    Swal.fire({
-      icon: "error",
-      title: "Lỗi",
-      text: "Lỗi khi tải danh sách thương hiệu: " + (error as any).response?.data?.message || (error as Error).message,
-      timer: 3000,
-      timerProgressBar: true,
-      showConfirmButton: false,
-      showCloseButton: true,
-    });
-  } finally {
-    setLoading(false);
-  }
-}, [activeTab, API_URL]);
+    try {
+      setLoading(true);
+      const targetStatus = activeTab === "active" ? 1 : 0;
+      const response = await axios.get<Trademark[]>(`${API_URL}/api/ThuongHieu?trangThai=${targetStatus}`);
+      setTrademarks(response.data);
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Lỗi khi tải danh sách thương hiệu: " + (error as any).response?.data?.message || (error as Error).message,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, API_URL]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value.toLowerCase());
@@ -222,14 +222,16 @@ const AdminTrademark = () => {
     try {
       setIsProcessing(true);
       const base64Image = getBase64(hinhAnhMoi);
-      const response = await axios.post<Trademark[]>(`${API_URL}/api/ThuongHieu`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          TenThuongHieu: tenThuongHieuMoi,
-          HinhAnh: base64Image,
-          TrangThai: 1,
-        }),
+      const token = localStorage.getItem("token");
+      const response = await axios.post<Trademark>(`${API_URL}/api/ThuongHieu`, {
+        tenThuongHieu: tenThuongHieuMoi,
+        hinhAnh: base64Image,
+        trangThai: 1,
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
       });
       setTenThuongHieuMoi("");
       setHinhAnhMoi("");
@@ -249,7 +251,7 @@ const AdminTrademark = () => {
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: "Lỗi khi thêm thương hiệu: " + (error as Error).message,
+        text: "Lỗi khi thêm thương hiệu: " + (error as any).response?.data?.message || (error as Error).message,
         timer: 3000,
         timerProgressBar: true,
         showConfirmButton: false,
@@ -265,12 +267,13 @@ const AdminTrademark = () => {
     try {
       setIsProcessing(true);
       setErrorMessage("");
-     
-       const token = localStorage.getItem("token");
+
+      const token = localStorage.getItem("token");
       const base64Image = getBase64(trademarkDangSua.hinhAnh || "");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkDangSua.maThuongHieu}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
         },
         body: JSON.stringify({
@@ -327,9 +330,10 @@ const AdminTrademark = () => {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanXoa.maThuongHieu}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
-         },
+        },
         body: JSON.stringify({
           MaThuongHieu: trademarkCanXoa.maThuongHieu,
           TenThuongHieu: trademarkCanXoa.tenThuongHieu,
@@ -383,9 +387,10 @@ const AdminTrademark = () => {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanKhoiPhuc.maThuongHieu}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
-         },
+        },
         body: JSON.stringify({
           MaThuongHieu: trademarkCanKhoiPhuc.maThuongHieu,
           TenThuongHieu: trademarkCanKhoiPhuc.tenThuongHieu,
@@ -439,9 +444,10 @@ const AdminTrademark = () => {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/ThuongHieu/${trademarkCanXoaVinhVien.maThuongHieu}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : undefined,
-         },
+        },
       });
       if (!response.ok) {
         const errorText = await response.text();
