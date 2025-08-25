@@ -1,12 +1,14 @@
+// Testing.tsx (updated)
 import React, { useState, useEffect } from "react";
 import { Upload, X, Sparkles, Camera, User } from "lucide-react";
 import Swal from "sweetalert2";
 
 interface TestingsProps {
   defaultClothingImage?: string;
+  loaiSanPham?: string;
 }
 
-const Testings: React.FC<TestingsProps> = ({ defaultClothingImage }) => {
+const Testings: React.FC<TestingsProps> = ({ defaultClothingImage, loaiSanPham }) => {
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
   const [preview1, setPreview1] = useState<string | null>(null);
@@ -16,7 +18,7 @@ const Testings: React.FC<TestingsProps> = ({ defaultClothingImage }) => {
   const [zoom1, setZoom1] = useState<number>(1);
   const [zoom2, setZoom2] = useState<number>(1);
   const [zoomOutput, setZoomOutput] = useState<number>(1);
-  const [textPrompt, setTextPrompt] = useState<string>("Kết hợp ảnh của bạn với ảnh đồ để tạo phong cách hoàn hảo");
+  const [textPrompt, setTextPrompt] = useState<string>(`Kết hợp ảnh của bạn với ảnh ${loaiSanPham || 'đồ'} để tạo phong cách hoàn hảo`);
 
   const API_URL = "https://bicacuatho.azurewebsites.net/";
 
@@ -168,7 +170,7 @@ const Testings: React.FC<TestingsProps> = ({ defaultClothingImage }) => {
     setZoom1(1);
     setZoom2(1);
     setZoomOutput(1);
-    setTextPrompt("Kết hợp ảnh của bạn với áo/quần để tạo phong cách hoàn hảo");
+    setTextPrompt(`Kết hợp ảnh của bạn với ${loaiSanPham || 'áo/quần'} để tạo phong cách hoàn hảo`);
   };
 
   return (
@@ -184,7 +186,7 @@ const Testings: React.FC<TestingsProps> = ({ defaultClothingImage }) => {
                 type="text"
                 value={textPrompt}
                 onChange={(e) => setTextPrompt(e.target.value)}
-                placeholder="Nhập yêu cầu thử đồ (ví dụ: Mặc áo từ ảnh thứ hai)"
+                placeholder={`Nhập yêu cầu thử đồ (ví dụ: Mặc ${loaiSanPham || 'đồ'} từ ảnh thứ hai)`}
                 className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl bg-white text-gray-800 focus:outline-none focus:ring-4 focus:ring-purple-200 focus:border-purple-400 transition-all duration-300 text-center shadow-inner"
               />
             </div>

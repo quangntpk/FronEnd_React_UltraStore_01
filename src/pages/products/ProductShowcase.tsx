@@ -23,6 +23,7 @@ interface ApiProduct {
   trangThai: number;
   soLuongDaBan: number;
   hot: boolean;
+  khuyenMaiMax: number | null;
 }
 
 // Interface cho ProductCard
@@ -38,6 +39,7 @@ interface Product {
   soLuong: number;
   soLuongDaBan: number;
   hot: boolean;
+  khuyenMaiMax: number;
 }
 
 const formatter = new Intl.NumberFormat("vi-VN", {
@@ -101,7 +103,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
     <div
       ref={ref}
       className={cn(
-        "group relative bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-2xl h-full flex flex-col",
+        "group relative bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-2xl h-[550px] flex flex-col",
         "transition-all duration-700 ease-out transform hover:-translate-y-2",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
       )}
@@ -124,6 +126,12 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
+          {product.khuyenMaiMax > 0 && (
+              <div className="absolute top-4 right-4 bg-gradient-to-br from-red-500 to-red-600 text-white p-3 min-w-[80px] min-h-[80px] flex flex-col items-center justify-center shadow-lg z-10 rounded">
+                <div className="text-xs font-medium">Khuyến Mãi</div>
+                <div className="text-lg font-bold"> -{product.khuyenMaiMax}%</div>
+              </div>
+            )}
           
           {/* Overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -163,19 +171,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
             </Button>
           </div>
 
-          {/* Quick Add to Cart */}
-          <div className={cn(
-            "absolute bottom-4 left-4 right-4 transition-all duration-500",
-            isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          )}>
-            <Button
-              className="w-full bg-black/80 hover:bg-black text-white backdrop-blur-sm border-0 shadow-lg"
-              onClick={addToCart}
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              Thêm vào giỏ
-            </Button>
-          </div>
+          {/* Quick Add to Cart */}          
         </div>
 
         {/* Content */}
@@ -185,18 +181,6 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
             <span className="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
               {product.thuonghieu}
             </span>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    "w-4 h-4",
-                    i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                  )}
-                />
-              ))}
-              <span className="text-sm text-gray-500 ml-1">({product.soLuongDaBan})</span>
-            </div>
           </div>
 
           {/* Product Name */}
@@ -216,21 +200,17 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
               <span className="text-gray-600">{product.chatlieu}</span>
             </div>
             <div className="flex items-center text-sm">
-              <span className="font-medium text-gray-700 w-20">Đã bán:</span>
-              <span className="text-gray-600">{product.soLuongDaBan} sản phẩm</span>
-            </div>
-            <div className="flex items-center text-sm">
               <span className="font-medium text-gray-700 w-20">Còn lại:</span>
               <span className="text-gray-600">{product.soLuong} sản phẩm</span>
             </div>
           </div>
 
           {/* Price */}
-          <div className="mt-auto">
+          <div className="mt-auto absolute bottom-6 left-6 right-6">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <span className="text-2xl font-bold text-red-600">
-                  {formatter.format(product.price)}
+                    {(product.price / 1000).toFixed(3)} VND
                 </span>
                 {product.hot && (
                   <span className="text-sm text-green-600 font-medium">
@@ -240,19 +220,6 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
               </div>
               
               {/* Progress bar for stock */}
-              <div className="text-right">
-                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-red-500 to-green-500 transition-all duration-1000"
-                    style={{
-                      width: `${Math.min(100, (product.soLuongDaBan / (product.soLuongDaBan + product.soLuong)) * 100)}%`
-                    }}
-                  />
-                </div>
-                <span className="text-xs text-gray-500 mt-1 block">
-                  {Math.round((product.soLuongDaBan / (product.soLuongDaBan + product.soLuong)) * 100)}% đã bán
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -291,10 +258,11 @@ const ProductShowcase = ({ productId }: ProductShowcaseProps) => {
       thuonghieu: item.thuongHieu,
       imageSrc: item.hinh[0] || "",
       colorClass: colorClasses[index % colorClasses.length],
-      price: item.donGia,
+      price: item.donGia*(100- (item.khuyenMaiMax || 0))/100,
       soLuong: item.soLuong,
       soLuongDaBan: item.soLuongDaBan,
       hot: item.hot,
+      khuyenMaiMax: item.khuyenMaiMax
     }));
   };
 
@@ -303,13 +271,14 @@ const ProductShowcase = ({ productId }: ProductShowcaseProps) => {
       try {
         setLoading(true);
         const apiUrl = productId
-          ? `https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPhamLQ?id=${productId}`
-          : `https://bicacuatho.azurewebsites.net/api/SanPham/ListSanPhamLQ`;
+          ? `https://localhost:7051/api/SanPham/ListSanPhamLQ?id=${productId}`
+          : `https://localhost:7051/api/api/SanPham/ListSanPhamLQ`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error("Failed to fetch products");
         }
         const data: ApiProduct[] = await response.json();
+        console.log(data)
         const transformedProducts = transformApiData(data);
         setProducts(transformedProducts);
       } catch (err) {
