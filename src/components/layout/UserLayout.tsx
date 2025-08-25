@@ -33,6 +33,7 @@ import {
   Phone,
   MessageCircle,
   Send,
+  BadgePercent
 } from "lucide-react";
 import {
   NavigationMenu,
@@ -64,11 +65,11 @@ const UserLayout = () => {
     { title: "TRANG CHỦ", path: "/", icon: <LayoutGrid className="h-5 w-5" /> },
     { title: "SẢN PHẨM", path: "/products", icon: <ShoppingBag className="h-5 w-5" /> },
     { title: "COMBO", path: "/combos", icon: <Package className="h-5 w-5" /> },
+    { title: "KHUYẾN MẠI", path: "/KhuyenMais", icon: <BadgePercent className="h-5 w-5" /> },
     { title: "GIẢM GIÁ", path: "/voucher", icon: <Ticket className="h-5 w-5" /> },
     { title: "TIN TỨC", path: "/blogs", icon: <Newspaper className="h-5 w-5" /> },
     { title: "LIÊN HỆ", path: "/contact", icon: <Mail className="h-5 w-5" /> },
   ];
-
   // Fetch cart data function
   const fetchCartData = useCallback(async () => {
     if (!isLoggedIn) {

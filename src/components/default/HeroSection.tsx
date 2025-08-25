@@ -109,9 +109,9 @@ const HeroSection = () => {
         <div className="md:w-1/2 space-y-6 text-center md:text-left">
           <h1 className="text-4xl md:text-5xl font-bold leading-tight">
             Khám phá bộ sưu tập{" "}
-            <span className="bg-gradient-to-r from-crocus-500 to-crocus-700 bg-clip-text text-transparent">
-              {APP_TITLE}
-            </span>{" "}
+           <span className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent border-b-4 border-pink-400 drop-shadow-lg">
+            {APP_TITLE}
+          </span>{" "}
             2025
           </h1>
           <p className="text-lg text-gray-700 max-w-lg">

@@ -28,7 +28,7 @@ const CategoryView = () => {
         const response = await fetch(`${API_URL}/api/LoaiSanPham`, {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,            
+            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
           },
         });
 
@@ -94,9 +94,9 @@ const CategoryView = () => {
   }
 
   return (
-    <section className="w-full py-2 bg-gradient-to-b from-[#f8f5ff] to-white">
+    <section className="w-full py-2 bg-gradient-to-b from-[#f8f5ff] to-white rounded-[10px] shadow-md my-6 min-h-[250px]">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-[#9b87f5] mt-2 mb-3 text-center md:text-left">
+        <h2 className="text-3xl font-bold text-[#9b87f5] mt-2 mb-3 text-center md:text-left" style={{marginBottom: '20px'}}>
           DANH MỤC
         </h2>
         <Carousel
@@ -106,7 +106,7 @@ const CategoryView = () => {
             loop: true,
           }}
         >
-          <CarouselContent className="gap-2">
+          <CarouselContent className="gap-24">
             {loaiSanPhams.map((loai) => (
               <CarouselItem
                 key={loai.maLoaiSanPham || loai.kiHieu}
@@ -117,17 +117,18 @@ const CategoryView = () => {
                     to={`/products?category=${encodeURIComponent(loai.tenLoaiSanPham || "")}`}
                     className="flex flex-col items-center justify-center"
                   >
-                    <div className="relative w-20 h-20 sm:w-20 sm:h-20 md:w-24 md:h-24 mx-auto">
+                    <div className="relative w-20 h-20 sm:w-20 sm:h-20 md:w-48 md:h-24 mx-auto border-10">
                       <img
                         src={getImageSrc(loai.hinhAnh)}
                         alt={loai.tenLoaiSanPham || "Danh mục"}
-                        className="w-full h-full rounded-full object-cover border-2 border-[#9b87f5] transition-opacity duration-300 hover:opacity-90"
-                        onError={(e) => (e.currentTarget.src = "/fallback-image.jpg")}
+                        className="w-full h-full object-cover border-2 border-[#9b87f5] rounded-lg transition-opacity duration-300 hover:opacity-90"
                       />
+
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-gray-700 line-clamp-2">
+                    <p className="w-full ml-[100px] text-sm font-semibold text-gray-700 line-clamp-2 text-xl font-bold" style={{ marginTop: '10px' }}>
                       {loai.tenLoaiSanPham || "Không xác định"}
                     </p>
+
                   </Link>
                 </div>
               </CarouselItem>

@@ -1505,7 +1505,7 @@ const ProductListing = () => {
           </div>
         ) : (
           <>
-            <div className="mb-8 flex items-center justify-between bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+            <div className="mb-8 flex items-center justify-between bg-gray-700 rounded-2xl shadow-lg p-6 border border-gray-700">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-green-400" />
@@ -1766,7 +1766,7 @@ const ProductListing = () => {
         )}
 
         {filteredProducts.length > 0 && (
-          <div className="mt-24 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 rounded-3xl p-12 shadow-xl border border-gray-700">
+          <div className="mt-24 bg-gradient-to-r from-gray-500 via-gray-600 to-gray-500 rounded-3xl p-12 shadow-xl border border-gray-700">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-white mb-4">Thống Kê Sản Phẩm</h2>
               <p className="text-gray-300">Khám phá những con số thú vị về bộ sưu tập của chúng tôi</p>
@@ -1841,11 +1841,6 @@ const ProductListing = () => {
             </div>
           </div>
         )}
-        {/* Footer Info */}
-        <div className="mt-12 text-center text-gray-400 text-sm">
-          <p>© 2024 Fashion Store. Tạo bởi <span className="text-purple-400 font-semibold">@trungtrungcontact</span></p>
-          <p className="mt-2">Cập nhật lần cuối: {new Date().toLocaleDateString('vi-VN')}</p>
-        </div>
       </div>
     </div>
   );
