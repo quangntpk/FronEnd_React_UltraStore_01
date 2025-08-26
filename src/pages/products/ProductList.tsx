@@ -1421,7 +1421,7 @@ const ProductListing = () => {
                 <Button
                   variant="outline"
                   onClick={clearFilters}
-                  className="px-8 h-12 rounded-xl border-2 border-gray-600 text-white hover:bg-red-900/30 hover:border-red-400 hover:text-red-400"
+                  className="px-8 h-12 rounded-xl border-2 border-gray-600 text-black hover:bg-red-900/30 hover:border-red-400 hover:text-red-400"
                 >
                   Xóa Tất Cả Bộ Lọc
                 </Button>

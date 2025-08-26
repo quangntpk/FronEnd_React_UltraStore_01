@@ -142,6 +142,7 @@ const PromotionList = () => {
       setLoading(true);
       const response = await fetch('https://bicacuatho.azurewebsites.net/api/KhuyenMai/ListKhuyenMaiUser');
       const data = await response.json();
+      console.log(data)
       setPromotions(data);
     } catch (error) {
       console.error('Error fetching promotions:', error);
